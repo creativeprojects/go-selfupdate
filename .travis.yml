@@ -1,0 +1,47 @@
+language: go
+
+jobs:
+  include:
+    - os: linux
+      go: "1.13.x"
+      cache:
+        directories:
+          - $HOME/.cache/go-build
+          - $HOME/gopath/pkg/mod
+
+    - os: osx
+      go: "1.13.x"
+      cache:
+        directories:
+          - $HOME/Library/Caches/go-build
+          - $HOME/gopath/pkg/mod
+
+    - os: windows
+      go: "1.13.x"
+      cache:
+        directories:
+          - $USERPROFILE/AppData/Local/go-build
+          - $USERPROFILE/gopath/pkg/mod
+
+env:
+  - GO111MODULE=on
+
+install:
+  - go version
+  - go env
+  - go get -t -d -v ./...
+
+script:
+  - go build ./selfupdate/
+  - go build ./cmd/selfupdate-example/
+  - go build ./cmd/detect-latest-release/
+  - go build ./cmd/go-get-release/
+  - |
+    if [[ "${GITHUB_TOKEN}" != "" ]]; then
+      go test -v -race -coverprofile=coverage.txt ./selfupdate
+    else
+      go test -v -race -short ./selfupdate
+    fi
+
+after_success:
+  - if [ -f coverage.txt ]; then bash <(curl -s https://codecov.io/bash); fi

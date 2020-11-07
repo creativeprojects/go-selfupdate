@@ -1,0 +1,63 @@
+package main
+
+import (
+	"flag"
+	"fmt"
+	"os"
+	"regexp"
+	"strings"
+
+	"github.com/creativeprojects/go-github-selfupdate/selfupdate"
+)
+
+func usage() {
+	fmt.Fprintln(os.Stderr, "Usage: detect-latest-release [flags] {repo}\n\n  {repo} must be URL to GitHub repository or in 'owner/name' format.\n\nFlags:\n")
+	flag.PrintDefaults()
+}
+
+func main() {
+	asset := flag.Bool("asset", false, "Output URL to asset")
+	notes := flag.Bool("release-notes", false, "Output release notes additionally")
+	url := flag.Bool("url", false, "Output URL for release page")
+
+	flag.Usage = usage
+	flag.Parse()
+
+	if flag.NArg() != 1 {
+		usage()
+		os.Exit(1)
+	}
+
+	repo := flag.Arg(0)
+	repo = strings.TrimPrefix(repo, "https://")
+	repo = strings.TrimPrefix(repo, "github.com/")
+
+	matched, err := regexp.MatchString("[^/]+/[^/]+", repo)
+	if err != nil {
+		panic(err)
+	}
+	if !matched {
+		usage()
+		os.Exit(1)
+	}
+
+	latest, found, err := selfupdate.DetectLatest(repo)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	if !found {
+		fmt.Println("No release was found")
+	} else {
+		if *asset {
+			fmt.Println(latest.AssetURL)
+		} else if *url {
+			fmt.Println(latest.URL)
+		} else {
+			fmt.Println(latest.Version)
+			if *notes {
+				fmt.Printf("\nRelease Notes:\n%s\n", latest.ReleaseNotes)
+			}
+		}
+	}
+}
