@@ -243,7 +243,6 @@ func TestDetectFromGitHubEnterpriseRepo(t *testing.T) {
 }
 
 func TestFindReleaseAndAsset(t *testing.T) {
-	EnableLog()
 	type findReleaseAndAssetFixture struct {
 		name            string
 		rels            *github.RepositoryRelease

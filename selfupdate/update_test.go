@@ -219,7 +219,7 @@ func TestBrokenBinaryUpdate(t *testing.T) {
 	if err == nil {
 		t.Fatal("Error should occur for broken package")
 	}
-	if !strings.Contains(err.Error(), "failed to uncompress .tar.gz file") {
+	if !strings.Contains(err.Error(), "failed to decompress .tar.gz file") {
 		t.Fatal("Unexpected error:", err)
 	}
 }
@@ -251,7 +251,7 @@ func TestBrokenAsset(t *testing.T) {
 	if err == nil {
 		t.Fatal("Error should occur for URL not found")
 	}
-	if !strings.Contains(err.Error(), "failed to uncompress zip file") {
+	if !strings.Contains(err.Error(), "failed to decompress zip file") {
 		t.Fatal("Unexpected error:", err)
 	}
 }

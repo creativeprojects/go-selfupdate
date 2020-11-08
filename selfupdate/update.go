@@ -21,7 +21,7 @@ func uncompressAndUpdate(src io.Reader, assetURL, cmdPath string) error {
 		return err
 	}
 
-	log.Println("Will update", cmdPath, "to the latest downloaded from", assetURL)
+	log.Print("Will update", cmdPath, "to the latest downloaded from", assetURL)
 	return update.Apply(asset, update.Options{
 		TargetPath: cmdPath,
 	})
@@ -61,7 +61,7 @@ func (up *Updater) UpdateTo(rel *Release, cmdPath string) error {
 		return fmt.Errorf("failed to call GitHub Releases API for getting an asset(ID: %d) for repository '%s/%s': %s", rel.AssetID, rel.RepoOwner, rel.RepoName, err)
 	}
 	if redirectURL != "" {
-		log.Println("Redirect URL was returned while trying to download a release asset from GitHub API. Falling back to downloading from asset URL directly:", redirectURL)
+		log.Print("Redirect URL was returned while trying to download a release asset from GitHub API. Falling back to downloading from asset URL directly:", redirectURL)
 		src, err = up.downloadDirectlyFromURL(redirectURL)
 		if err != nil {
 			return err
@@ -83,7 +83,7 @@ func (up *Updater) UpdateTo(rel *Release, cmdPath string) error {
 		return fmt.Errorf("failed to call GitHub Releases API for getting an validation asset(ID: %d) for repository '%s/%s': %s", rel.ValidationAssetID, rel.RepoOwner, rel.RepoName, err)
 	}
 	if validationRedirectURL != "" {
-		log.Println("Redirect URL was returned while trying to download a release validation asset from GitHub API. Falling back to downloading from asset URL directly:", redirectURL)
+		log.Print("Redirect URL was returned while trying to download a release validation asset from GitHub API. Falling back to downloading from asset URL directly:", redirectURL)
 		validationSrc, err = up.downloadDirectlyFromURL(validationRedirectURL)
 		if err != nil {
 			return err
@@ -129,14 +129,14 @@ func (up *Updater) UpdateCommand(cmdPath string, current *semver.Version, slug s
 		return nil, err
 	}
 	if !ok {
-		log.Println("No release detected. Current version is considered up-to-date")
+		log.Print("No release detected. Current version is considered up-to-date")
 		return &Release{Version: current.String(), version: current}, nil
 	}
 	if current.Equal(rel.version) {
-		log.Println("Current version", current, "is the latest. Update is not needed")
+		log.Print("Current version", current, "is the latest. Update is not needed")
 		return rel, nil
 	}
-	log.Println("Will update", cmdPath, "to the latest version", rel.Version)
+	log.Print("Will update", cmdPath, "to the latest version", rel.Version)
 	if err := up.UpdateTo(rel, cmdPath); err != nil {
 		return nil, err
 	}

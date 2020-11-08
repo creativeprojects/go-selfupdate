@@ -37,7 +37,7 @@ func getArchiveFileExt(file string) string {
 	return filepath.Ext(file)
 }
 
-func TestUncompress(t *testing.T) {
+func TestDecompress(t *testing.T) {
 	for _, n := range []string{
 		"testdata/foo.zip",
 		"testdata/single-file.zip",
@@ -67,24 +67,24 @@ func TestUncompress(t *testing.T) {
 			}
 			s := string(bytes)
 			if s != "this is test\n" {
-				t.Fatal("Uncompressing zip failed into unexpected content", s)
+				t.Fatal("Decompressing zip failed into unexpected content", s)
 			}
 		})
 	}
 }
 
-func TestUncompressInvalidArchive(t *testing.T) {
+func TestDecompressInvalidArchive(t *testing.T) {
 	for _, a := range []struct {
 		name string
 		msg  string
 	}{
 		{"testdata/invalid.zip", "not a valid zip file"},
-		{"testdata/invalid.gz", "failed to uncompress gzip file"},
+		{"testdata/invalid.gz", "failed to decompress gzip file"},
 		{"testdata/invalid-tar.tar.gz", "failed to unarchive .tar file"},
-		{"testdata/invalid-gzip.tar.gz", "failed to uncompress .tar.gz file"},
-		{"testdata/invalid.xz", "failed to uncompress xzip file"},
+		{"testdata/invalid-gzip.tar.gz", "failed to decompress .tar.gz file"},
+		{"testdata/invalid.xz", "failed to decompress xzip file"},
 		{"testdata/invalid-tar.tar.xz", "failed to unarchive .tar file"},
-		{"testdata/invalid-xz.tar.xz", "failed to uncompress .tar.xz file"},
+		{"testdata/invalid-xz.tar.xz", "failed to decompress .tar.xz file"},
 	} {
 		f, err := os.Open(a.name)
 		if err != nil {

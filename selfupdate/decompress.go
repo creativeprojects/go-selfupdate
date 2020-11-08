@@ -39,12 +39,12 @@ func DecompressCommand(src io.Reader, url, cmd string) (io.Reader, error) {
 			return fileType.decompress(src, url, cmd)
 		}
 	}
-	log.Println("File is not compressed", url)
+	log.Print("File is not compressed", url)
 	return src, nil
 }
 
 func unzip(src io.Reader, url, cmd string) (io.Reader, error) {
-	log.Println("Decompressing zip file", url)
+	log.Print("Decompressing zip file", url)
 
 	// Zip format requires its file size for Decompressing.
 	// So we need to read the HTTP response into a buffer at first.
@@ -62,7 +62,7 @@ func unzip(src io.Reader, url, cmd string) (io.Reader, error) {
 	for _, file := range z.File {
 		_, name := filepath.Split(file.Name)
 		if !file.FileInfo().IsDir() && matchExecutableName(cmd, name) {
-			log.Println("Executable file", file.Name, "was found in zip archive")
+			log.Print("Executable file", file.Name, "was found in zip archive")
 			return file.Open()
 		}
 	}
@@ -71,7 +71,7 @@ func unzip(src io.Reader, url, cmd string) (io.Reader, error) {
 }
 
 func untar(src io.Reader, url, cmd string) (io.Reader, error) {
-	log.Println("Decompressing tar.gz file", url)
+	log.Print("Decompressing tar.gz file", url)
 
 	gz, err := gzip.NewReader(src)
 	if err != nil {
@@ -82,7 +82,7 @@ func untar(src io.Reader, url, cmd string) (io.Reader, error) {
 }
 
 func gunzip(src io.Reader, url, cmd string) (io.Reader, error) {
-	log.Println("Decompressing gzip file", url)
+	log.Print("Decompressing gzip file", url)
 
 	r, err := gzip.NewReader(src)
 	if err != nil {
@@ -94,12 +94,12 @@ func gunzip(src io.Reader, url, cmd string) (io.Reader, error) {
 		return nil, fmt.Errorf("file name '%s' does not match to command '%s' found in %s", name, cmd, url)
 	}
 
-	log.Println("Executable file", name, "was found in gzip file")
+	log.Print("Executable file", name, "was found in gzip file")
 	return r, nil
 }
 
 func untarxz(src io.Reader, url, cmd string) (io.Reader, error) {
-	log.Println("Decompressing tar.xz file", url)
+	log.Print("Decompressing tar.xz file", url)
 
 	xzip, err := xz.NewReader(src)
 	if err != nil {
@@ -110,14 +110,14 @@ func untarxz(src io.Reader, url, cmd string) (io.Reader, error) {
 }
 
 func unxz(src io.Reader, url, cmd string) (io.Reader, error) {
-	log.Println("Decompressing xzip file", url)
+	log.Print("Decompressing xzip file", url)
 
 	xzip, err := xz.NewReader(src)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decompress xzip file downloaded from %s: %s", url, err)
 	}
 
-	log.Println("Decompressed file from xzip is assumed to be an executable", cmd)
+	log.Print("Decompressed file from xzip is assumed to be an executable", cmd)
 	return xzip, nil
 }
 
@@ -155,7 +155,7 @@ func unarchiveTar(src io.Reader, url, cmd string) (io.Reader, error) {
 		}
 		_, name := filepath.Split(h.Name)
 		if matchExecutableName(cmd, name) {
-			log.Println("Executable file", h.Name, "was found in tar archive")
+			log.Print("Executable file", h.Name, "was found in tar archive")
 			return t, nil
 		}
 	}
