@@ -2,11 +2,15 @@ package selfupdate
 
 import (
 	"fmt"
+	stdlog "log"
+	"os"
 	"regexp"
 	"strings"
 	"testing"
 
 	"github.com/google/go-github/v30/github"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func skipRateLimitExceeded(t *testing.T, err error) {
@@ -221,7 +225,7 @@ func TestDetectFromBrokenGitHubEnterpriseURL(t *testing.T) {
 	}
 }
 
-func TestFindReleaseAndAsset(t *testing.T) {
+func TestFindAssetFromRelease(t *testing.T) {
 	type findReleaseAndAssetFixture struct {
 		name            string
 		rels            *github.RepositoryRelease
@@ -431,4 +435,55 @@ func TestFindReleaseAndAsset(t *testing.T) {
 		}
 	}
 
+}
+
+func TestFindReleaseAndAsset(t *testing.T) {
+	SetLogger(stdlog.New(os.Stderr, "", 0))
+	defer SetLogger(&emptyLogger{})
+
+	// stupid library using pointer to strings everywhere
+	tag2 := "v2.0.0"
+	rel2 := "rel2"
+	defaultAsset := fmt.Sprintf("asset%s_%s.tgz", runtimeOS, runtimeArch)
+	testData := []struct {
+		name              string
+		os                string
+		arch              string
+		releases          []*github.RepositoryRelease
+		version           string
+		filters           []*regexp.Regexp
+		found             bool
+		expectedAssetName *string
+	}{
+		{
+			name: "simple match",
+			os:   runtimeOS,
+			arch: runtimeArch,
+			releases: []*github.RepositoryRelease{
+				{
+					Name:    &rel2,
+					TagName: &tag2,
+					Assets: []*github.ReleaseAsset{
+						{
+							Name: &defaultAsset,
+						},
+					},
+				},
+			},
+			version:           "v2.0.0",
+			filters:           nil,
+			found:             true,
+			expectedAssetName: &defaultAsset,
+		},
+	}
+
+	for _, testItem := range testData {
+		t.Run(testItem.name, func(t *testing.T) {
+			// If I change runtimeArch here it's going to bug randomly when the tests are running in parallel
+			// TODO find a way to be able to safely change arch to ARM and tests the additional arch
+			_, asset, _, found := findReleaseAndAsset(testItem.releases, testItem.version, testItem.filters)
+			require.Equal(t, testItem.found, found)
+			assert.Equal(t, testItem.expectedAssetName, asset.Name)
+		})
+	}
 }

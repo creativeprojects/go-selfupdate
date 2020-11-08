@@ -28,6 +28,10 @@ type Release struct {
 	RepoOwner string
 	// RepoName is the name of the repository of the release
 	RepoName string
+	// OS this release is for
+	OS string
+	// Arch this release is for
+	Arch string
 	// version is the parsed *semver.Version
 	version *semver.Version
 }

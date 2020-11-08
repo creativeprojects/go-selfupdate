@@ -86,17 +86,37 @@ func findValidationAsset(rel *github.RepositoryRelease, validationName string) (
 	return nil, false
 }
 
-func findReleaseAndAsset(rels []*github.RepositoryRelease,
+func findReleaseAndAsset(
+	rels []*github.RepositoryRelease,
 	targetVersion string,
-	filters []*regexp.Regexp) (*github.RepositoryRelease, *github.ReleaseAsset, *semver.Version, bool) {
+	filters []*regexp.Regexp,
+) (*github.RepositoryRelease, *github.ReleaseAsset, *semver.Version, bool) {
+	// we put the detected arch at the end of the list: that's fine for ARM so far,
+	// as the additional arch are more accurate than the generic one
+	for _, arch := range append(additionalArch, runtimeArch) {
+		release, asset, version, found := findReleaseAndAssetForArch(arch, rels, targetVersion, filters)
+		if found {
+			return release, asset, version, found
+		}
+	}
+
+	return nil, nil, nil, false
+}
+
+func findReleaseAndAssetForArch(
+	arch string,
+	rels []*github.RepositoryRelease,
+	targetVersion string,
+	filters []*regexp.Regexp,
+) (*github.RepositoryRelease, *github.ReleaseAsset, *semver.Version, bool) {
 	// Generate candidates
 	suffixes := make([]string, 0, 2*7*2)
 	for _, sep := range []rune{'_', '-'} {
 		for _, ext := range []string{".zip", ".tar.gz", ".tgz", ".gzip", ".gz", ".tar.xz", ".xz", ".bz2", ""} {
-			suffix := fmt.Sprintf("%s%c%s%s", useOS, sep, useArch, ext)
+			suffix := fmt.Sprintf("%s%c%s%s", runtimeOS, sep, arch, ext)
 			suffixes = append(suffixes, suffix)
-			if useOS == "windows" {
-				suffix = fmt.Sprintf("%s%c%s.exe%s", useOS, sep, useArch, ext)
+			if runtimeOS == "windows" {
+				suffix = fmt.Sprintf("%s%c%s.exe%s", runtimeOS, sep, arch, ext)
 				suffixes = append(suffixes, suffix)
 			}
 		}
@@ -121,17 +141,19 @@ func findReleaseAndAsset(rels []*github.RepositoryRelease,
 	}
 
 	if release == nil {
-		log.Printf("Could not find any release for os %s and arch %s", useOS, useArch)
+		log.Printf("Could not find any release for os %s and arch %s", runtimeOS, arch)
 		return nil, nil, nil, false
 	}
 
 	return release, asset, ver, true
 }
 
-// DetectLatest tries to get the latest version of the repository on GitHub. 'slug' means 'owner/name' formatted string.
+// DetectLatest tries to get the latest version of the repository on GitHub.
+// 'slug' means 'owner/name' formatted string.
 // It fetches releases information from GitHub API and find out the latest release with matching the tag names and asset names.
-// Drafts and pre-releases are ignored. Assets would be suffixed by the OS name and the arch name such as 'foo_linux_amd64'
-// where 'foo' is a command name. '-' can also be used as a separator. File can be compressed with zip, gzip, zxip, tar&zip or tar&zxip.
+// Drafts and pre-releases are ignored.
+// Assets would be suffixed by the OS name and the arch name such as 'foo_linux_amd64' where 'foo' is a command name.
+// '-' can also be used as a separator. File can be compressed with zip, gzip, zxip, bzip2, tar&gzip or tar&zxip.
 // So the asset can have a file extension for the corresponding compression format such as '.zip'.
 // On Windows, '.exe' also can be contained such as 'foo_windows_amd64.exe.zip'.
 func (up *Updater) DetectLatest(slug string) (release *Release, found bool, err error) {

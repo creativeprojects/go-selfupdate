@@ -107,7 +107,7 @@ func (up *Updater) UpdateTo(rel *Release, cmdPath string) error {
 // UpdateCommand updates a given command binary to the latest version.
 // 'slug' represents 'owner/name' repository on GitHub and 'current' means the current version.
 func (up *Updater) UpdateCommand(cmdPath string, current *semver.Version, slug string) (*Release, error) {
-	if useOS == "windows" && !strings.HasSuffix(cmdPath, ".exe") {
+	if runtimeOS == "windows" && !strings.HasSuffix(cmdPath, ".exe") {
 		// Ensure to add '.exe' to given path on Windows
 		cmdPath = cmdPath + ".exe"
 	}

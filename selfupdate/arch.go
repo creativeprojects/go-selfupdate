@@ -1,24 +1,33 @@
 package selfupdate
 
-import "runtime"
-
-var (
-	useOS   = runtime.GOOS
-	useArch = runtime.GOARCH
+import (
+	"fmt"
+	"runtime"
 )
 
-// SetArch forces the use of a different architecture than the default runtime.GOARCH
-//
-// For example SetArch("arm_v6") instead of the default "arm"
-func SetArch(arch string) {
-	if arch == "" {
-		// Back to the default
-		arch = runtime.GOARCH
+const (
+	minARM = 5
+	maxARM = 7
+)
+
+var (
+	runtimeOS      = runtime.GOOS
+	runtimeArch    = runtime.GOARCH
+	additionalArch = generateAdditionalArch(runtimeArch, goarm)
+)
+
+// generateAdditionalArch we can use depending on the type of CPU
+func generateAdditionalArch(arch string, goarm uint8) []string {
+	additionalArch := make([]string, 0, maxARM-minARM)
+	if arch == "arm" && goarm >= minARM && goarm <= maxARM {
+		for v := goarm; v >= minARM; v-- {
+			additionalArch = append(additionalArch, fmt.Sprintf("armv%d", v))
+		}
 	}
-	useArch = arch
+	return additionalArch
 }
 
-// GetOSArch returns the OS and Architecture currently used to detect a new version
-func GetOSArch() (string, string) {
-	return useOS, useArch
+// GetOSArch returns the OS and Architecture(s) currently used to detect a new version
+func GetOSArch() (os string, arch []string) {
+	return runtimeOS, append([]string{runtimeArch}, additionalArch...)
 }
