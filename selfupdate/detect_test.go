@@ -31,7 +31,7 @@ func TestDetectReleaseWithVersionPrefix(t *testing.T) {
 		t.Fatal("Release detected but nil returned for it")
 	}
 	if r.LessThan("2.0.0") {
-		t.Error("Incorrect version:", r.Version)
+		t.Error("Incorrect version:", r.Version())
 	}
 	if !strings.HasSuffix(r.AssetURL, ".zip") && !strings.HasSuffix(r.AssetURL, ".tar.gz") {
 		t.Error("Incorrect URL for asset:", r.AssetURL)

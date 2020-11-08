@@ -11,14 +11,11 @@ import (
 )
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "Usage: detect-latest-release [flags] {repo}\n\n  {repo} must be URL to GitHub repository or in 'owner/name' format.\n\nFlags:\n")
+	fmt.Fprint(os.Stderr, "Usage: detect-latest-release {repo}\n\n  {repo} must be URL to GitHub repository or in 'owner/name' format.\n\n")
 	flag.PrintDefaults()
 }
 
 func main() {
-	asset := flag.Bool("asset", false, "Output URL to asset")
-	notes := flag.Bool("release-notes", false, "Output release notes additionally")
-	url := flag.Bool("url", false, "Output URL for release page")
 
 	flag.Usage = usage
 	flag.Parse()
@@ -48,16 +45,10 @@ func main() {
 	}
 	if !found {
 		fmt.Println("No release was found")
-	} else {
-		if *asset {
-			fmt.Println(latest.AssetURL)
-		} else if *url {
-			fmt.Println(latest.URL)
-		} else {
-			fmt.Println(latest.Version)
-			if *notes {
-				fmt.Printf("\nRelease Notes:\n%s\n", latest.ReleaseNotes)
-			}
-		}
+		return
 	}
+	fmt.Printf("Latest version: %s\n", latest.Version())
+	fmt.Printf("Download URL: %s\n", latest.AssetURL)
+	fmt.Printf("Release URL: %s\n", latest.URL)
+	fmt.Printf("Release Notes:\n%s\n", latest.ReleaseNotes)
 }

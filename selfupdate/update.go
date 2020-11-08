@@ -21,7 +21,7 @@ func uncompressAndUpdate(src io.Reader, assetURL, cmdPath string) error {
 		return err
 	}
 
-	log.Print("Will update", cmdPath, "to the latest downloaded from", assetURL)
+	log.Printf("Will update %s to the latest downloaded from %s", cmdPath, assetURL)
 	return update.Apply(asset, update.Options{
 		TargetPath: cmdPath,
 	})
@@ -136,7 +136,7 @@ func (up *Updater) UpdateCommand(cmdPath string, current *semver.Version, slug s
 		log.Print("Current version", current, "is the latest. Update is not needed")
 		return rel, nil
 	}
-	log.Print("Will update", cmdPath, "to the latest version", rel.Version)
+	log.Printf("Will update %s to the latest version %s", cmdPath, rel.Version())
 	if err := up.UpdateTo(rel, cmdPath); err != nil {
 		return nil, err
 	}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"go/build"
 	"io"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -12,8 +13,6 @@ import (
 
 	"github.com/creativeprojects/go-github-selfupdate/selfupdate"
 )
-
-var version = "1.0.0"
 
 func usage() {
 	fmt.Fprintln(os.Stderr, `Usage: go-get-release [flags] {package}
@@ -65,7 +64,7 @@ func installFrom(url, cmd, path string) error {
 	}
 	executable, err := selfupdate.DecompressCommand(res.Body, url, cmd)
 	if err != nil {
-		return fmt.Errorf("failed to uncompress downloaded asset from %s: %s", url, err)
+		return fmt.Errorf("failed to decompress downloaded asset from %s: %s", url, err)
 	}
 	bin, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE, 0755)
 	if err != nil {
@@ -78,20 +77,20 @@ func installFrom(url, cmd, path string) error {
 }
 
 func main() {
-	help := flag.Bool("help", false, "Show help")
-	ver := flag.Bool("version", false, "Show version")
+	var help, verbose bool
+	flag.BoolVar(&help, "h", false, "Show help")
+	flag.BoolVar(&verbose, "v", false, "Display debugging information")
 
 	flag.Usage = usage
 	flag.Parse()
 
-	if *ver {
-		fmt.Println(version)
-		os.Exit(0)
-	}
-
-	if *help || flag.NArg() != 1 || !strings.HasPrefix(flag.Arg(0), "github.com/") {
+	if help || flag.NArg() != 1 || !strings.HasPrefix(flag.Arg(0), "github.com/") {
 		usage()
 		os.Exit(1)
+	}
+
+	if verbose {
+		selfupdate.SetLogger(log.New(os.Stdout, "", 0))
 	}
 
 	slug, ok := parseSlug(flag.Arg(0))
@@ -129,5 +128,5 @@ func main() {
 
 Release Notes:
 %s
-`, latest.Version, cmdPath, latest.ReleaseNotes)
+`, latest.Version(), cmdPath, latest.ReleaseNotes)
 }

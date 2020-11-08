@@ -15,27 +15,27 @@ func findAssetFromRelease(rel *github.RepositoryRelease,
 	suffixes []string, targetVersion string, filters []*regexp.Regexp) (*github.ReleaseAsset, *semver.Version, bool) {
 
 	if targetVersion != "" && targetVersion != rel.GetTagName() {
-		log.Print("Skip", rel.GetTagName(), "not matching to specified version", targetVersion)
+		log.Printf("Skip %s not matching to specified version %s", rel.GetTagName(), targetVersion)
 		return nil, nil, false
 	}
 
 	if targetVersion == "" && rel.GetDraft() {
-		log.Print("Skip draft version", rel.GetTagName())
+		log.Printf("Skip draft version %s", rel.GetTagName())
 		return nil, nil, false
 	}
 	if targetVersion == "" && rel.GetPrerelease() {
-		log.Print("Skip pre-release version", rel.GetTagName())
+		log.Printf("Skip pre-release version %s", rel.GetTagName())
 		return nil, nil, false
 	}
 
 	verText := rel.GetTagName()
 	indices := reVersion.FindStringIndex(verText)
 	if indices == nil {
-		log.Print("Skip version not adopting semver", verText)
+		log.Printf("Skip version not adopting semver: %s", verText)
 		return nil, nil, false
 	}
 	if indices[0] > 0 {
-		log.Print("Strip prefix of version", verText[:indices[0]], "from", verText)
+		log.Printf("Strip prefix '%s' from '%s'", verText[:indices[0]], verText)
 		verText = verText[indices[0]:]
 	}
 
@@ -43,7 +43,7 @@ func findAssetFromRelease(rel *github.RepositoryRelease,
 	// the semantic versioning. So it should be skipped.
 	ver, err := semver.NewVersion(verText)
 	if err != nil {
-		log.Print("Failed to parse a semantic version", verText)
+		log.Printf("Failed to parse a semantic version: %s", verText)
 		return nil, nil, false
 	}
 
@@ -54,7 +54,7 @@ func findAssetFromRelease(rel *github.RepositoryRelease,
 			matched := false
 			for _, filter := range filters {
 				if filter.MatchString(name) {
-					log.Print("Selected filtered asset", name)
+					log.Printf("Selected filtered asset: %s", name)
 					matched = true
 					break
 				}
@@ -73,7 +73,7 @@ func findAssetFromRelease(rel *github.RepositoryRelease,
 		}
 	}
 
-	log.Print("No suitable asset was found in release", rel.GetTagName())
+	log.Printf("No suitable asset was found in release %s", rel.GetTagName())
 	return nil, nil, false
 }
 
@@ -92,7 +92,7 @@ func findReleaseAndAsset(rels []*github.RepositoryRelease,
 	// Generate candidates
 	suffixes := make([]string, 0, 2*7*2)
 	for _, sep := range []rune{'_', '-'} {
-		for _, ext := range []string{".zip", ".tar.gz", ".tgz", ".gzip", ".gz", ".tar.xz", ".xz", ""} {
+		for _, ext := range []string{".zip", ".tar.gz", ".tgz", ".gzip", ".gz", ".tar.xz", ".xz", ".bz2", ""} {
 			suffix := fmt.Sprintf("%s%c%s%s", useOS, sep, useArch, ext)
 			suffixes = append(suffixes, suffix)
 			if useOS == "windows" {
@@ -121,7 +121,7 @@ func findReleaseAndAsset(rels []*github.RepositoryRelease,
 	}
 
 	if release == nil {
-		log.Print("Could not find any release for", useOS, "and", useArch)
+		log.Printf("Could not find any release for os %s and arch %s", useOS, useArch)
 		return nil, nil, nil, false
 	}
 
@@ -163,7 +163,7 @@ func (up *Updater) DetectVersion(slug string, version string) (release *Release,
 	}
 
 	url := asset.GetBrowserDownloadURL()
-	log.Print("Successfully fetched the latest release. tag:", rel.GetTagName(), ", name:", rel.GetName(), ", URL:", rel.GetURL(), ", Asset:", url)
+	log.Printf("Successfully fetched the latest release. tag: %s, name: %s, URL: %s, Asset: %s", rel.GetTagName(), rel.GetName(), rel.GetURL(), url)
 
 	publishedAt := rel.GetPublishedAt().Time
 	release = &Release{

@@ -47,6 +47,7 @@ func TestDecompress(t *testing.T) {
 		"testdata/foo.tgz",
 		"testdata/foo.tar.xz",
 		"testdata/single-file.xz",
+		"testdata/single-file.bz2",
 	} {
 		t.Run(n, func(t *testing.T) {
 			f, err := os.Open(n)

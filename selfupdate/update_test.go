@@ -49,7 +49,7 @@ func TestUpdateCommand(t *testing.T) {
 				t.Fatal(err)
 			}
 			if !rel.Equal("1.2.3") {
-				t.Error("Version is not latest", rel.Version)
+				t.Error("Version is not latest", rel.Version())
 			}
 			bytes, err := exec.Command(filepath.FromSlash("./github-release-test")).Output()
 			if err != nil {
@@ -90,7 +90,7 @@ func TestUpdateViaSymlink(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !rel.Equal("1.2.3") {
-		t.Error("Version is not latest", rel.Version)
+		t.Error("Version is not latest", rel.Version())
 	}
 
 	// Test not symbolic link, but actual physical executable
@@ -171,7 +171,7 @@ func TestNoReleaseFoundForUpdate(t *testing.T) {
 		t.Fatal("No release should not make an error:", err)
 	}
 	if !rel.Equal("1.0.0") {
-		t.Error("No release should return the current version as the latest:", rel.Version)
+		t.Error("No release should return the current version as the latest:", rel.Version())
 	}
 	if rel.URL != "" {
 		t.Error("Browse URL should be empty when no release found:", rel.URL)
@@ -197,7 +197,7 @@ func TestCurrentIsTheLatest(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !rel.Equal("1.2.3") {
-		t.Error("v1.2.3 should be the latest:", rel.Version)
+		t.Error("v1.2.3 should be the latest:", rel.Version())
 	}
 	if rel.URL == "" {
 		t.Error("Browse URL should not be empty when release found:", rel.URL)
@@ -292,7 +292,7 @@ func TestUpdateFromGitHubPrivateRepo(t *testing.T) {
 	}
 
 	if !rel.Equal("1.2.3") {
-		t.Error("Version is not latest", rel.Version)
+		t.Error("Version is not latest", rel.Version())
 	}
 
 	bytes, err := exec.Command(filepath.FromSlash("./github-release-test")).Output()

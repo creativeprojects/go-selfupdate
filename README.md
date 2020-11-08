@@ -13,7 +13,7 @@ GitHub and replaces itself.
 - Retrieve the proper binary for the OS and arch where the binary is running
 - Update the binary with rollback support on failure
 - Tested on Linux, macOS and Windows
-- Many archive and compression formats are supported (zip, tar, gzip, xzip)
+- Many archive and compression formats are supported (zip, tar, gzip, xzip, bzip2)
 - Support private repositories
 - Support hash, signature validation
 
@@ -23,3 +23,4 @@ This library started as a fork of https://github.com/rhysd/go-github-selfupdate.
 - don't expose an external semver.Version type, but provide the same functionality through the API: LessThan, Equal and GreaterThan
 - use an interface to send logs (compatible with standard log.Logger)
 - able to detect different ARM CPU architectures (the original library wasn't working on my bakery of raspberry pi)
+- support for assets compressed with bzip2 (.bz2)
