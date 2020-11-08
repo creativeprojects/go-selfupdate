@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"regexp"
 	"strings"
@@ -16,6 +17,8 @@ func usage() {
 }
 
 func main() {
+	var verbose bool
+	flag.BoolVar(&verbose, "v", false, "Display debugging information")
 
 	flag.Usage = usage
 	flag.Parse()
@@ -23,6 +26,10 @@ func main() {
 	if flag.NArg() != 1 {
 		usage()
 		os.Exit(1)
+	}
+
+	if verbose {
+		selfupdate.SetLogger(log.New(os.Stdout, "", 0))
 	}
 
 	repo := flag.Arg(0)
