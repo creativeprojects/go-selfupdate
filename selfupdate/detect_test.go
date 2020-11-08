@@ -10,8 +10,18 @@ import (
 	"github.com/google/go-github/v30/github"
 )
 
+func skipRateLimitExceeded(t *testing.T, err error) {
+	if err == nil {
+		return
+	}
+	if strings.Contains(err.Error(), "403 API rate limit exceeded") {
+		t.SkipNow()
+	}
+}
+
 func TestDetectReleaseWithVersionPrefix(t *testing.T) {
 	r, ok, err := DetectLatest("rhysd/github-clone-all")
+	skipRateLimitExceeded(err)
 	if err != nil {
 		t.Fatal("Fetch failed:", err)
 	}
@@ -93,6 +103,7 @@ func TestDetectReleasesForVariousArchives(t *testing.T) {
 	} {
 		t.Run(tc.slug, func(t *testing.T) {
 			r, ok, err := DetectLatest(tc.slug)
+			skipRateLimitExceeded(t, err)
 			if err != nil {
 				t.Fatal("Fetch failed:", err)
 			}
@@ -139,6 +150,7 @@ func TestDetectReleasesForVariousArchives(t *testing.T) {
 
 func TestDetectReleaseButNoAsset(t *testing.T) {
 	_, ok, err := DetectLatest("rhysd/clever-f.vim")
+	skipRateLimitExceeded(t, err)
 	if err != nil {
 		t.Fatal("Fetch failed:", err)
 	}
@@ -149,6 +161,7 @@ func TestDetectReleaseButNoAsset(t *testing.T) {
 
 func TestDetectNoRelease(t *testing.T) {
 	_, ok, err := DetectLatest("rhysd/clever-f.vim")
+	skipRateLimitExceeded(t, err)
 	if err != nil {
 		t.Fatal("Fetch failed:", err)
 	}
@@ -189,6 +202,7 @@ func TestNonExistingRepo(t *testing.T) {
 
 func TestNoReleaseFound(t *testing.T) {
 	_, ok, err := DetectLatest("rhysd/misc")
+	skipRateLimitExceeded(t, err)
 	if err != nil {
 		t.Fatal("Repo having no release should not cause an error:", err)
 	}

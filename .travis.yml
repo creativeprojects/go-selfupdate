@@ -33,7 +33,6 @@ install:
 
 script:
   - go build ./selfupdate/
-  - go build ./cmd/selfupdate-example/
   - go build ./cmd/detect-latest-release/
   - go build ./cmd/go-get-release/
   - |

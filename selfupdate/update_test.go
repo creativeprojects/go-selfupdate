@@ -166,6 +166,7 @@ func TestNoReleaseFoundForUpdate(t *testing.T) {
 	v := semver.MustParse("1.0.0")
 	fake := filepath.FromSlash("./testdata/fake-executable")
 	rel, err := UpdateCommand(fake, v, "rhysd/misc")
+	skipRateLimitExceeded(t, err)
 	if err != nil {
 		t.Fatal("No release should not make an error:", err)
 	}
