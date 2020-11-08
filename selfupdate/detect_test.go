@@ -69,6 +69,7 @@ func TestDetectReleaseWithVersionPrefix(t *testing.T) {
 func TestDetectVersionExisting(t *testing.T) {
 	testVersion := "v2.2.0"
 	r, ok, err := DetectVersion("rhysd/github-clone-all", testVersion)
+	skipRateLimitExceeded(t, err)
 	if err != nil {
 		t.Fatal("Fetch failed:", err)
 	}
@@ -82,6 +83,7 @@ func TestDetectVersionExisting(t *testing.T) {
 
 func TestDetectVersionNotExisting(t *testing.T) {
 	r, ok, err := DetectVersion("rhysd/github-clone-all", "foobar")
+	skipRateLimitExceeded(t, err)
 	if err != nil {
 		t.Fatal("Fetch failed:", err)
 	}

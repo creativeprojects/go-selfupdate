@@ -1,4 +1,4 @@
-module github.com/creativeprojects/go-github-selfupdate
+module github.com/creativeprojects/go-selfupdate
 
 require (
 	github.com/Masterminds/semver/v3 v3.1.0
