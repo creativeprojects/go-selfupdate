@@ -197,6 +197,7 @@ func TestInvalidSlug(t *testing.T) {
 
 func TestNonExistingRepo(t *testing.T) {
 	v, ok, err := DetectLatest("rhysd/non-existing-repo")
+	skipRateLimitExceeded(t, err)
 	if err != nil {
 		t.Fatal("Non-existing repo should not cause an error:", v)
 	}
