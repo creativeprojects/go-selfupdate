@@ -21,7 +21,7 @@ func skipRateLimitExceeded(t *testing.T, err error) {
 
 func TestDetectReleaseWithVersionPrefix(t *testing.T) {
 	r, ok, err := DetectLatest("rhysd/github-clone-all")
-	skipRateLimitExceeded(err)
+	skipRateLimitExceeded(t, err)
 	if err != nil {
 		t.Fatal("Fetch failed:", err)
 	}
