@@ -8,8 +8,8 @@ import (
 	"testing"
 )
 
-func TestSHA2Validator(t *testing.T) {
-	validator := &SHA2Validator{}
+func TestSHAValidator(t *testing.T) {
+	validator := &SHAValidator{}
 	data, err := ioutil.ReadFile("testdata/foo.zip")
 	if err != nil {
 		t.Fatal(err)
@@ -23,8 +23,8 @@ func TestSHA2Validator(t *testing.T) {
 	}
 }
 
-func TestSHA2ValidatorFail(t *testing.T) {
-	validator := &SHA2Validator{}
+func TestSHAValidatorFail(t *testing.T) {
+	validator := &SHAValidator{}
 	data, err := ioutil.ReadFile("testdata/foo.zip")
 	if err != nil {
 		t.Fatal(err)
@@ -119,7 +119,7 @@ func TestValidatorSuffix(t *testing.T) {
 		suffix string
 	}{
 		{
-			v:      &SHA2Validator{},
+			v:      &SHAValidator{},
 			suffix: ".sha256",
 		},
 		{

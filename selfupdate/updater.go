@@ -8,7 +8,6 @@ import (
 	"regexp"
 
 	"github.com/google/go-github/v30/github"
-	gitconfig "github.com/tcnksm/go-gitconfig"
 	"golang.org/x/oauth2"
 )
 
@@ -39,23 +38,12 @@ type Config struct {
 	Filters []string
 }
 
-func newHTTPClient(ctx context.Context, token string) *http.Client {
-	if token == "" {
-		return http.DefaultClient
-	}
-	src := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})
-	return oauth2.NewClient(ctx, src)
-}
-
 // NewUpdater creates a new updater instance. It initializes GitHub API client.
 // If you set your API token to $GITHUB_TOKEN, the client will use it.
 func NewUpdater(config Config) (*Updater, error) {
 	token := config.APIToken
 	if token == "" {
 		token = os.Getenv("GITHUB_TOKEN")
-	}
-	if token == "" {
-		token, _ = gitconfig.GithubToken()
 	}
 	ctx := context.Background()
 	hc := newHTTPClient(ctx, token)
@@ -90,10 +78,15 @@ func NewUpdater(config Config) (*Updater, error) {
 // If you set your API token to $GITHUB_TOKEN, the client will use it.
 func DefaultUpdater() *Updater {
 	token := os.Getenv("GITHUB_TOKEN")
-	if token == "" {
-		token, _ = gitconfig.GithubToken()
-	}
 	ctx := context.Background()
 	client := newHTTPClient(ctx, token)
 	return &Updater{api: github.NewClient(client), apiCtx: ctx}
+}
+
+func newHTTPClient(ctx context.Context, token string) *http.Client {
+	if token == "" {
+		return http.DefaultClient
+	}
+	src := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})
+	return oauth2.NewClient(ctx, src)
 }

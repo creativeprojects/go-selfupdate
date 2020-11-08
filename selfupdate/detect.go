@@ -5,34 +5,34 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/blang/semver/v4"
+	"github.com/Masterminds/semver/v3"
 	"github.com/google/go-github/v30/github"
 )
 
 var reVersion = regexp.MustCompile(`\d+\.\d+\.\d+`)
 
 func findAssetFromRelease(rel *github.RepositoryRelease,
-	suffixes []string, targetVersion string, filters []*regexp.Regexp) (*github.ReleaseAsset, semver.Version, bool) {
+	suffixes []string, targetVersion string, filters []*regexp.Regexp) (*github.ReleaseAsset, *semver.Version, bool) {
 
 	if targetVersion != "" && targetVersion != rel.GetTagName() {
 		log.Println("Skip", rel.GetTagName(), "not matching to specified version", targetVersion)
-		return nil, semver.Version{}, false
+		return nil, nil, false
 	}
 
 	if targetVersion == "" && rel.GetDraft() {
 		log.Println("Skip draft version", rel.GetTagName())
-		return nil, semver.Version{}, false
+		return nil, nil, false
 	}
 	if targetVersion == "" && rel.GetPrerelease() {
 		log.Println("Skip pre-release version", rel.GetTagName())
-		return nil, semver.Version{}, false
+		return nil, nil, false
 	}
 
 	verText := rel.GetTagName()
 	indices := reVersion.FindStringIndex(verText)
 	if indices == nil {
 		log.Println("Skip version not adopting semver", verText)
-		return nil, semver.Version{}, false
+		return nil, nil, false
 	}
 	if indices[0] > 0 {
 		log.Println("Strip prefix of version", verText[:indices[0]], "from", verText)
@@ -41,10 +41,10 @@ func findAssetFromRelease(rel *github.RepositoryRelease,
 
 	// If semver cannot parse the version text, it means that the text is not adopting
 	// the semantic versioning. So it should be skipped.
-	ver, err := semver.Make(verText)
+	ver, err := semver.NewVersion(verText)
 	if err != nil {
 		log.Println("Failed to parse a semantic version", verText)
-		return nil, semver.Version{}, false
+		return nil, nil, false
 	}
 
 	for _, asset := range rel.Assets {
@@ -74,7 +74,7 @@ func findAssetFromRelease(rel *github.RepositoryRelease,
 	}
 
 	log.Println("No suitable asset was found in release", rel.GetTagName())
-	return nil, semver.Version{}, false
+	return nil, nil, false
 }
 
 func findValidationAsset(rel *github.RepositoryRelease, validationName string) (*github.ReleaseAsset, bool) {
@@ -88,7 +88,7 @@ func findValidationAsset(rel *github.RepositoryRelease, validationName string) (
 
 func findReleaseAndAsset(rels []*github.RepositoryRelease,
 	targetVersion string,
-	filters []*regexp.Regexp) (*github.RepositoryRelease, *github.ReleaseAsset, semver.Version, bool) {
+	filters []*regexp.Regexp) (*github.RepositoryRelease, *github.ReleaseAsset, *semver.Version, bool) {
 	// Generate candidates
 	suffixes := make([]string, 0, 2*7*2)
 	for _, sep := range []rune{'_', '-'} {
@@ -102,18 +102,17 @@ func findReleaseAndAsset(rels []*github.RepositoryRelease,
 		}
 	}
 
-	var ver semver.Version
+	var ver *semver.Version
 	var asset *github.ReleaseAsset
 	var release *github.RepositoryRelease
 
 	// Find the latest version from the list of releases.
 	// Returned list from GitHub API is in the order of the date when created.
-	//   ref: https://github.com/creativeprojects/go-github-selfupdate/issues/11
 	for _, rel := range rels {
 		if a, v, ok := findAssetFromRelease(rel, suffixes, targetVersion, filters); ok {
 			// Note: any version with suffix is less than any version without suffix.
 			// e.g. 0.0.1 > 0.0.1-beta
-			if release == nil || v.GTE(ver) {
+			if release == nil || v.GreaterThan(ver) {
 				ver = v
 				asset = a
 				release = rel
@@ -123,7 +122,7 @@ func findReleaseAndAsset(rels []*github.RepositoryRelease,
 
 	if release == nil {
 		log.Println("Could not find any release for", useOS, "and", useArch)
-		return nil, nil, semver.Version{}, false
+		return nil, nil, nil, false
 	}
 
 	return release, asset, ver, true
@@ -168,17 +167,18 @@ func (up *Updater) DetectVersion(slug string, version string) (release *Release,
 
 	publishedAt := rel.GetPublishedAt().Time
 	release = &Release{
-		ver,
-		url,
-		asset.GetSize(),
-		asset.GetID(),
-		-1,
-		rel.GetHTMLURL(),
-		rel.GetBody(),
-		rel.GetName(),
-		&publishedAt,
-		repo[0],
-		repo[1],
+		Version:           ver.String(),
+		AssetURL:          url,
+		AssetByteSize:     asset.GetSize(),
+		AssetID:           asset.GetID(),
+		ValidationAssetID: -1,
+		URL:               rel.GetHTMLURL(),
+		ReleaseNotes:      rel.GetBody(),
+		Name:              rel.GetName(),
+		PublishedAt:       &publishedAt,
+		RepoOwner:         repo[0],
+		RepoName:          repo[1],
+		version:           ver,
 	}
 
 	if up.validator != nil {

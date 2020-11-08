@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/blang/semver/v4"
 	"github.com/google/go-github/v30/github"
 )
 
@@ -22,7 +21,7 @@ func TestDetectReleaseWithVersionPrefix(t *testing.T) {
 	if r == nil {
 		t.Fatal("Release detected but nil returned for it")
 	}
-	if r.Version.LE(semver.MustParse("2.0.0")) {
+	if r.LessThan("2.0.0") {
 		t.Error("Incorrect version:", r.Version)
 	}
 	if !strings.HasSuffix(r.AssetURL, ".zip") && !strings.HasSuffix(r.AssetURL, ".tar.gz") {
@@ -103,7 +102,7 @@ func TestDetectReleasesForVariousArchives(t *testing.T) {
 			if r == nil {
 				t.Fatal("Release not detected")
 			}
-			if !r.Version.Equals(semver.MustParse("1.2.3")) {
+			if !r.Equal("1.2.3") {
 				t.Error("")
 			}
 			url := fmt.Sprintf("https://github.com/%s/releases/tag/%s1.2.3", tc.slug, tc.prefix)
@@ -238,7 +237,7 @@ func TestDetectFromGitHubEnterpriseRepo(t *testing.T) {
 	if r == nil {
 		t.Fatal("Release not detected")
 	}
-	if !r.Version.Equals(semver.MustParse("1.2.3")) {
+	if !r.Equal("1.2.3") {
 		t.Error("")
 	}
 }

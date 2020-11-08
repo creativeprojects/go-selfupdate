@@ -12,7 +12,7 @@ import (
 func TestCompressionNotRequired(t *testing.T) {
 	buf := []byte{'a', 'b', 'c'}
 	want := bytes.NewReader(buf)
-	r, err := UncompressCommand(want, "https://github.com/foo/bar/releases/download/v1.2.3/foo", "foo")
+	r, err := DecompressCommand(want, "https://github.com/foo/bar/releases/download/v1.2.3/foo", "foo")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -56,7 +56,7 @@ func TestUncompress(t *testing.T) {
 
 			ext := getArchiveFileExt(n)
 			url := "https://github.com/foo/bar/releases/download/v1.2.3/bar" + ext
-			r, err := UncompressCommand(f, url, "bar")
+			r, err := DecompressCommand(f, url, "bar")
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -93,7 +93,7 @@ func TestUncompressInvalidArchive(t *testing.T) {
 
 		ext := getArchiveFileExt(a.name)
 		url := "https://github.com/foo/bar/releases/download/v1.2.3/bar" + ext
-		_, err = UncompressCommand(f, url, "bar")
+		_, err = DecompressCommand(f, url, "bar")
 		if err == nil {
 			t.Fatal("Error should be raised")
 		}
@@ -121,7 +121,7 @@ func TestTargetNotFound(t *testing.T) {
 			}
 			ext := getArchiveFileExt(tc.name)
 			url := "https://github.com/foo/bar/releases/download/v1.2.3/bar" + ext
-			_, err = UncompressCommand(f, url, "bar")
+			_, err = DecompressCommand(f, url, "bar")
 			if err == nil {
 				t.Fatal("Error should be raised for")
 			}

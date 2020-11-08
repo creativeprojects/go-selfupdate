@@ -3,13 +3,13 @@ package selfupdate
 import (
 	"time"
 
-	"github.com/blang/semver/v4"
+	"github.com/Masterminds/semver/v3"
 )
 
 // Release represents a release asset for current OS and arch.
 type Release struct {
 	// Version is the version of the release
-	Version semver.Version
+	Version string
 	// AssetURL is a URL to the uploaded file for the release
 	AssetURL string
 	// AssetSize represents the size of asset in bytes
@@ -30,4 +30,24 @@ type Release struct {
 	RepoOwner string
 	// RepoName is the name of the repository of the release
 	RepoName string
+	// version is the parsed *semver.Version
+	version *semver.Version
+}
+
+// Give access to some of the method of the internal semver
+// so we can change the version without breaking compatibility
+
+// Equal tests if two versions are equal to each other.
+func (r Release) Equal(other string) bool {
+	return r.version.Equal(semver.MustParse(other))
+}
+
+// LessThan tests if one version is less than another one.
+func (r Release) LessThan(other string) bool {
+	return r.version.LessThan(semver.MustParse(other))
+}
+
+// GreaterThan tests if one version is greater than another one.
+func (r Release) GreaterThan(other string) bool {
+	return r.version.GreaterThan(semver.MustParse(other))
 }
