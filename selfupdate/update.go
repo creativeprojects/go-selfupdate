@@ -130,7 +130,7 @@ func (up *Updater) UpdateCommand(cmdPath string, current *semver.Version, slug s
 	}
 	if !ok {
 		log.Print("No release detected. Current version is considered up-to-date")
-		return &Release{Version: current.String(), version: current}, nil
+		return &Release{version: current}, nil
 	}
 	if current.Equal(rel.version) {
 		log.Print("Current version", current, "is the latest. Update is not needed")

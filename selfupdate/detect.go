@@ -167,7 +167,7 @@ func (up *Updater) DetectVersion(slug string, version string) (release *Release,
 
 	publishedAt := rel.GetPublishedAt().Time
 	release = &Release{
-		Version:           ver.String(),
+		version:           ver,
 		AssetURL:          url,
 		AssetByteSize:     asset.GetSize(),
 		AssetID:           asset.GetID(),
@@ -178,7 +178,6 @@ func (up *Updater) DetectVersion(slug string, version string) (release *Release,
 		PublishedAt:       &publishedAt,
 		RepoOwner:         repo[0],
 		RepoName:          repo[1],
-		version:           ver,
 	}
 
 	if up.validator != nil {

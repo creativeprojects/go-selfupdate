@@ -8,8 +8,6 @@ import (
 
 // Release represents a release asset for current OS and arch.
 type Release struct {
-	// Version is the version of the release
-	Version string
 	// AssetURL is a URL to the uploaded file for the release
 	AssetURL string
 	// AssetSize represents the size of asset in bytes
@@ -32,6 +30,11 @@ type Release struct {
 	RepoName string
 	// version is the parsed *semver.Version
 	version *semver.Version
+}
+
+// Version is the version of the release
+func (r Release) Version() string {
+	return r.version.String()
 }
 
 // Give access to some of the method of the internal semver
