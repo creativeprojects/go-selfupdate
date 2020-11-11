@@ -41,7 +41,7 @@ func DecompressCommand(src io.Reader, url, cmd, os, arch string) (io.Reader, err
 			return fileType.decompress(src, url, cmd, os, arch)
 		}
 	}
-	log.Print("File is not compressed", url)
+	log.Printf("File %q is not compressed", url)
 	return src, nil
 }
 
@@ -64,12 +64,12 @@ func unzip(src io.Reader, url, cmd, os, arch string) (io.Reader, error) {
 	for _, file := range z.File {
 		_, name := filepath.Split(file.Name)
 		if !file.FileInfo().IsDir() && matchExecutableName(cmd, os, arch, name) {
-			log.Print("Executable file %s was found in zip archive", file.Name)
+			log.Printf("Executable file %q was found in zip archive", file.Name)
 			return file.Open()
 		}
 	}
 
-	return nil, fmt.Errorf("file '%s' for the command is not found in %s", cmd, url)
+	return nil, fmt.Errorf("file %q for the command is not found in %s", cmd, url)
 }
 
 func untar(src io.Reader, url, cmd, os, arch string) (io.Reader, error) {
@@ -96,7 +96,7 @@ func gunzip(src io.Reader, url, cmd, os, arch string) (io.Reader, error) {
 		return nil, fmt.Errorf("file name '%s' does not match to command '%s' found in %s", name, cmd, url)
 	}
 
-	log.Printf("Executable file %s was found in gzip file", name)
+	log.Printf("Executable file %q was found in gzip file", name)
 	return r, nil
 }
 
@@ -164,10 +164,10 @@ func unarchiveTar(src io.Reader, url, cmd, os, arch string) (io.Reader, error) {
 		}
 		_, name := filepath.Split(h.Name)
 		if matchExecutableName(cmd, os, arch, name) {
-			log.Print("Executable file %s was found in tar archive", h.Name)
+			log.Printf("Executable file %q was found in tar archive", h.Name)
 			return t, nil
 		}
 	}
 
-	return nil, fmt.Errorf("file '%s' for the command is not found in %s", cmd, url)
+	return nil, fmt.Errorf("file %q for the command is not found in %s", cmd, url)
 }

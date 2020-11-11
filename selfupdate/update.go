@@ -46,7 +46,7 @@ func (up *Updater) UpdateTo(rel *Release, cmdPath string) error {
 		return fmt.Errorf("failed to call GitHub Releases API for getting an validation asset(ID: %d) for repository '%s/%s': %s", rel.ValidationAssetID, rel.RepoOwner, rel.RepoName, err)
 	}
 	if validationRedirectURL != "" {
-		log.Print("Redirect URL was returned while trying to download a release validation asset from GitHub API. Falling back to downloading from asset URL directly:", redirectURL)
+		log.Printf("Redirect URL was returned while trying to download a release validation asset from GitHub API. Falling back to downloading from asset URL directly: %s", redirectURL)
 		validationSrc, err = up.downloadDirectlyFromURL(validationRedirectURL)
 		if err != nil {
 			return err
@@ -96,7 +96,7 @@ func (up *Updater) UpdateCommand(cmdPath string, current *semver.Version, slug s
 		return &Release{version: current}, nil
 	}
 	if current.Equal(rel.version) {
-		log.Print("Current version", current, "is the latest. Update is not needed")
+		log.Printf("Current version %s is the latest. Update is not needed", current.String())
 		return rel, nil
 	}
 	log.Printf("Will update %s to the latest version %s", cmdPath, rel.Version())

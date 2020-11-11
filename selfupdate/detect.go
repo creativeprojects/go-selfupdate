@@ -33,7 +33,7 @@ func (up *Updater) DetectVersion(slug string, version string) (release *Release,
 
 	rels, res, err := up.api.Repositories.ListReleases(up.apiCtx, repo[0], repo[1], nil)
 	if err != nil {
-		log.Print("API returned an error response:", err)
+		log.Printf("API returned an error response: %s", err)
 		if res != nil && res.StatusCode == 404 {
 			// 404 means repository not found or release not found. It's not an error here.
 			err = nil
