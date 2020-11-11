@@ -69,7 +69,7 @@ func unzip(src io.Reader, url, cmd, os, arch string) (io.Reader, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("file %q for the command is not found in %s", cmd, url)
+	return nil, fmt.Errorf("file %q is not found in %s", cmd, url)
 }
 
 func untar(src io.Reader, url, cmd, os, arch string) (io.Reader, error) {
@@ -133,7 +133,7 @@ func unbz2(src io.Reader, url, cmd, os, arch string) (io.Reader, error) {
 }
 
 func matchExecutableName(cmd, os, arch, target string) bool {
-	if cmd == target {
+	if cmd == target || cmd+".exe" == target {
 		return true
 	}
 
@@ -169,5 +169,5 @@ func unarchiveTar(src io.Reader, url, cmd, os, arch string) (io.Reader, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("file %q for the command is not found in %s", cmd, url)
+	return nil, fmt.Errorf("file %q is not found in %s", cmd, url)
 }

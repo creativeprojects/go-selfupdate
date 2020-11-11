@@ -8,6 +8,8 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCompressionNotRequired(t *testing.T) {
@@ -130,6 +132,28 @@ func TestTargetNotFound(t *testing.T) {
 			if !strings.Contains(err.Error(), tc.msg) {
 				t.Fatal("Unexpected error:", err)
 			}
+		})
+	}
+}
+
+func TestMatchExecutableName(t *testing.T) {
+	testData := []struct {
+		cmd    string
+		os     string
+		arch   string
+		target string
+		found  bool
+	}{
+		{"gostuff", "linux", "amd64", "gostuff", true},
+		{"gostuff", "linux", "amd64", "gostuff_linux_amd64", true},
+		{"gostuff", "linux", "amd64", "gostuff_darwin_amd64", false},
+		{"gostuff", "windows", "amd64", "gostuff.exe", true},
+		{"gostuff", "windows", "amd64", "gostuff_windows_amd64.exe", true},
+	}
+
+	for _, testItem := range testData {
+		t.Run(testItem.target, func(t *testing.T) {
+			assert.Equal(t, testItem.found, matchExecutableName(testItem.cmd, testItem.os, testItem.arch, testItem.target))
 		})
 	}
 }
