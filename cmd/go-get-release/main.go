@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/creativeprojects/go-selfupdate/selfupdate"
@@ -62,7 +63,7 @@ func installFrom(url, cmd, path string) error {
 	if res.StatusCode != 200 {
 		return fmt.Errorf("failed to download release binary from %s: Invalid response ", url)
 	}
-	executable, err := selfupdate.DecompressCommand(res.Body, url, cmd)
+	executable, err := selfupdate.DecompressCommand(res.Body, url, cmd, runtime.GOOS, runtime.GOARCH)
 	if err != nil {
 		return fmt.Errorf("failed to decompress downloaded asset from %s: %s", url, err)
 	}

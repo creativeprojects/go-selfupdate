@@ -447,28 +447,61 @@ func TestFindReleaseAndAsset(t *testing.T) {
 	// stupid library using pointer to strings everywhere
 	tag2 := "v2.0.0"
 	rel2 := "rel2"
-	defaultAsset := fmt.Sprintf("asset%s_%s.tgz", runtimeOS, runtimeArch)
+	assetLinuxI32 := "asset_linux_386.tgz"
+	assetLinuxI64 := "asset_linux_amd64.tgz"
+	assetLinuxARM := "asset_linux_arm.tgz"
+	assetLinuxARMv5 := "asset_linux_armv5.tgz"
+	assetLinuxARMv6 := "asset_linux_armv6.tgz"
+	assetLinuxARMv7 := "asset_linux_armv7.tgz"
+	assetLinuxARM64 := "asset_linux_arm64.tgz"
 	testData := []struct {
 		name              string
 		os                string
 		arch              string
+		arm               uint8
 		releases          []*github.RepositoryRelease
 		version           string
-		filters           []*regexp.Regexp
+		filters           []string
 		found             bool
 		expectedAssetName *string
 	}{
 		{
-			name: "simple match",
-			os:   runtimeOS,
-			arch: runtimeArch,
+			name: "no match",
+			os:   "darwin",
+			arch: "amd64",
 			releases: []*github.RepositoryRelease{
 				{
 					Name:    &rel2,
 					TagName: &tag2,
 					Assets: []*github.ReleaseAsset{
 						{
-							Name: &defaultAsset,
+							Name: &assetLinuxI32,
+						},
+						{
+							Name: &assetLinuxI64,
+						},
+					},
+				},
+			},
+			version:           "v2.0.0",
+			filters:           nil,
+			found:             false,
+			expectedAssetName: &assetLinuxI64,
+		},
+		{
+			name: "simple match",
+			os:   "linux",
+			arch: "amd64",
+			releases: []*github.RepositoryRelease{
+				{
+					Name:    &rel2,
+					TagName: &tag2,
+					Assets: []*github.ReleaseAsset{
+						{
+							Name: &assetLinuxI32,
+						},
+						{
+							Name: &assetLinuxI64,
 						},
 					},
 				},
@@ -476,17 +509,164 @@ func TestFindReleaseAndAsset(t *testing.T) {
 			version:           "v2.0.0",
 			filters:           nil,
 			found:             true,
-			expectedAssetName: &defaultAsset,
+			expectedAssetName: &assetLinuxI64,
+		},
+		{
+			name: "match default arm",
+			os:   "linux",
+			arch: "arm",
+			releases: []*github.RepositoryRelease{
+				{
+					Name:    &rel2,
+					TagName: &tag2,
+					Assets: []*github.ReleaseAsset{
+						{
+							Name: &assetLinuxARM,
+						},
+						{
+							Name: &assetLinuxARM64,
+						},
+						{
+							Name: &assetLinuxARMv5,
+						},
+						{
+							Name: &assetLinuxARMv6,
+						},
+						{
+							Name: &assetLinuxARMv7,
+						},
+					},
+				},
+			},
+			version:           "v2.0.0",
+			filters:           nil,
+			found:             true,
+			expectedAssetName: &assetLinuxARM,
+		},
+		{
+			name: "match armv6",
+			os:   "linux",
+			arch: "arm",
+			arm:  6,
+			releases: []*github.RepositoryRelease{
+				{
+					Name:    &rel2,
+					TagName: &tag2,
+					Assets: []*github.ReleaseAsset{
+						{
+							Name: &assetLinuxARM,
+						},
+						{
+							Name: &assetLinuxARM64,
+						},
+						{
+							Name: &assetLinuxARMv5,
+						},
+						{
+							Name: &assetLinuxARMv6,
+						},
+						{
+							Name: &assetLinuxARMv7,
+						},
+					},
+				},
+			},
+			version:           "v2.0.0",
+			filters:           nil,
+			found:             true,
+			expectedAssetName: &assetLinuxARMv6,
+		},
+		{
+			name: "fallback to armv5",
+			os:   "linux",
+			arch: "arm",
+			arm:  7,
+			releases: []*github.RepositoryRelease{
+				{
+					Name:    &rel2,
+					TagName: &tag2,
+					Assets: []*github.ReleaseAsset{
+						{
+							Name: &assetLinuxARM,
+						},
+						{
+							Name: &assetLinuxARM64,
+						},
+						{
+							Name: &assetLinuxARMv5,
+						},
+					},
+				},
+			},
+			version:           "v2.0.0",
+			filters:           nil,
+			found:             true,
+			expectedAssetName: &assetLinuxARMv5,
+		},
+		{
+			name: "fallback to arm",
+			os:   "linux",
+			arch: "arm",
+			arm:  5,
+			releases: []*github.RepositoryRelease{
+				{
+					Name:    &rel2,
+					TagName: &tag2,
+					Assets: []*github.ReleaseAsset{
+						{
+							Name: &assetLinuxARM,
+						},
+						{
+							Name: &assetLinuxARM64,
+						},
+					},
+				},
+			},
+			version:           "v2.0.0",
+			filters:           nil,
+			found:             true,
+			expectedAssetName: &assetLinuxARM,
+		},
+		{
+			name: "arm not found",
+			os:   "linux",
+			arch: "arm",
+			arm:  6,
+			releases: []*github.RepositoryRelease{
+				{
+					Name:    &rel2,
+					TagName: &tag2,
+					Assets: []*github.ReleaseAsset{
+						{
+							Name: &assetLinuxARMv7,
+						},
+						{
+							Name: &assetLinuxARM64,
+						},
+					},
+				},
+			},
+			version:           "v2.0.0",
+			filters:           nil,
+			found:             false,
+			expectedAssetName: &assetLinuxARM,
 		},
 	}
 
 	for _, testItem := range testData {
 		t.Run(testItem.name, func(t *testing.T) {
-			// If I change runtimeArch here it's going to bug randomly when the tests are running in parallel
-			// TODO find a way to be able to safely change arch to ARM and tests the additional arch
-			_, asset, _, found := findReleaseAndAsset(testItem.releases, testItem.version, testItem.filters)
-			require.Equal(t, testItem.found, found)
-			assert.Equal(t, testItem.expectedAssetName, asset.Name)
+			updater, err := NewUpdater(Config{
+				Filters: testItem.filters,
+				OS:      testItem.os,
+				Arch:    testItem.arch,
+				Arm:     testItem.arm,
+			})
+			require.NoError(t, err)
+			_, asset, _, found := updater.findReleaseAndAsset(testItem.releases, testItem.version)
+			assert.Equal(t, testItem.found, found)
+			if found {
+				assert.Equal(t, *testItem.expectedAssetName, *asset.Name)
+			}
 		})
 	}
 }

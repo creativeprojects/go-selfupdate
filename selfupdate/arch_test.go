@@ -2,21 +2,10 @@ package selfupdate
 
 import (
 	"fmt"
-	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
-
-func TestDefaultOSAndArch(t *testing.T) {
-	os, arch := GetOSArch()
-	if os != runtime.GOOS {
-		t.Errorf("OS should be %s but found %s", runtime.GOOS, os)
-	}
-	if arch[0] != runtime.GOARCH {
-		t.Errorf("Arch should be %s but found %s", runtime.GOARCH, arch)
-	}
-}
 
 func TestAdditionalArch(t *testing.T) {
 	testData := []struct {

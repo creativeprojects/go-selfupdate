@@ -1,24 +1,16 @@
 /*
-Package selfupdate provides self-update mechanism to Go command line tools.
-
-Go does not provide the way to install/update the stable version of tools. By default, Go command line tools are updated
-
-- using `go get -u` (updating to HEAD)
-- using system's package manager (depending on the platform)
-- downloading executables from GitHub release page manually
-
-By using this library, you will get 4th choice:
-
-- from your command line tool directly (and automatically)
-
-go-github-selfupdate detects the information of the latest release via GitHub Releases API and check the current version.
+go-selfupdate detects the information of the latest release via GitHub Releases API and checks the current version.
 If newer version than itself is detected, it downloads released binary from GitHub and replaces itself.
 
 - Automatically detects the latest version of released binary on GitHub
+
 - Retrieve the proper binary for the OS and arch where the binary is running
+
 - Update the binary with rollback support on failure
+
 - Tested on Linux, macOS and Windows
-- Many archive and compression formats are supported (zip, gzip, xzip, tar)
+
+- Many archive and compression formats are supported (zip, gzip, xzip, bzip2, tar)
 
 There are some naming rules. Please read following links.
 
@@ -26,7 +18,7 @@ Naming Rules of Released Binaries:
   https://github.com/creativeprojects/go-selfupdate#naming-rules-of-released-binaries
 
 Naming Rules of Git Tags:
-  https://github.com/creativeprojects/go-selfupdate#naming-rules-of-git-tags
+  https://github.com/creativeprojects/go-selfupdate#naming-rules-of-versions-git-tags
 
 This package is hosted on GitHub:
   https://github.com/creativeprojects/go-selfupdate

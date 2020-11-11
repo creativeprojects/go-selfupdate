@@ -11,6 +11,75 @@ import (
 
 var reVersion = regexp.MustCompile(`\d+\.\d+\.\d+`)
 
+// DetectLatest tries to get the latest version of the repository on GitHub.
+// 'slug' means 'owner/name' formatted string.
+// It fetches releases information from GitHub API and find out the latest release with matching the tag names and asset names.
+// Drafts and pre-releases are ignored.
+// Assets would be suffixed by the OS name and the arch name such as 'foo_linux_amd64' where 'foo' is a command name.
+// '-' can also be used as a separator. File can be compressed with zip, gzip, zxip, bzip2, tar&gzip or tar&zxip.
+// So the asset can have a file extension for the corresponding compression format such as '.zip'.
+// On Windows, '.exe' also can be contained such as 'foo_windows_amd64.exe.zip'.
+func (up *Updater) DetectLatest(slug string) (release *Release, found bool, err error) {
+	return up.DetectVersion(slug, "")
+}
+
+// DetectVersion tries to get the given version of the repository on Github. `slug` means `owner/name` formatted string.
+// And version indicates the required version.
+func (up *Updater) DetectVersion(slug string, version string) (release *Release, found bool, err error) {
+	repo := strings.Split(slug, "/")
+	if len(repo) != 2 || repo[0] == "" || repo[1] == "" {
+		return nil, false, fmt.Errorf("invalid slug format. It should be 'owner/name': %s", slug)
+	}
+
+	rels, res, err := up.api.Repositories.ListReleases(up.apiCtx, repo[0], repo[1], nil)
+	if err != nil {
+		log.Print("API returned an error response:", err)
+		if res != nil && res.StatusCode == 404 {
+			// 404 means repository not found or release not found. It's not an error here.
+			err = nil
+			log.Print("API returned 404. Repository or release not found")
+		}
+		return nil, false, err
+	}
+
+	rel, asset, ver, found := up.findReleaseAndAsset(rels, version)
+	if !found {
+		return nil, false, nil
+	}
+
+	url := asset.GetBrowserDownloadURL()
+	log.Printf("Successfully fetched the latest release. tag: %s, name: %s, URL: %s, Asset: %s", rel.GetTagName(), rel.GetName(), rel.GetURL(), url)
+
+	publishedAt := rel.GetPublishedAt().Time
+	release = &Release{
+		version:           ver,
+		AssetURL:          url,
+		AssetByteSize:     asset.GetSize(),
+		AssetID:           asset.GetID(),
+		ValidationAssetID: -1,
+		URL:               rel.GetHTMLURL(),
+		ReleaseNotes:      rel.GetBody(),
+		Name:              rel.GetName(),
+		PublishedAt:       &publishedAt,
+		RepoOwner:         repo[0],
+		RepoName:          repo[1],
+		OS:                up.os,
+		Arch:              up.arch,
+		Arm:               up.arm,
+	}
+
+	if up.validator != nil {
+		validationName := asset.GetName() + up.validator.Suffix()
+		validationAsset, ok := findValidationAsset(rel, validationName)
+		if !ok {
+			return nil, false, fmt.Errorf("failed finding validation file %q", validationName)
+		}
+		release.ValidationAssetID = validationAsset.GetID()
+	}
+
+	return release, true, nil
+}
+
 func findAssetFromRelease(rel *github.RepositoryRelease,
 	suffixes []string, targetVersion string, filters []*regexp.Regexp) (*github.ReleaseAsset, *semver.Version, bool) {
 
@@ -86,15 +155,15 @@ func findValidationAsset(rel *github.RepositoryRelease, validationName string) (
 	return nil, false
 }
 
-func findReleaseAndAsset(
-	rels []*github.RepositoryRelease,
-	targetVersion string,
-	filters []*regexp.Regexp,
-) (*github.RepositoryRelease, *github.ReleaseAsset, *semver.Version, bool) {
+func (up *Updater) findReleaseAndAsset(rels []*github.RepositoryRelease, targetVersion string,
+) (*github.RepositoryRelease,
+	*github.ReleaseAsset,
+	*semver.Version,
+	bool) {
 	// we put the detected arch at the end of the list: that's fine for ARM so far,
 	// as the additional arch are more accurate than the generic one
-	for _, arch := range append(additionalArch, runtimeArch) {
-		release, asset, version, found := findReleaseAndAssetForArch(arch, rels, targetVersion, filters)
+	for _, arch := range append(generateAdditionalArch(up.arch, up.arm), up.arch) {
+		release, asset, version, found := findReleaseAndAssetForArch(up.os, arch, rels, targetVersion, up.filters)
 		if found {
 			return release, asset, version, found
 		}
@@ -104,6 +173,7 @@ func findReleaseAndAsset(
 }
 
 func findReleaseAndAssetForArch(
+	os string,
 	arch string,
 	rels []*github.RepositoryRelease,
 	targetVersion string,
@@ -113,10 +183,10 @@ func findReleaseAndAssetForArch(
 	suffixes := make([]string, 0, 2*7*2)
 	for _, sep := range []rune{'_', '-'} {
 		for _, ext := range []string{".zip", ".tar.gz", ".tgz", ".gzip", ".gz", ".tar.xz", ".xz", ".bz2", ""} {
-			suffix := fmt.Sprintf("%s%c%s%s", runtimeOS, sep, arch, ext)
+			suffix := fmt.Sprintf("%s%c%s%s", os, sep, arch, ext)
 			suffixes = append(suffixes, suffix)
-			if runtimeOS == "windows" {
-				suffix = fmt.Sprintf("%s%c%s.exe%s", runtimeOS, sep, arch, ext)
+			if os == "windows" {
+				suffix = fmt.Sprintf("%s%c%s.exe%s", os, sep, arch, ext)
 				suffixes = append(suffixes, suffix)
 			}
 		}
@@ -141,86 +211,9 @@ func findReleaseAndAssetForArch(
 	}
 
 	if release == nil {
-		log.Printf("Could not find any release for os %s and arch %s", runtimeOS, arch)
+		log.Printf("Could not find any release for os %q and arch %q", os, arch)
 		return nil, nil, nil, false
 	}
 
 	return release, asset, ver, true
-}
-
-// DetectLatest tries to get the latest version of the repository on GitHub.
-// 'slug' means 'owner/name' formatted string.
-// It fetches releases information from GitHub API and find out the latest release with matching the tag names and asset names.
-// Drafts and pre-releases are ignored.
-// Assets would be suffixed by the OS name and the arch name such as 'foo_linux_amd64' where 'foo' is a command name.
-// '-' can also be used as a separator. File can be compressed with zip, gzip, zxip, bzip2, tar&gzip or tar&zxip.
-// So the asset can have a file extension for the corresponding compression format such as '.zip'.
-// On Windows, '.exe' also can be contained such as 'foo_windows_amd64.exe.zip'.
-func (up *Updater) DetectLatest(slug string) (release *Release, found bool, err error) {
-	return up.DetectVersion(slug, "")
-}
-
-// DetectVersion tries to get the given version of the repository on Github. `slug` means `owner/name` formatted string.
-// And version indicates the required version.
-func (up *Updater) DetectVersion(slug string, version string) (release *Release, found bool, err error) {
-	repo := strings.Split(slug, "/")
-	if len(repo) != 2 || repo[0] == "" || repo[1] == "" {
-		return nil, false, fmt.Errorf("invalid slug format. It should be 'owner/name': %s", slug)
-	}
-
-	rels, res, err := up.api.Repositories.ListReleases(up.apiCtx, repo[0], repo[1], nil)
-	if err != nil {
-		log.Print("API returned an error response:", err)
-		if res != nil && res.StatusCode == 404 {
-			// 404 means repository not found or release not found. It's not an error here.
-			err = nil
-			log.Print("API returned 404. Repository or release not found")
-		}
-		return nil, false, err
-	}
-
-	rel, asset, ver, found := findReleaseAndAsset(rels, version, up.filters)
-	if !found {
-		return nil, false, nil
-	}
-
-	url := asset.GetBrowserDownloadURL()
-	log.Printf("Successfully fetched the latest release. tag: %s, name: %s, URL: %s, Asset: %s", rel.GetTagName(), rel.GetName(), rel.GetURL(), url)
-
-	publishedAt := rel.GetPublishedAt().Time
-	release = &Release{
-		version:           ver,
-		AssetURL:          url,
-		AssetByteSize:     asset.GetSize(),
-		AssetID:           asset.GetID(),
-		ValidationAssetID: -1,
-		URL:               rel.GetHTMLURL(),
-		ReleaseNotes:      rel.GetBody(),
-		Name:              rel.GetName(),
-		PublishedAt:       &publishedAt,
-		RepoOwner:         repo[0],
-		RepoName:          repo[1],
-	}
-
-	if up.validator != nil {
-		validationName := asset.GetName() + up.validator.Suffix()
-		validationAsset, ok := findValidationAsset(rel, validationName)
-		if !ok {
-			return nil, false, fmt.Errorf("failed finding validation file %q", validationName)
-		}
-		release.ValidationAssetID = validationAsset.GetID()
-	}
-
-	return release, true, nil
-}
-
-// DetectLatest detects the latest release of the slug (owner/repo).
-// This function is a shortcut version of updater.DetectLatest() method.
-func DetectLatest(slug string) (*Release, bool, error) {
-	return DefaultUpdater().DetectLatest(slug)
-}
-
-// DetectVersion detects the given release of the slug (owner/repo) from its version.
-func DetectVersion(slug string, version string) (*Release, bool, error) {
-	return DefaultUpdater().DetectVersion(slug, version)
 }

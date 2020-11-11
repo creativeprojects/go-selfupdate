@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"runtime"
 
 	"github.com/google/go-github/v30/github"
 	"golang.org/x/oauth2"
@@ -18,24 +19,9 @@ type Updater struct {
 	apiCtx    context.Context
 	validator Validator
 	filters   []*regexp.Regexp
-}
-
-// Config represents the configuration of self-update.
-type Config struct {
-	// APIToken represents GitHub API token. If it's not empty, it will be used for authentication of GitHub API
-	APIToken string
-	// EnterpriseBaseURL is a base URL of GitHub API. If you want to use this library with GitHub Enterprise,
-	// please set "https://{your-organization-address}/api/v3/" to this field.
-	EnterpriseBaseURL string
-	// EnterpriseUploadURL is a URL to upload stuffs to GitHub Enterprise instance. This is often the same as an API base URL.
-	// So if this field is not set and EnterpriseBaseURL is set, EnterpriseBaseURL is also set to this field.
-	EnterpriseUploadURL string
-	// Validator represents types which enable additional validation of downloaded release.
-	Validator Validator
-	// Filters are regexp used to filter on specific assets for releases with multiple assets.
-	// An asset is selected if it matches any of those, in addition to the regular tag, os, arch, extensions.
-	// Please make sure that your filter(s) uniquely match an asset.
-	Filters []string
+	os        string
+	arch      string
+	arm       uint8
 }
 
 // NewUpdater creates a new updater instance. It initializes GitHub API client.
@@ -45,7 +31,10 @@ func NewUpdater(config Config) (*Updater, error) {
 	if token == "" {
 		token = os.Getenv("GITHUB_TOKEN")
 	}
-	ctx := context.Background()
+	ctx := config.Context
+	if ctx == nil {
+		ctx = context.Background()
+	}
 	hc := newHTTPClient(ctx, token)
 
 	filtersRe := make([]*regexp.Regexp, 0, len(config.Filters))
@@ -57,9 +46,30 @@ func NewUpdater(config Config) (*Updater, error) {
 		filtersRe = append(filtersRe, re)
 	}
 
+	os := config.OS
+	arch := config.Arch
+	if os == "" {
+		os = runtime.GOOS
+	}
+	if arch == "" {
+		arch = runtime.GOARCH
+	}
+	arm := config.Arm
+	if arm == 0 && goarm > 0 {
+		arm = goarm
+	}
+
 	if config.EnterpriseBaseURL == "" {
 		client := github.NewClient(hc)
-		return &Updater{api: client, apiCtx: ctx, validator: config.Validator, filters: filtersRe}, nil
+		return &Updater{
+			api:       client,
+			apiCtx:    ctx,
+			validator: config.Validator,
+			filters:   filtersRe,
+			os:        os,
+			arch:      arch,
+			arm:       arm,
+		}, nil
 	}
 
 	u := config.EnterpriseUploadURL
@@ -70,7 +80,15 @@ func NewUpdater(config Config) (*Updater, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Updater{api: client, apiCtx: ctx, validator: config.Validator, filters: filtersRe}, nil
+	return &Updater{
+		api:       client,
+		apiCtx:    ctx,
+		validator: config.Validator,
+		filters:   filtersRe,
+		os:        os,
+		arch:      arch,
+		arm:       arm,
+	}, nil
 }
 
 // DefaultUpdater creates a new updater instance with default configuration.
@@ -80,7 +98,13 @@ func DefaultUpdater() *Updater {
 	token := os.Getenv("GITHUB_TOKEN")
 	ctx := context.Background()
 	client := newHTTPClient(ctx, token)
-	return &Updater{api: github.NewClient(client), apiCtx: ctx}
+	return &Updater{
+		api:    github.NewClient(client),
+		apiCtx: ctx,
+		os:     runtime.GOOS,
+		arch:   runtime.GOARCH,
+		arm:    goarm,
+	}
 }
 
 func newHTTPClient(ctx context.Context, token string) *http.Client {

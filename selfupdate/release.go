@@ -32,11 +32,13 @@ type Release struct {
 	OS string
 	// Arch this release is for
 	Arch string
+	// Arm 32bits version (if any). Valid values are 0 (unknown), 5, 6 or 7
+	Arm uint8
 	// version is the parsed *semver.Version
 	version *semver.Version
 }
 
-// Version is the version of the release
+// Version is the version string of the release
 func (r Release) Version() string {
 	return r.version.String()
 }
@@ -57,4 +59,14 @@ func (r Release) LessThan(other string) bool {
 // GreaterThan tests if one version is greater than another one.
 func (r Release) GreaterThan(other string) bool {
 	return r.version.GreaterThan(semver.MustParse(other))
+}
+
+// LessOrEqual tests if one version is less than or equal to another one.
+func (r Release) LessOrEqual(other string) bool {
+	return r.version.Compare(semver.MustParse(other)) <= 0
+}
+
+// GreaterOrEqual tests if one version is greater than or equal to another one.
+func (r Release) GreaterOrEqual(other string) bool {
+	return r.version.Compare(semver.MustParse(other)) >= 0
 }

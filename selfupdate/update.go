@@ -14,43 +14,6 @@ import (
 	"github.com/inconshreveable/go-update"
 )
 
-func uncompressAndUpdate(src io.Reader, assetURL, cmdPath string) error {
-	_, cmd := filepath.Split(cmdPath)
-	asset, err := DecompressCommand(src, assetURL, cmd)
-	if err != nil {
-		return err
-	}
-
-	log.Printf("Will update %s to the latest downloaded from %s", cmdPath, assetURL)
-	return update.Apply(asset, update.Options{
-		TargetPath: cmdPath,
-	})
-}
-
-func (up *Updater) downloadDirectlyFromURL(assetURL string) (io.ReadCloser, error) {
-	req, err := http.NewRequest("GET", assetURL, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create HTTP request to %s: %s", assetURL, err)
-	}
-
-	req.Header.Add("Accept", "application/octet-stream")
-	req = req.WithContext(up.apiCtx)
-
-	// OAuth HTTP client is not available to download blob from URL when the URL is a redirect URL
-	// returned from GitHub Releases API (response status 400).
-	// Use default HTTP client instead.
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to download a release file from %s: %s", assetURL, err)
-	}
-
-	if res.StatusCode != 200 {
-		return nil, fmt.Errorf("failed to download a release file from %s: Not successful status %d", assetURL, res.StatusCode)
-	}
-
-	return res.Body, nil
-}
-
 // UpdateTo downloads an executable from GitHub Releases API and replace current binary with the downloaded one.
 // It downloads a release asset via GitHub Releases API so this function is available for update releases on private repository.
 // If a redirect occurs, it fallbacks into directly downloading from the redirect URL.
@@ -61,7 +24,7 @@ func (up *Updater) UpdateTo(rel *Release, cmdPath string) error {
 		return fmt.Errorf("failed to call GitHub Releases API for getting an asset(ID: %d) for repository '%s/%s': %s", rel.AssetID, rel.RepoOwner, rel.RepoName, err)
 	}
 	if redirectURL != "" {
-		log.Print("Redirect URL was returned while trying to download a release asset from GitHub API. Falling back to downloading from asset URL directly:", redirectURL)
+		log.Printf("Redirect URL was returned while trying to download a release asset from GitHub API. Falling back to downloading from asset URL directly: %s", redirectURL)
 		src, err = up.downloadDirectlyFromURL(redirectURL)
 		if err != nil {
 			return err
@@ -75,7 +38,7 @@ func (up *Updater) UpdateTo(rel *Release, cmdPath string) error {
 	}
 
 	if up.validator == nil {
-		return uncompressAndUpdate(bytes.NewReader(data), rel.AssetURL, cmdPath)
+		return up.decompressAndUpdate(bytes.NewReader(data), rel.AssetURL, cmdPath)
 	}
 
 	validationSrc, validationRedirectURL, err := up.api.Repositories.DownloadReleaseAsset(up.apiCtx, rel.RepoOwner, rel.RepoName, rel.ValidationAssetID, &client)
@@ -101,13 +64,13 @@ func (up *Updater) UpdateTo(rel *Release, cmdPath string) error {
 		return fmt.Errorf("failed validating asset content: %v", err)
 	}
 
-	return uncompressAndUpdate(bytes.NewReader(data), rel.AssetURL, cmdPath)
+	return up.decompressAndUpdate(bytes.NewReader(data), rel.AssetURL, cmdPath)
 }
 
 // UpdateCommand updates a given command binary to the latest version.
 // 'slug' represents 'owner/name' repository on GitHub and 'current' means the current version.
 func (up *Updater) UpdateCommand(cmdPath string, current *semver.Version, slug string) (*Release, error) {
-	if runtimeOS == "windows" && !strings.HasSuffix(cmdPath, ".exe") {
+	if up.os == "windows" && !strings.HasSuffix(cmdPath, ".exe") {
 		// Ensure to add '.exe' to given path on Windows
 		cmdPath = cmdPath + ".exe"
 	}
@@ -153,28 +116,39 @@ func (up *Updater) UpdateSelf(current *semver.Version, slug string) (*Release, e
 	return up.UpdateCommand(cmdPath, current, slug)
 }
 
-// UpdateTo downloads an executable from assetURL and replace the current binary with the downloaded one.
-// This function is low-level API to update the binary. Because it does not use GitHub API and downloads asset directly from the URL via HTTP,
-// this function is not available to update a release for private repositories.
-// cmdPath is a file path to command executable.
-func UpdateTo(assetURL, cmdPath string) error {
-	up := DefaultUpdater()
-	src, err := up.downloadDirectlyFromURL(assetURL)
+func (up *Updater) decompressAndUpdate(src io.Reader, assetURL, cmdPath string) error {
+	_, cmd := filepath.Split(cmdPath)
+	asset, err := DecompressCommand(src, assetURL, cmd, up.os, up.arch)
 	if err != nil {
 		return err
 	}
-	defer src.Close()
-	return uncompressAndUpdate(src, assetURL, cmdPath)
+
+	log.Printf("Will update %s to the latest downloaded from %s", cmdPath, assetURL)
+	return update.Apply(asset, update.Options{
+		TargetPath: cmdPath,
+	})
 }
 
-// UpdateCommand updates a given command binary to the latest version.
-// This function is a shortcut version of updater.UpdateCommand.
-func UpdateCommand(cmdPath string, current *semver.Version, slug string) (*Release, error) {
-	return DefaultUpdater().UpdateCommand(cmdPath, current, slug)
-}
+func (up *Updater) downloadDirectlyFromURL(assetURL string) (io.ReadCloser, error) {
+	req, err := http.NewRequest("GET", assetURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create HTTP request to %s: %s", assetURL, err)
+	}
 
-// UpdateSelf updates the running executable itself to the latest version.
-// This function is a shortcut version of updater.UpdateSelf.
-func UpdateSelf(current *semver.Version, slug string) (*Release, error) {
-	return DefaultUpdater().UpdateSelf(current, slug)
+	req.Header.Add("Accept", "application/octet-stream")
+	req = req.WithContext(up.apiCtx)
+
+	// OAuth HTTP client is not available to download blob from URL when the URL is a redirect URL
+	// returned from GitHub Releases API (response status 400).
+	// Use default HTTP client instead.
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to download a release file from %s: %s", assetURL, err)
+	}
+
+	if res.StatusCode != 200 {
+		return nil, fmt.Errorf("failed to download a release file from %s: Not successful status %d", assetURL, res.StatusCode)
+	}
+
+	return res.Body, nil
 }

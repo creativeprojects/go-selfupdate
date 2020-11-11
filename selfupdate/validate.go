@@ -23,18 +23,18 @@ type Validator interface {
 type SHAValidator struct {
 }
 
-// Validate validates the SHA256 sum of the release against the contents of an
+// Validate checks the SHA256 sum of the release against the contents of an
 // additional asset file.
 func (v *SHAValidator) Validate(release, asset []byte) error {
 	calculatedHash := fmt.Sprintf("%x", sha256.Sum256(release))
 	hash := fmt.Sprintf("%s", asset[:sha256.BlockSize])
 	if calculatedHash != hash {
-		return fmt.Errorf("sha2: validation failed: hash mismatch: expected=%q, got=%q", calculatedHash, hash)
+		return fmt.Errorf("sha256 validation failed: expected=%q, got=%q", calculatedHash, hash)
 	}
 	return nil
 }
 
-// Suffix returns the suffix for SHA2 validation.
+// Suffix returns the suffix for SHA256 validation.
 func (v *SHAValidator) Suffix() string {
 	return ".sha256"
 }
@@ -45,7 +45,7 @@ type ECDSAValidator struct {
 	PublicKey *ecdsa.PublicKey
 }
 
-// Validate validates the ECDSA signature the release against the signature
+// Validate checks the ECDSA signature the release against the signature
 // contained in an additional asset file.
 // additional asset file.
 func (v *ECDSAValidator) Validate(input, signature []byte) error {
@@ -71,3 +71,9 @@ func (v *ECDSAValidator) Validate(input, signature []byte) error {
 func (v *ECDSAValidator) Suffix() string {
 	return ".sig"
 }
+
+// Verify interface
+var (
+	_ Validator = &SHAValidator{}
+	_ Validator = &ECDSAValidator{}
+)

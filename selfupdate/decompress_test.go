@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -12,7 +13,7 @@ import (
 func TestCompressionNotRequired(t *testing.T) {
 	buf := []byte{'a', 'b', 'c'}
 	want := bytes.NewReader(buf)
-	r, err := DecompressCommand(want, "https://github.com/foo/bar/releases/download/v1.2.3/foo", "foo")
+	r, err := DecompressCommand(want, "https://github.com/foo/bar/releases/download/v1.2.3/foo", "foo", runtime.GOOS, runtime.GOOS)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -57,7 +58,7 @@ func TestDecompress(t *testing.T) {
 
 			ext := getArchiveFileExt(n)
 			url := "https://github.com/foo/bar/releases/download/v1.2.3/bar" + ext
-			r, err := DecompressCommand(f, url, "bar")
+			r, err := DecompressCommand(f, url, "bar", runtime.GOOS, runtime.GOOS)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -94,7 +95,7 @@ func TestDecompressInvalidArchive(t *testing.T) {
 
 		ext := getArchiveFileExt(a.name)
 		url := "https://github.com/foo/bar/releases/download/v1.2.3/bar" + ext
-		_, err = DecompressCommand(f, url, "bar")
+		_, err = DecompressCommand(f, url, "bar", runtime.GOOS, runtime.GOOS)
 		if err == nil {
 			t.Fatal("Error should be raised")
 		}
@@ -122,7 +123,7 @@ func TestTargetNotFound(t *testing.T) {
 			}
 			ext := getArchiveFileExt(tc.name)
 			url := "https://github.com/foo/bar/releases/download/v1.2.3/bar" + ext
-			_, err = DecompressCommand(f, url, "bar")
+			_, err = DecompressCommand(f, url, "bar", runtime.GOOS, runtime.GOOS)
 			if err == nil {
 				t.Fatal("Error should be raised for")
 			}

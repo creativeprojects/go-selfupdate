@@ -12,7 +12,7 @@ To know the usage, please try the command without any argument.
 $ detect-latest-release
 ```
 
-For example, following shows the latest version of [github-clone-all](https://github.com/creativeprojects/resticprofile).
+For example, following shows the latest version of [resticprofile](https://github.com/creativeprojects/resticprofile).
 
 ```
 $ detect-latest-release creativeprojects/resticprofile
