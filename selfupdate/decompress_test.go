@@ -112,11 +112,11 @@ func TestTargetNotFound(t *testing.T) {
 		name string
 		msg  string
 	}{
-		{"testdata/empty.zip", "command is not found"},
-		{"testdata/bar-not-found.zip", "command is not found"},
+		{"testdata/empty.zip", "is not found"},
+		{"testdata/bar-not-found.zip", "is not found"},
 		{"testdata/bar-not-found.gzip", "does not match to command"},
-		{"testdata/empty.tar.gz", "command is not found"},
-		{"testdata/bar-not-found.tar.gz", "command is not found"},
+		{"testdata/empty.tar.gz", "is not found"},
+		{"testdata/bar-not-found.tar.gz", "is not found"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			f, err := os.Open(tc.name)
