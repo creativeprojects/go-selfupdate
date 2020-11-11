@@ -22,5 +22,5 @@ GitHub and replaces itself.
 This library started as a fork of https://github.com/rhysd/go-github-selfupdate. A few things have changed from the original implementation:
 - don't expose an external semver.Version type, but provide the same functionality through the API: LessThan, Equal and GreaterThan
 - use an interface to send logs (compatible with standard log.Logger)
-- able to detect different ARM CPU architectures (the original library wasn't working on my bakery of raspberry pi)
+- able to detect different ARM CPU architectures (the original library wasn't working on my different versions of raspberry pi)
 - support for assets compressed with bzip2 (.bz2)

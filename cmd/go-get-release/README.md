@@ -1,11 +1,12 @@
-Like `go get`, but it downloads and installs the latest release binary from GitHub instead.
+Download and install the latest release of any binary from GitHub.
 
-Please download a binary from [release page](https://github.com/rhysd/go-github-selfupdate/releases/tag/go-get-release)
-and put it in `$PATH` or build from source with `go get`.
+## Installation
 
 ```
-$ go get -u github.com/rhysd/go-github-selfupdate/cmd/go-get-release
+$ go get -u github.com/creativeprojects/go-selfupdate/cmd/go-get-release
 ```
+
+## Usage
 
 Usage is quite similar to `go get`. But `{package}` must be hosted on GitHub. So it needs to start with `github.com/`.
 
