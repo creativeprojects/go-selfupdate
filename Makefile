@@ -11,7 +11,7 @@ GOTOOL=$(GOCMD) tool
 GOGET=$(GOCMD) get
 GOPATH?=`$(GOCMD) env GOPATH`
 
-TESTS=./selfupdate
+TESTS=./...
 COVERAGE_FILE=coverage.out
 
 BUILD_DATE=`date`
