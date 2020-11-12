@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/inconshreveable/go-update"
+	"github.com/creativeprojects/go-selfupdate/update"
 )
 
 // UpdateTo downloads an executable from GitHub Releases API and replace current binary with the downloaded one.
