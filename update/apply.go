@@ -39,7 +39,7 @@ var (
 // 8. If the final rename fails, attempts to roll back by renaming /path/to/.target.old
 // back to /path/to/target.
 //
-// If the roll back operation fails, the file system is left in an inconsistent state (betweet steps 5 and 6) where
+// If the roll back operation fails, the file system is left in an inconsistent state (between steps 5 and 6) where
 // there is no new executable file and the old executable file could not be be moved to its original location. In this
 // case you should notify the user of the bad news and ask them to recover manually. Applications can determine whether
 // the rollback failed by calling RollbackError, see the documentation on that function for additional detail.
@@ -53,7 +53,7 @@ func Apply(update io.Reader, opts Options) error {
 	case opts.Signature != nil:
 		return errors.New("no public key to verify signature with")
 	case opts.PublicKey != nil:
-		return errors.New("No signature to verify with")
+		return errors.New("no signature to verify with")
 	}
 
 	// set defaults
@@ -191,6 +191,7 @@ type rollbackErr struct {
 	rollbackErr error // error encountered while rolling back
 }
 
+// Options for Apply update
 type Options struct {
 	// TargetPath defines the path to the file to update.
 	// The emptry string means 'the executable file of the running program'.
@@ -268,9 +269,8 @@ func (o *Options) SetPublicKeyPEM(pembytes []byte) error {
 func (o *Options) getPath() (string, error) {
 	if o.TargetPath == "" {
 		return os.Executable()
-	} else {
-		return o.TargetPath, nil
 	}
+	return o.TargetPath, nil
 }
 
 func (o *Options) applyPatch(patch io.Reader) ([]byte, error) {
@@ -297,7 +297,7 @@ func (o *Options) verifyChecksum(updated []byte) error {
 	}
 
 	if !bytes.Equal(o.Checksum, checksum) {
-		return fmt.Errorf("Updated file has wrong checksum. Expected: %x, got: %x", o.Checksum, checksum)
+		return fmt.Errorf("updated file has wrong checksum. Expected: %x, got: %x", o.Checksum, checksum)
 	}
 	return nil
 }
