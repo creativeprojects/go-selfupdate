@@ -11,8 +11,6 @@ import (
 	"io/ioutil"
 	"os"
 	"testing"
-
-	"github.com/kr/binarydist"
 )
 
 var (
@@ -103,61 +101,6 @@ func TestVerifyChecksumNegative(t *testing.T) {
 	})
 	if err == nil {
 		t.Fatalf("Failed to detect bad checksum!")
-	}
-}
-
-func TestApplyPatch(t *testing.T) {
-	fName := "TestApplyPatch"
-	defer cleanup(fName)
-	writeOldFile(fName, t)
-
-	patch := new(bytes.Buffer)
-	err := binarydist.Diff(bytes.NewReader(oldFile), bytes.NewReader(newFile), patch)
-	if err != nil {
-		t.Fatalf("Failed to create patch: %v", err)
-	}
-
-	err = Apply(patch, Options{
-		TargetPath: fName,
-		Patcher:    NewBSDiffPatcher(),
-	})
-	validateUpdate(fName, err, t)
-}
-
-func TestCorruptPatch(t *testing.T) {
-	fName := "TestCorruptPatch"
-	defer cleanup(fName)
-	writeOldFile(fName, t)
-
-	badPatch := []byte{0x44, 0x38, 0x86, 0x3c, 0x4f, 0x8d, 0x26, 0x54, 0xb, 0x11, 0xce, 0xfe, 0xc1, 0xc0, 0xf8, 0x31, 0x38, 0xa0, 0x12, 0x1a, 0xa2, 0x57, 0x2a, 0xe1, 0x3a, 0x48, 0x62, 0x40, 0x2b, 0x81, 0x12, 0xb1, 0x21, 0xa5, 0x16, 0xed, 0x73, 0xd6, 0x54, 0x84, 0x29, 0xa6, 0xd6, 0xb2, 0x1b, 0xfb, 0xe6, 0xbe, 0x7b, 0x70}
-	err := Apply(bytes.NewReader(badPatch), Options{
-		TargetPath: fName,
-		Patcher:    NewBSDiffPatcher(),
-	})
-	if err == nil {
-		t.Fatalf("Failed to detect corrupt patch!")
-	}
-}
-
-func TestVerifyChecksumPatchNegative(t *testing.T) {
-	fName := "TestVerifyChecksumPatchNegative"
-	defer cleanup(fName)
-	writeOldFile(fName, t)
-
-	patch := new(bytes.Buffer)
-	anotherFile := []byte{0x77, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66}
-	err := binarydist.Diff(bytes.NewReader(oldFile), bytes.NewReader(anotherFile), patch)
-	if err != nil {
-		t.Fatalf("Failed to create patch: %v", err)
-	}
-
-	err = Apply(patch, Options{
-		TargetPath: fName,
-		Checksum:   newFileChecksum[:],
-		Patcher:    NewBSDiffPatcher(),
-	})
-	if err == nil {
-		t.Fatalf("Failed to detect patch to wrong file!")
 	}
 }
 

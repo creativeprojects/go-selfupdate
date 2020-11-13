@@ -29,31 +29,6 @@ This example shows how to update a program remotely from a URL.
 	}
 
 
-Binary Patching
-
-Go binaries can often be large. It can be advantageous to only ship a binary patch to a client
-instead of the complete program text of a new version.
-
-This example shows how to update a program with a bsdiff binary patch. Other patch formats
-may be applied by implementing the Patcher interface.
-
-	import (
-		"encoding/hex"
-		"io"
-
-		"github.com/creativeprojects/go-selfupdate/update"
-	)
-
-	func updateWithPatch(patch io.Reader) error {
-		err := update.Apply(patch, update.Options{
-			Patcher: update.NewBSDiffPatcher()
-		})
-		if err != nil {
-			// error handling
-		}
-		return err
-	}
-
 Checksum Verification
 
 Updating executable code on a computer can be a dangerous operation unless you
@@ -65,7 +40,7 @@ go-update validates SHA256 checksums by default, but this is pluggable via the H
 property on the Options struct.
 
 This example shows how to guarantee that the newly-updated binary is verified to
-have an appropriate checksum (that was otherwise retrived via a secure channel)
+have an appropriate checksum (that was otherwise retrieved via a secure channel)
 specified as a hex string.
 
 	import (
@@ -97,8 +72,7 @@ Cryptographic Signature Verification
 Cryptographic verification of new code from an update is an extremely important way to guarantee the
 security and integrity of your updates.
 
-Verification is performed by validating the signature of a hash of the new file. This
-means nothing changes if you apply your update with a patch.
+Verification is performed by validating the signature of a hash of the new file.
 
 This example shows how to add signature verification to your updates. To make all of this work
 an application distributor must first create a public/private key pair and embed the public key
@@ -133,7 +107,7 @@ with the private key and distribute the signature along with the update.
 		opts := update.Options{
 			Checksum: checksum,
 			Signature: signature,
-			Hash: crypto.SHA256, 	                 // this is the default, you don't need to specify it
+			Hash: crypto.SHA256, 	               // this is the default, you don't need to specify it
 			Verifier: update.NewECDSAVerifier(),   // this is the default, you don't need to specify it
 		}
 		err = opts.SetPublicKeyPEM(publicKey)

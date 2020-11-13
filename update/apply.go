@@ -75,15 +75,8 @@ func Apply(update io.Reader, opts Options) error {
 	}
 
 	var newBytes []byte
-	if opts.Patcher != nil {
-		if newBytes, err = opts.applyPatch(update); err != nil {
-			return err
-		}
-	} else {
-		// no patch to apply, go on through
-		if newBytes, err = ioutil.ReadAll(update); err != nil {
-			return err
-		}
+	if newBytes, err = ioutil.ReadAll(update); err != nil {
+		return err
 	}
 
 	// verify checksum if requested
@@ -215,10 +208,6 @@ type Options struct {
 	// Use this hash function to generate the checksum. If not set, SHA256 is used.
 	Hash crypto.Hash
 
-	// If nil, treat the update as a complete replacement for the contents of the file at TargetPath.
-	// If non-nil, treat the update contents as a patch and use this object to apply the patch.
-	Patcher Patcher
-
 	// Store the old executable file at this path after a successful update.
 	// The empty string means the old executable file will be removed after the update.
 	OldSavePath string
@@ -271,23 +260,6 @@ func (o *Options) getPath() (string, error) {
 		return os.Executable()
 	}
 	return o.TargetPath, nil
-}
-
-func (o *Options) applyPatch(patch io.Reader) ([]byte, error) {
-	// open the file to patch
-	old, err := os.Open(o.TargetPath)
-	if err != nil {
-		return nil, err
-	}
-	defer old.Close()
-
-	// apply the patch
-	var applied bytes.Buffer
-	if err = o.Patcher.Patch(old, &applied, patch); err != nil {
-		return nil, err
-	}
-
-	return applied.Bytes(), nil
 }
 
 func (o *Options) verifyChecksum(updated []byte) error {
