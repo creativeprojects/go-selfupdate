@@ -32,7 +32,7 @@ func (up *Updater) DetectVersion(slug string, version string) (release *Release,
 
 	rels, err := up.source.ListReleases(repo[0], repo[1])
 	if err != nil {
-		return nil, false, nil
+		return nil, false, err
 	}
 
 	rel, asset, ver, found := up.findReleaseAndAsset(rels, version)

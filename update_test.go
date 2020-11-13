@@ -115,7 +115,7 @@ func TestUpdateViaSymlink(t *testing.T) {
 		t.Fatal(err)
 	}
 	if p != exePath {
-		t.Fatal("Created symlink no loger points the executable:", p)
+		t.Fatal("Created symlink no longer points the executable:", p)
 	}
 }
 
