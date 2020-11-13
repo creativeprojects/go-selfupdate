@@ -31,15 +31,9 @@ func (up *Updater) DetectVersion(slug string, version string) (release *Release,
 		return nil, false, fmt.Errorf("invalid slug format. It should be 'owner/name': %s", slug)
 	}
 
-	rels, res, err := up.api.Repositories.ListReleases(up.apiCtx, repo[0], repo[1], nil)
+	rels, err := up.source.ListReleases(repo[0], repo[1])
 	if err != nil {
-		log.Printf("API returned an error response: %s", err)
-		if res != nil && res.StatusCode == 404 {
-			// 404 means repository not found or release not found. It's not an error here.
-			err = nil
-			log.Print("API returned 404. Repository or release not found")
-		}
-		return nil, false, err
+		return nil, false, nil
 	}
 
 	rel, asset, ver, found := up.findReleaseAndAsset(rels, version)
@@ -61,8 +55,6 @@ func (up *Updater) DetectVersion(slug string, version string) (release *Release,
 		ReleaseNotes:      rel.GetBody(),
 		Name:              rel.GetName(),
 		PublishedAt:       &publishedAt,
-		RepoOwner:         repo[0],
-		RepoName:          repo[1],
 		OS:                up.os,
 		Arch:              up.arch,
 		Arm:               up.arm,
@@ -80,7 +72,7 @@ func (up *Updater) DetectVersion(slug string, version string) (release *Release,
 	return release, true, nil
 }
 
-func findAssetFromRelease(rel *github.RepositoryRelease,
+func findAssetFromRelease(rel SourceRelease,
 	suffixes []string, targetVersion string, filters []*regexp.Regexp) (*github.ReleaseAsset, *semver.Version, bool) {
 
 	if targetVersion != "" && targetVersion != rel.GetTagName() {
@@ -104,7 +96,7 @@ func findAssetFromRelease(rel *github.RepositoryRelease,
 		return nil, nil, false
 	}
 	if indices[0] > 0 {
-		log.Printf("Strip prefix '%s' from '%s'", verText[:indices[0]], verText)
+		// log.Printf("Strip prefix '%s' from '%s'", verText[:indices[0]], verText)
 		verText = verText[indices[0]:]
 	}
 
@@ -155,7 +147,7 @@ func findValidationAsset(rel *github.RepositoryRelease, validationName string) (
 	return nil, false
 }
 
-func (up *Updater) findReleaseAndAsset(rels []*github.RepositoryRelease, targetVersion string,
+func (up *Updater) findReleaseAndAsset(rels []SourceRelease, targetVersion string,
 ) (*github.RepositoryRelease,
 	*github.ReleaseAsset,
 	*semver.Version,
@@ -175,10 +167,10 @@ func (up *Updater) findReleaseAndAsset(rels []*github.RepositoryRelease, targetV
 func findReleaseAndAssetForArch(
 	os string,
 	arch string,
-	rels []*github.RepositoryRelease,
+	rels []SourceRelease,
 	targetVersion string,
 	filters []*regexp.Regexp,
-) (*github.RepositoryRelease, *github.ReleaseAsset, *semver.Version, bool) {
+) (SourceRelease, *github.ReleaseAsset, *semver.Version, bool) {
 	// Generate candidates
 	suffixes := make([]string, 0, 2*7*2)
 	for _, sep := range []rune{'_', '-'} {
@@ -194,7 +186,7 @@ func findReleaseAndAssetForArch(
 
 	var ver *semver.Version
 	var asset *github.ReleaseAsset
-	var release *github.RepositoryRelease
+	var release SourceRelease
 
 	// Find the latest version from the list of releases.
 	// Returned list from GitHub API is in the order of the date when created.

@@ -24,10 +24,6 @@ type Release struct {
 	Name string
 	// PublishedAt is the time when the release was published
 	PublishedAt *time.Time
-	// RepoOwner is the owner of the repository of the release
-	RepoOwner string
-	// RepoName is the name of the repository of the release
-	RepoName string
 	// OS this release is for
 	OS string
 	// Arch this release is for

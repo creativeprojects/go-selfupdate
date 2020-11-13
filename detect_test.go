@@ -58,12 +58,6 @@ func TestDetectReleaseWithVersionPrefix(t *testing.T) {
 	if r.PublishedAt.IsZero() {
 		t.Error("Release time is unexpectedly zero")
 	}
-	if r.RepoOwner != "rhysd" {
-		t.Error("Repo owner is not correct:", r.RepoOwner)
-	}
-	if r.RepoName != "github-clone-all" {
-		t.Error("Repo name was not properly detectd:", r.RepoName)
-	}
 }
 
 func TestDetectVersionExisting(t *testing.T) {
@@ -142,12 +136,6 @@ func TestDetectReleasesForVariousArchives(t *testing.T) {
 			}
 			if r.PublishedAt.IsZero() {
 				t.Error("Release time is unexpectedly zero")
-			}
-			if r.RepoOwner != "rhysd-test" {
-				t.Error("Repo owner should be rhysd-test:", r.RepoOwner)
-			}
-			if !strings.HasPrefix(r.RepoName, "test-release-") {
-				t.Error("Repo name was not properly detectd:", r.RepoName)
 			}
 		})
 	}
