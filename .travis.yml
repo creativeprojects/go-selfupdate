@@ -32,14 +32,12 @@ install:
   - go get -t -d -v ./...
 
 script:
-  - go build ./selfupdate/
-  - go build ./cmd/detect-latest-release/
-  - go build ./cmd/go-get-release/
+  - go build ./...
   - |
     if [[ "${GITHUB_TOKEN}" != "" ]]; then
-      go test -v -race -coverprofile=coverage.txt ./selfupdate
+      go test -v -race -coverprofile=coverage.txt . ./update
     else
-      go test -v -race -short ./selfupdate
+      go test -v -race -short . ./update
     fi
 
 after_success:

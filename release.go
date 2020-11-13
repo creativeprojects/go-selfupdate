@@ -24,10 +24,6 @@ type Release struct {
 	Name string
 	// PublishedAt is the time when the release was published
 	PublishedAt *time.Time
-	// RepoOwner is the owner of the repository of the release
-	RepoOwner string
-	// RepoName is the name of the repository of the release
-	RepoName string
 	// OS this release is for
 	OS string
 	// Arch this release is for
@@ -35,7 +31,9 @@ type Release struct {
 	// Arm 32bits version (if any). Valid values are 0 (unknown), 5, 6 or 7
 	Arm uint8
 	// version is the parsed *semver.Version
-	version *semver.Version
+	version   *semver.Version
+	repoOwner string
+	repoName  string
 }
 
 // Version is the version string of the release

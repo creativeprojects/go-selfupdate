@@ -5,10 +5,10 @@ import (
 	stdlog "log"
 	"os"
 	"regexp"
+	"runtime"
 	"strings"
 	"testing"
 
-	"github.com/google/go-github/v30/github"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -17,8 +17,9 @@ func skipRateLimitExceeded(t *testing.T, err error) {
 	if err == nil {
 		return
 	}
-	if strings.Contains(err.Error(), "403 API rate limit exceeded") {
-		t.SkipNow()
+	if strings.Contains(err.Error(), "403 API rate limit") {
+		t.Skip("Test skipped because of GitHub API rate limit exceeded")
+		runtime.Goexit()
 	}
 }
 
@@ -57,12 +58,6 @@ func TestDetectReleaseWithVersionPrefix(t *testing.T) {
 	}
 	if r.PublishedAt.IsZero() {
 		t.Error("Release time is unexpectedly zero")
-	}
-	if r.RepoOwner != "rhysd" {
-		t.Error("Repo owner is not correct:", r.RepoOwner)
-	}
-	if r.RepoName != "github-clone-all" {
-		t.Error("Repo name was not properly detectd:", r.RepoName)
 	}
 }
 
@@ -143,12 +138,6 @@ func TestDetectReleasesForVariousArchives(t *testing.T) {
 			if r.PublishedAt.IsZero() {
 				t.Error("Release time is unexpectedly zero")
 			}
-			if r.RepoOwner != "rhysd-test" {
-				t.Error("Repo owner should be rhysd-test:", r.RepoOwner)
-			}
-			if !strings.HasPrefix(r.RepoName, "test-release-") {
-				t.Error("Repo name was not properly detectd:", r.RepoName)
-			}
 		})
 	}
 }
@@ -217,21 +206,10 @@ func TestNoReleaseFound(t *testing.T) {
 	}
 }
 
-func TestDetectFromBrokenGitHubEnterpriseURL(t *testing.T) {
-	up, err := NewUpdater(Config{APIToken: "hogehoge", EnterpriseBaseURL: "https://example.com"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, ok, _ := up.DetectLatest("foo/bar")
-	if ok {
-		t.Fatal("Invalid GitHub Enterprise base URL should raise an error")
-	}
-}
-
 func TestFindAssetFromRelease(t *testing.T) {
 	type findReleaseAndAssetFixture struct {
 		name            string
-		rels            *github.RepositoryRelease
+		release         SourceRelease
 		targetVersion   string
 		filters         []*regexp.Regexp
 		expectedAsset   string
@@ -253,20 +231,20 @@ func TestFindAssetFromRelease(t *testing.T) {
 	for _, fixture := range []findReleaseAndAssetFixture{
 		{
 			name:          "empty fixture",
-			rels:          nil,
+			release:       nil,
 			targetVersion: "",
 			filters:       nil,
 			expectedFound: false,
 		},
 		{
 			name: "find asset, no filters",
-			rels: &github.RepositoryRelease{
-				Name:    &rel1,
-				TagName: &v1,
-				Assets: []*github.ReleaseAsset{
-					{
-						Name: &asset1,
-						URL:  &url1,
+			release: &GitHubRelease{
+				name:    rel1,
+				tagName: v1,
+				assets: []SourceAsset{
+					&GitHubAsset{
+						name: asset1,
+						url:  url1,
 					},
 				},
 			},
@@ -277,13 +255,13 @@ func TestFindAssetFromRelease(t *testing.T) {
 		},
 		{
 			name: "don't find asset with wrong extension, no filters",
-			rels: &github.RepositoryRelease{
-				Name:    &rel11,
-				TagName: &v11,
-				Assets: []*github.ReleaseAsset{
-					{
-						Name: &wrongAsset1,
-						URL:  &url11,
+			release: &GitHubRelease{
+				name:    rel11,
+				tagName: v11,
+				assets: []SourceAsset{
+					&GitHubAsset{
+						name: wrongAsset1,
+						url:  url11,
 					},
 				},
 			},
@@ -292,13 +270,13 @@ func TestFindAssetFromRelease(t *testing.T) {
 		},
 		{
 			name: "find asset with different name, no filters",
-			rels: &github.RepositoryRelease{
-				Name:    &rel11,
-				TagName: &v11,
-				Assets: []*github.ReleaseAsset{
-					{
-						Name: &asset1,
-						URL:  &url11,
+			release: &GitHubRelease{
+				name:    rel11,
+				tagName: v11,
+				assets: []SourceAsset{
+					&GitHubAsset{
+						name: asset1,
+						url:  url11,
 					},
 				},
 			},
@@ -309,13 +287,13 @@ func TestFindAssetFromRelease(t *testing.T) {
 		},
 		{
 			name: "find asset, no filters (2)",
-			rels: &github.RepositoryRelease{
-				Name:    &rel11,
-				TagName: &v11,
-				Assets: []*github.ReleaseAsset{
-					{
-						Name: &asset11,
-						URL:  &url11,
+			release: &GitHubRelease{
+				name:    rel11,
+				tagName: v11,
+				assets: []SourceAsset{
+					&GitHubAsset{
+						name: asset11,
+						url:  url11,
 					},
 				},
 			},
@@ -327,17 +305,17 @@ func TestFindAssetFromRelease(t *testing.T) {
 		},
 		{
 			name: "find asset, match filter",
-			rels: &github.RepositoryRelease{
-				Name:    &rel11,
-				TagName: &v11,
-				Assets: []*github.ReleaseAsset{
-					{
-						Name: &asset11,
-						URL:  &url11,
+			release: &GitHubRelease{
+				name:    rel11,
+				tagName: v11,
+				assets: []SourceAsset{
+					&GitHubAsset{
+						name: asset11,
+						url:  url11,
 					},
-					{
-						Name: &asset1,
-						URL:  &url1,
+					&GitHubAsset{
+						name: asset1,
+						url:  url1,
 					},
 				},
 			},
@@ -349,17 +327,17 @@ func TestFindAssetFromRelease(t *testing.T) {
 		},
 		{
 			name: "find asset, match another filter",
-			rels: &github.RepositoryRelease{
-				Name:    &rel11,
-				TagName: &v11,
-				Assets: []*github.ReleaseAsset{
-					{
-						Name: &asset11,
-						URL:  &url11,
+			release: &GitHubRelease{
+				name:    rel11,
+				tagName: v11,
+				assets: []SourceAsset{
+					&GitHubAsset{
+						name: asset11,
+						url:  url11,
 					},
-					{
-						Name: &asset1,
-						URL:  &url1,
+					&GitHubAsset{
+						name: asset1,
+						url:  url1,
 					},
 				},
 			},
@@ -371,17 +349,17 @@ func TestFindAssetFromRelease(t *testing.T) {
 		},
 		{
 			name: "find asset, match any filter",
-			rels: &github.RepositoryRelease{
-				Name:    &rel11,
-				TagName: &v11,
-				Assets: []*github.ReleaseAsset{
-					{
-						Name: &asset11,
-						URL:  &url11,
+			release: &GitHubRelease{
+				name:    rel11,
+				tagName: v11,
+				assets: []SourceAsset{
+					&GitHubAsset{
+						name: asset11,
+						url:  url11,
 					},
-					{
-						Name: &asset2,
-						URL:  &url2,
+					&GitHubAsset{
+						name: asset2,
+						url:  url2,
 					},
 				},
 			},
@@ -396,17 +374,17 @@ func TestFindAssetFromRelease(t *testing.T) {
 		},
 		{
 			name: "find asset, match no filter",
-			rels: &github.RepositoryRelease{
-				Name:    &rel11,
-				TagName: &v11,
-				Assets: []*github.ReleaseAsset{
-					{
-						Name: &asset11,
-						URL:  &url11,
+			release: &GitHubRelease{
+				name:    rel11,
+				tagName: v11,
+				assets: []SourceAsset{
+					&GitHubAsset{
+						name: asset11,
+						url:  url11,
 					},
-					{
-						Name: &asset2,
-						URL:  &url2,
+					&GitHubAsset{
+						name: asset2,
+						url:  url2,
 					},
 				},
 			},
@@ -418,18 +396,18 @@ func TestFindAssetFromRelease(t *testing.T) {
 			expectedFound: false,
 		},
 	} {
-		asset, ver, found := findAssetFromRelease(fixture.rels, []string{".gz"}, fixture.targetVersion, fixture.filters)
+		asset, ver, found := findAssetFromRelease(fixture.release, []string{".gz"}, fixture.targetVersion, fixture.filters)
 		if fixture.expectedFound {
 			if !found {
 				t.Errorf("expected to find an asset for this fixture: %q", fixture.name)
 				continue
 			}
-			if asset.Name == nil {
+			if asset.GetName() == "" {
 				t.Errorf("invalid asset struct returned from fixture: %q, got: %v", fixture.name, asset)
 				continue
 			}
-			if *asset.Name != fixture.expectedAsset {
-				t.Errorf("expected asset %q in fixture: %q, got: %s", fixture.expectedAsset, fixture.name, *asset.Name)
+			if asset.GetName() != fixture.expectedAsset {
+				t.Errorf("expected asset %q in fixture: %q, got: %s", fixture.expectedAsset, fixture.name, asset.GetName())
 				continue
 			}
 			t.Logf("asset %v, %v", asset, ver)
@@ -459,7 +437,7 @@ func TestFindReleaseAndAsset(t *testing.T) {
 		os                string
 		arch              string
 		arm               uint8
-		releases          []*github.RepositoryRelease
+		releases          []SourceRelease
 		version           string
 		filters           []string
 		found             bool
@@ -469,16 +447,16 @@ func TestFindReleaseAndAsset(t *testing.T) {
 			name: "no match",
 			os:   "darwin",
 			arch: "amd64",
-			releases: []*github.RepositoryRelease{
-				{
-					Name:    &rel2,
-					TagName: &tag2,
-					Assets: []*github.ReleaseAsset{
-						{
-							Name: &assetLinuxI32,
+			releases: []SourceRelease{
+				&GitHubRelease{
+					name:    rel2,
+					tagName: tag2,
+					assets: []SourceAsset{
+						&GitHubAsset{
+							name: assetLinuxI32,
 						},
-						{
-							Name: &assetLinuxI64,
+						&GitHubAsset{
+							name: assetLinuxI64,
 						},
 					},
 				},
@@ -492,16 +470,16 @@ func TestFindReleaseAndAsset(t *testing.T) {
 			name: "simple match",
 			os:   "linux",
 			arch: "amd64",
-			releases: []*github.RepositoryRelease{
-				{
-					Name:    &rel2,
-					TagName: &tag2,
-					Assets: []*github.ReleaseAsset{
-						{
-							Name: &assetLinuxI32,
+			releases: []SourceRelease{
+				&GitHubRelease{
+					name:    rel2,
+					tagName: tag2,
+					assets: []SourceAsset{
+						&GitHubAsset{
+							name: assetLinuxI32,
 						},
-						{
-							Name: &assetLinuxI64,
+						&GitHubAsset{
+							name: assetLinuxI64,
 						},
 					},
 				},
@@ -515,25 +493,25 @@ func TestFindReleaseAndAsset(t *testing.T) {
 			name: "match default arm",
 			os:   "linux",
 			arch: "arm",
-			releases: []*github.RepositoryRelease{
-				{
-					Name:    &rel2,
-					TagName: &tag2,
-					Assets: []*github.ReleaseAsset{
-						{
-							Name: &assetLinuxARM,
+			releases: []SourceRelease{
+				&GitHubRelease{
+					name:    rel2,
+					tagName: tag2,
+					assets: []SourceAsset{
+						&GitHubAsset{
+							name: assetLinuxARM,
 						},
-						{
-							Name: &assetLinuxARM64,
+						&GitHubAsset{
+							name: assetLinuxARM64,
 						},
-						{
-							Name: &assetLinuxARMv5,
+						&GitHubAsset{
+							name: assetLinuxARMv5,
 						},
-						{
-							Name: &assetLinuxARMv6,
+						&GitHubAsset{
+							name: assetLinuxARMv6,
 						},
-						{
-							Name: &assetLinuxARMv7,
+						&GitHubAsset{
+							name: assetLinuxARMv7,
 						},
 					},
 				},
@@ -548,25 +526,25 @@ func TestFindReleaseAndAsset(t *testing.T) {
 			os:   "linux",
 			arch: "arm",
 			arm:  6,
-			releases: []*github.RepositoryRelease{
-				{
-					Name:    &rel2,
-					TagName: &tag2,
-					Assets: []*github.ReleaseAsset{
-						{
-							Name: &assetLinuxARM,
+			releases: []SourceRelease{
+				&GitHubRelease{
+					name:    rel2,
+					tagName: tag2,
+					assets: []SourceAsset{
+						&GitHubAsset{
+							name: assetLinuxARM,
 						},
-						{
-							Name: &assetLinuxARM64,
+						&GitHubAsset{
+							name: assetLinuxARM64,
 						},
-						{
-							Name: &assetLinuxARMv5,
+						&GitHubAsset{
+							name: assetLinuxARMv5,
 						},
-						{
-							Name: &assetLinuxARMv6,
+						&GitHubAsset{
+							name: assetLinuxARMv6,
 						},
-						{
-							Name: &assetLinuxARMv7,
+						&GitHubAsset{
+							name: assetLinuxARMv7,
 						},
 					},
 				},
@@ -581,19 +559,19 @@ func TestFindReleaseAndAsset(t *testing.T) {
 			os:   "linux",
 			arch: "arm",
 			arm:  7,
-			releases: []*github.RepositoryRelease{
-				{
-					Name:    &rel2,
-					TagName: &tag2,
-					Assets: []*github.ReleaseAsset{
-						{
-							Name: &assetLinuxARM,
+			releases: []SourceRelease{
+				&GitHubRelease{
+					name:    rel2,
+					tagName: tag2,
+					assets: []SourceAsset{
+						&GitHubAsset{
+							name: assetLinuxARM,
 						},
-						{
-							Name: &assetLinuxARM64,
+						&GitHubAsset{
+							name: assetLinuxARM64,
 						},
-						{
-							Name: &assetLinuxARMv5,
+						&GitHubAsset{
+							name: assetLinuxARMv5,
 						},
 					},
 				},
@@ -608,16 +586,16 @@ func TestFindReleaseAndAsset(t *testing.T) {
 			os:   "linux",
 			arch: "arm",
 			arm:  5,
-			releases: []*github.RepositoryRelease{
-				{
-					Name:    &rel2,
-					TagName: &tag2,
-					Assets: []*github.ReleaseAsset{
-						{
-							Name: &assetLinuxARM,
+			releases: []SourceRelease{
+				&GitHubRelease{
+					name:    rel2,
+					tagName: tag2,
+					assets: []SourceAsset{
+						&GitHubAsset{
+							name: assetLinuxARM,
 						},
-						{
-							Name: &assetLinuxARM64,
+						&GitHubAsset{
+							name: assetLinuxARM64,
 						},
 					},
 				},
@@ -632,16 +610,16 @@ func TestFindReleaseAndAsset(t *testing.T) {
 			os:   "linux",
 			arch: "arm",
 			arm:  6,
-			releases: []*github.RepositoryRelease{
-				{
-					Name:    &rel2,
-					TagName: &tag2,
-					Assets: []*github.ReleaseAsset{
-						{
-							Name: &assetLinuxARMv7,
+			releases: []SourceRelease{
+				&GitHubRelease{
+					name:    rel2,
+					tagName: tag2,
+					assets: []SourceAsset{
+						&GitHubAsset{
+							name: assetLinuxARMv7,
 						},
-						{
-							Name: &assetLinuxARM64,
+						&GitHubAsset{
+							name: assetLinuxARM64,
 						},
 					},
 				},
@@ -665,7 +643,7 @@ func TestFindReleaseAndAsset(t *testing.T) {
 			_, asset, _, found := updater.findReleaseAndAsset(testItem.releases, testItem.version)
 			assert.Equal(t, testItem.found, found)
 			if found {
-				assert.Equal(t, *testItem.expectedAssetName, *asset.Name)
+				assert.Equal(t, *testItem.expectedAssetName, asset.GetName())
 			}
 		})
 	}

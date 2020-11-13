@@ -1,6 +1,13 @@
 package selfupdate
 
-import "github.com/Masterminds/semver/v3"
+import (
+	"context"
+	"fmt"
+	"io"
+	"net/http"
+
+	"github.com/Masterminds/semver/v3"
+)
 
 // DetectLatest detects the latest release of the slug (owner/repo).
 // This function is a shortcut version of updater.DetectLatest.
@@ -19,7 +26,7 @@ func DetectVersion(slug string, version string) (*Release, bool, error) {
 // cmdPath is a file path to command executable.
 func UpdateTo(assetURL, cmdPath string) error {
 	up := DefaultUpdater()
-	src, err := up.downloadDirectlyFromURL(assetURL)
+	src, err := downloadReleaseAssetFromURL(context.Background(), assetURL)
 	if err != nil {
 		return err
 	}
@@ -37,4 +44,23 @@ func UpdateCommand(cmdPath string, current *semver.Version, slug string) (*Relea
 // This function is a shortcut version of updater.UpdateSelf.
 func UpdateSelf(current *semver.Version, slug string) (*Release, error) {
 	return DefaultUpdater().UpdateSelf(current, slug)
+}
+
+func downloadReleaseAssetFromURL(ctx context.Context, url string) (rc io.ReadCloser, err error) {
+	client := http.DefaultClient
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	req.Header.Set("Accept", "*/*")
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to download a release file from %s: %w", url, err)
+	}
+	if resp.StatusCode >= 300 {
+		resp.Body.Close()
+		return nil, fmt.Errorf("failed to download a release file from %s: HTTP %d", url, resp.StatusCode)
+	}
+	return resp.Body, nil
 }
