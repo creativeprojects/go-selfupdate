@@ -11,7 +11,7 @@ GOTOOL=$(GOCMD) tool
 GOGET=$(GOCMD) get
 GOPATH?=`$(GOCMD) env GOPATH`
 
-TESTS=./...
+TESTS=. ./update
 COVERAGE_FILE=coverage.out
 
 BUILD_DATE=`date`
@@ -22,9 +22,7 @@ BUILD_COMMIT=`git rev-parse HEAD`
 all: test build
 
 build:
-		$(GOBUILD) -v ./selfupdate
-		$(GOBUILD) -v ./cmd/go-get-release
-		$(GOBUILD) -v ./cmd/detect-latest-release
+		$(GOBUILD) -v ./...
 
 test:
 		$(GOTEST) -race -v $(TESTS)
@@ -34,6 +32,7 @@ coverage:
 		$(GOTOOL) cover -html=$(COVERAGE_FILE)
 
 clean:
+		rm detect-latest-release go-get-release coverage.out
 		$(GOCLEAN)
 
 toc:
