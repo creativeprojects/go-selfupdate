@@ -59,7 +59,7 @@ func update(version string) error {
 
 ### Naming Rules of Released Binaries
 
-go-selfupdate assumes that released binaries are put for each combination of platforms and archs.
+go-selfupdate assumes that released binaries are put for each combination of platforms and architectures.
 Binaries for each platform can be easily built using tools like [goreleaser][]
 
 You need to put the binaries with the following format.
@@ -188,7 +188,7 @@ openssl dgst -sha256 -sign Test.pem -out foo.zip.sig foo.zip
 ```
 
 go-selfupdate makes use of go internal crypto package. Therefore the used private key
-has to be compatbile with FIPS 186-3.
+has to be compatible with FIPS 186-3.
 
 
 ### Copyright
