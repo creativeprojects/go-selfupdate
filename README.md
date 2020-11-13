@@ -19,7 +19,7 @@ GitHub and replaces itself.
 
 [GitHub Releases API]: https://developer.github.com/v3/repos/releases/
 
-This library started as a fork of https://github.com/rhysd/go-selfupdate. A few things have changed from the original implementation:
+This library started as a fork of https://github.com/rhysd/go-github-selfupdate. A few things have changed from the original implementation:
 - don't expose an external semver.Version type, but provide the same functionality through the API: LessThan, Equal and GreaterThan
 - use an interface to send logs (compatible with standard log.Logger)
 - able to detect different ARM CPU architectures (the original library wasn't working on my different versions of raspberry pi)
@@ -191,3 +191,11 @@ go-selfupdate makes use of go internal crypto package. Therefore the used privat
 has to be compatbile with FIPS 186-3.
 
 
+### Copyright
+
+This work is based on:
+
+
+- [go-github-selfupdate](https://github.com/rhysd/go-github-selfupdate): [Copyright (c) 2017 rhysd](https://github.com/rhysd/go-github-selfupdate/blob/master/LICENSE)
+
+- [go-update](https://github.com/inconshreveable/go-update): [Copyright 2015 Alan Shreve](https://github.com/inconshreveable/go-update/blob/master/LICENSE)

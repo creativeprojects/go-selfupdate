@@ -21,22 +21,20 @@ var (
 //
 // Apply performs the following actions to ensure a safe cross-platform update:
 //
-// 1. If configured, applies the contents of the update io.Reader as a binary patch.
+// 1. If configured, computes the checksum of the new executable and verifies it matches.
 //
-// 2. If configured, computes the checksum of the new executable and verifies it matches.
+// 2. If configured, verifies the signature with a public key.
 //
-// 3. If configured, verifies the signature with a public key.
+// 3. Creates a new file, /path/to/.target.new with the TargetMode with the contents of the updated file
 //
-// 4. Creates a new file, /path/to/.target.new with the TargetMode with the contents of the updated file
+// 4. Renames /path/to/target to /path/to/.target.old
 //
-// 5. Renames /path/to/target to /path/to/.target.old
+// 5. Renames /path/to/.target.new to /path/to/target
 //
-// 6. Renames /path/to/.target.new to /path/to/target
-//
-// 7. If the final rename is successful, deletes /path/to/.target.old, returns no error. On Windows,
+// 6. If the final rename is successful, deletes /path/to/.target.old, returns no error. On Windows,
 // the removal of /path/to/target.old always fails, so instead Apply hides the old file instead.
 //
-// 8. If the final rename fails, attempts to roll back by renaming /path/to/.target.old
+// 7. If the final rename fails, attempts to roll back by renaming /path/to/.target.old
 // back to /path/to/target.
 //
 // If the roll back operation fails, the file system is left in an inconsistent state (between steps 5 and 6) where
