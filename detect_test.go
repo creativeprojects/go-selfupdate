@@ -17,7 +17,7 @@ func skipRateLimitExceeded(t *testing.T, err error) {
 	if err == nil {
 		return
 	}
-	if strings.Contains(err.Error(), "403 API rate limit exceeded") {
+	if strings.Contains(err.Error(), "403 API rate limit") {
 		t.Skip("Test skipped because of GitHub API rate limit exceeded")
 		runtime.Goexit()
 	}
