@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/google/go-github/v30/github"
 )
 
 var reVersion = regexp.MustCompile(`\d+\.\d+\.\d+`)
@@ -44,15 +43,17 @@ func (up *Updater) DetectVersion(slug string, version string) (release *Release,
 	url := asset.GetBrowserDownloadURL()
 	log.Printf("Successfully fetched the latest release. tag: %s, name: %s, URL: %s, Asset: %s", rel.GetTagName(), rel.GetName(), rel.GetURL(), url)
 
-	publishedAt := rel.GetPublishedAt().Time
+	publishedAt := rel.GetPublishedAt()
 	release = &Release{
 		version:           ver,
+		repoOwner:         repo[0],
+		repoName:          repo[1],
 		AssetURL:          url,
 		AssetByteSize:     asset.GetSize(),
 		AssetID:           asset.GetID(),
 		ValidationAssetID: -1,
-		URL:               rel.GetHTMLURL(),
-		ReleaseNotes:      rel.GetBody(),
+		URL:               rel.GetURL(),
+		ReleaseNotes:      rel.GetReleaseNotes(),
 		Name:              rel.GetName(),
 		PublishedAt:       &publishedAt,
 		OS:                up.os,
@@ -72,9 +73,11 @@ func (up *Updater) DetectVersion(slug string, version string) (release *Release,
 	return release, true, nil
 }
 
-func findAssetFromRelease(rel SourceRelease,
-	suffixes []string, targetVersion string, filters []*regexp.Regexp) (*github.ReleaseAsset, *semver.Version, bool) {
-
+func findAssetFromRelease(rel SourceRelease, suffixes []string, targetVersion string, filters []*regexp.Regexp) (SourceAsset, *semver.Version, bool) {
+	if rel == nil {
+		log.Print("Empty release instance!")
+		return nil, nil, false
+	}
 	if targetVersion != "" && targetVersion != rel.GetTagName() {
 		log.Printf("Skip %s not matching to specified version %s", rel.GetTagName(), targetVersion)
 		return nil, nil, false
@@ -108,7 +111,7 @@ func findAssetFromRelease(rel SourceRelease,
 		return nil, nil, false
 	}
 
-	for _, asset := range rel.Assets {
+	for _, asset := range rel.GetAssets() {
 		name := asset.GetName()
 		if len(filters) > 0 {
 			// if some filters are defined, match them: if any one matches, the asset is selected
@@ -138,8 +141,8 @@ func findAssetFromRelease(rel SourceRelease,
 	return nil, nil, false
 }
 
-func findValidationAsset(rel *github.RepositoryRelease, validationName string) (*github.ReleaseAsset, bool) {
-	for _, asset := range rel.Assets {
+func findValidationAsset(rel SourceRelease, validationName string) (SourceAsset, bool) {
+	for _, asset := range rel.GetAssets() {
 		if asset.GetName() == validationName {
 			return asset, true
 		}
@@ -147,11 +150,7 @@ func findValidationAsset(rel *github.RepositoryRelease, validationName string) (
 	return nil, false
 }
 
-func (up *Updater) findReleaseAndAsset(rels []SourceRelease, targetVersion string,
-) (*github.RepositoryRelease,
-	*github.ReleaseAsset,
-	*semver.Version,
-	bool) {
+func (up *Updater) findReleaseAndAsset(rels []SourceRelease, targetVersion string) (SourceRelease, SourceAsset, *semver.Version, bool) {
 	// we put the detected arch at the end of the list: that's fine for ARM so far,
 	// as the additional arch are more accurate than the generic one
 	for _, arch := range append(generateAdditionalArch(up.arch, up.arm), up.arch) {
@@ -170,7 +169,7 @@ func findReleaseAndAssetForArch(
 	rels []SourceRelease,
 	targetVersion string,
 	filters []*regexp.Regexp,
-) (SourceRelease, *github.ReleaseAsset, *semver.Version, bool) {
+) (SourceRelease, SourceAsset, *semver.Version, bool) {
 	// Generate candidates
 	suffixes := make([]string, 0, 2*7*2)
 	for _, sep := range []rune{'_', '-'} {
@@ -185,7 +184,7 @@ func findReleaseAndAssetForArch(
 	}
 
 	var ver *semver.Version
-	var asset *github.ReleaseAsset
+	var asset SourceAsset
 	var release SourceRelease
 
 	// Find the latest version from the list of releases.

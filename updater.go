@@ -16,6 +16,9 @@ type Updater struct {
 	arm       uint8
 }
 
+// keep the default updater instance in cache
+var defaultUpdater *Updater
+
 // NewUpdater creates a new updater instance.
 // If you don't specify a source in the config object, GitHub will be used
 func NewUpdater(config Config) (*Updater, error) {
@@ -60,14 +63,20 @@ func NewUpdater(config Config) (*Updater, error) {
 // DefaultUpdater creates a new updater instance with default configuration.
 // It initializes GitHub API client with default API base URL.
 // If you set your API token to $GITHUB_TOKEN, the client will use it.
+// Every call to this function will always return the same instance, it's only created once
 func DefaultUpdater() *Updater {
+	// instantiate it only once
+	if defaultUpdater != nil {
+		return defaultUpdater
+	}
 	// an error can only be returned when using GitHub Entreprise URLs
 	// so we're safe here :)
 	source, _ := NewGitHubSource(GitHubConfig{})
-	return &Updater{
+	defaultUpdater = &Updater{
 		source: source,
 		os:     runtime.GOOS,
 		arch:   runtime.GOARCH,
 		arm:    goarm,
 	}
+	return defaultUpdater
 }

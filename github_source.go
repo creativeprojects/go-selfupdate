@@ -3,6 +3,7 @@ package selfupdate
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 
@@ -84,19 +85,27 @@ func (s *GitHubSource) ListReleases(owner, repo string) ([]SourceRelease, error)
 	}
 	releases := make([]SourceRelease, len(rels))
 	for i, rel := range rels {
-		release := &GitHubRelease{}
-		// every single field in github.RepositoryRelease is a pointer!
-		if rel.TagName != nil {
-			release.TagName = *rel.TagName
-		}
-		releases[i] = release
+		releases[i] = NewGitHubRelease(rel)
 	}
 	return releases, nil
 }
 
+// DownloadReleaseAsset downloads an asset from its ID.
+// It returns an io.ReadCloser: it is your responsability to Close it.
+func (s *GitHubSource) DownloadReleaseAsset(owner, repo string, id int64) (io.ReadCloser, error) {
+	// create a new http client so the GitHub library can download the redirected file (if any)
+	// don't pass the "default" one as it could be the one it's already using
+	client := &http.Client{}
+	rc, _, err := s.api.Repositories.DownloadReleaseAsset(s.ctx, owner, repo, id, client)
+	if err != nil {
+		return nil, fmt.Errorf("failed to call GitHub Releases API for getting the asset ID %d on repository '%s/%s': %w", id, owner, repo, err)
+	}
+	return rc, nil
+}
+
 func newHTTPClient(ctx context.Context, token string) *http.Client {
 	if token == "" {
-		return http.DefaultClient
+		return &http.Client{}
 	}
 	src := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})
 	return oauth2.NewClient(ctx, src)

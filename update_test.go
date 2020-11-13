@@ -258,7 +258,8 @@ func TestBrokenAsset(t *testing.T) {
 }
 
 func TestBrokenGitHubEnterpriseURL(t *testing.T) {
-	up, err := NewUpdater(Config{APIToken: "hogehoge", EnterpriseBaseURL: "https://example.com"})
+	source, _ := NewGitHubSource(GitHubConfig{APIToken: "my_token", EnterpriseBaseURL: "https://example.com"})
+	up, err := NewUpdater(Config{Source: source})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -266,7 +267,7 @@ func TestBrokenGitHubEnterpriseURL(t *testing.T) {
 	if err == nil {
 		t.Fatal("Invalid GitHub Enterprise base URL should raise an error")
 	}
-	if !strings.Contains(err.Error(), "failed to call GitHub Releases API for getting an asset") {
+	if !strings.Contains(err.Error(), "failed to call GitHub Releases API for getting the asset") {
 		t.Error("Unexpected error occurred:", err)
 	}
 }
@@ -280,7 +281,8 @@ func TestUpdateFromGitHubPrivateRepo(t *testing.T) {
 	setupTestBinary()
 	defer teardownTestBinary()
 
-	up, err := NewUpdater(Config{APIToken: token})
+	source, _ := NewGitHubSource(GitHubConfig{APIToken: token})
+	up, err := NewUpdater(Config{Source: source})
 	if err != nil {
 		t.Fatal(err)
 	}

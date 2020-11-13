@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -18,17 +17,9 @@ import (
 // It downloads a release asset via GitHub Releases API so this function is available for update releases on private repository.
 // If a redirect occurs, it fallbacks into directly downloading from the redirect URL.
 func (up *Updater) UpdateTo(rel *Release, cmdPath string) error {
-	var client http.Client
-	src, redirectURL, err := up.api.Repositories.DownloadReleaseAsset(up.apiCtx, rel.RepoOwner, rel.RepoName, rel.AssetID, &client)
+	src, err := up.source.DownloadReleaseAsset(rel.repoOwner, rel.repoName, rel.AssetID)
 	if err != nil {
-		return fmt.Errorf("failed to call GitHub Releases API for getting an asset(ID: %d) for repository '%s/%s': %s", rel.AssetID, rel.RepoOwner, rel.RepoName, err)
-	}
-	if redirectURL != "" {
-		log.Printf("Redirect URL was returned while trying to download a release asset from GitHub API. Falling back to downloading from asset URL directly: %s", redirectURL)
-		src, err = up.downloadDirectlyFromURL(redirectURL)
-		if err != nil {
-			return err
-		}
+		return err
 	}
 	defer src.Close()
 
@@ -41,18 +32,10 @@ func (up *Updater) UpdateTo(rel *Release, cmdPath string) error {
 		return up.decompressAndUpdate(bytes.NewReader(data), rel.AssetURL, cmdPath)
 	}
 
-	validationSrc, validationRedirectURL, err := up.api.Repositories.DownloadReleaseAsset(up.apiCtx, rel.RepoOwner, rel.RepoName, rel.ValidationAssetID, &client)
+	validationSrc, err := up.source.DownloadReleaseAsset(rel.repoOwner, rel.repoName, rel.ValidationAssetID)
 	if err != nil {
-		return fmt.Errorf("failed to call GitHub Releases API for getting an validation asset(ID: %d) for repository '%s/%s': %s", rel.ValidationAssetID, rel.RepoOwner, rel.RepoName, err)
+		return err
 	}
-	if validationRedirectURL != "" {
-		log.Printf("Redirect URL was returned while trying to download a release validation asset from GitHub API. Falling back to downloading from asset URL directly: %s", redirectURL)
-		validationSrc, err = up.downloadDirectlyFromURL(validationRedirectURL)
-		if err != nil {
-			return err
-		}
-	}
-
 	defer validationSrc.Close()
 
 	validationData, err := ioutil.ReadAll(validationSrc)
@@ -127,28 +110,4 @@ func (up *Updater) decompressAndUpdate(src io.Reader, assetURL, cmdPath string) 
 	return update.Apply(asset, update.Options{
 		TargetPath: cmdPath,
 	})
-}
-
-func (up *Updater) downloadDirectlyFromURL(assetURL string) (io.ReadCloser, error) {
-	req, err := http.NewRequest("GET", assetURL, nil)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create HTTP request to %s: %s", assetURL, err)
-	}
-
-	req.Header.Add("Accept", "application/octet-stream")
-	req = req.WithContext(up.apiCtx)
-
-	// OAuth HTTP client is not available to download blob from URL when the URL is a redirect URL
-	// returned from GitHub Releases API (response status 400).
-	// Use default HTTP client instead.
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to download a release file from %s: %s", assetURL, err)
-	}
-
-	if res.StatusCode != 200 {
-		return nil, fmt.Errorf("failed to download a release file from %s: Not successful status %d", assetURL, res.StatusCode)
-	}
-
-	return res.Body, nil
 }

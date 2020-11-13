@@ -12,7 +12,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/creativeprojects/go-selfupdate/selfupdate"
+	"github.com/creativeprojects/go-selfupdate"
 )
 
 func usage() {
