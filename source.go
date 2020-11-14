@@ -29,3 +29,14 @@ type Source interface {
 	ListReleases(owner, repo string) ([]SourceRelease, error)
 	DownloadReleaseAsset(owner, repo string, id int64) (io.ReadCloser, error)
 }
+
+// checkOwnerRepoParameters is a helper function to check both parameters are valid
+func checkOwnerRepoParameters(owner, repo string) error {
+	if owner == "" {
+		return ErrIncorrectParameterOwner
+	}
+	if repo == "" {
+		return ErrIncorrectParameterRepo
+	}
+	return nil
+}
