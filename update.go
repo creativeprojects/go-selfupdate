@@ -28,23 +28,11 @@ func (up *Updater) UpdateTo(rel *Release, cmdPath string) error {
 		return fmt.Errorf("failed reading asset body: %v", err)
 	}
 
-	if up.validator == nil {
-		return up.decompressAndUpdate(bytes.NewReader(data), rel.AssetURL, cmdPath)
-	}
-
-	validationSrc, err := up.source.DownloadReleaseAsset(rel.repoOwner, rel.repoName, rel.ValidationAssetID)
-	if err != nil {
-		return err
-	}
-	defer validationSrc.Close()
-
-	validationData, err := ioutil.ReadAll(validationSrc)
-	if err != nil {
-		return fmt.Errorf("failed reading validation asset body: %v", err)
-	}
-
-	if err := up.validator.Validate(rel.Name, data, validationData); err != nil {
-		return fmt.Errorf("failed validating asset content: %v", err)
+	if up.validator != nil {
+		err = up.validate(rel, data)
+		if err != nil {
+			return err
+		}
 	}
 
 	return up.decompressAndUpdate(bytes.NewReader(data), rel.AssetURL, cmdPath)
@@ -110,4 +98,22 @@ func (up *Updater) decompressAndUpdate(src io.Reader, assetURL, cmdPath string) 
 	return update.Apply(asset, update.Options{
 		TargetPath: cmdPath,
 	})
+}
+
+func (up *Updater) validate(rel *Release, data []byte) error {
+	validationSrc, err := up.source.DownloadReleaseAsset(rel.repoOwner, rel.repoName, rel.ValidationAssetID)
+	if err != nil {
+		return err
+	}
+	defer validationSrc.Close()
+
+	validationData, err := ioutil.ReadAll(validationSrc)
+	if err != nil {
+		return fmt.Errorf("failed reading validation data: %w", err)
+	}
+
+	if err := up.validator.Validate(rel.Name, data, validationData); err != nil {
+		return fmt.Errorf("failed validating asset content: %w", err)
+	}
+	return nil
 }

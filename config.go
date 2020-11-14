@@ -16,4 +16,8 @@ type Config struct {
 	Arch string
 	// Arm 32bits version. Valid values are 0 (unknown), 5, 6 or 7. Default is detected value (if any)
 	Arm uint8
+	// Draft permits an upgrade to a "draft" version (default to false)
+	Draft bool
+	// Prerelease permits an upgrade to a "pre-release" version (default to false)
+	Prerelease bool
 }

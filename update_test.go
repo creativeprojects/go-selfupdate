@@ -1,6 +1,8 @@
 package selfupdate
 
 import (
+	"errors"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -9,6 +11,8 @@ import (
 	"testing"
 
 	"github.com/Masterminds/semver/v3"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func setupTestBinary() {
@@ -306,4 +310,75 @@ func TestUpdateFromGitHubPrivateRepo(t *testing.T) {
 	if out != "v1.2.3\n" {
 		t.Error("Output from test binary after update is unexpected:", out)
 	}
+}
+
+// ======================== Test Validation with Mock ============================================
+
+func TestNoValidationFile(t *testing.T) {
+	source := &MockSource{}
+	release := &Release{
+		repoOwner:         "test",
+		repoName:          "test",
+		ValidationAssetID: 123,
+	}
+	updater := &Updater{
+		source: source,
+	}
+	err := updater.validate(release, []byte("some data"))
+	assert.EqualError(t, err, ErrAssetNotFound.Error())
+}
+
+func TestValidationWrongHash(t *testing.T) {
+	hashData, err := ioutil.ReadFile("testdata/SHA256SUM")
+	require.NoError(t, err)
+
+	source := &MockSource{
+		files: map[int64][]byte{
+			123: hashData,
+		},
+	}
+	release := &Release{
+		repoOwner:         "test",
+		repoName:          "test",
+		ValidationAssetID: 123,
+		Name:              "foo.zip",
+	}
+	updater := &Updater{
+		source:    source,
+		validator: &ChecksumValidator{},
+	}
+
+	data, err := ioutil.ReadFile("testdata/foo.tar.xz")
+	require.NoError(t, err)
+
+	err = updater.validate(release, data)
+	require.Error(t, err)
+	assert.True(t, errors.Is(err, ErrChecksumValidationFailed))
+}
+
+func TestValidationSuccess(t *testing.T) {
+	hashData, err := ioutil.ReadFile("testdata/SHA256SUM")
+	require.NoError(t, err)
+
+	source := &MockSource{
+		files: map[int64][]byte{
+			123: hashData,
+		},
+	}
+	release := &Release{
+		repoOwner:         "test",
+		repoName:          "test",
+		ValidationAssetID: 123,
+		Name:              "foo.tar.xz",
+	}
+	updater := &Updater{
+		source:    source,
+		validator: &ChecksumValidator{},
+	}
+
+	data, err := ioutil.ReadFile("testdata/foo.tar.xz")
+	require.NoError(t, err)
+
+	err = updater.validate(release, data)
+	require.NoError(t, err)
 }
