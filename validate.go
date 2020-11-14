@@ -67,7 +67,14 @@ func (v *ChecksumValidator) Validate(filename string, release, asset []byte) err
 }
 
 func findChecksum(filename string, content []byte) (string, error) {
-	lines := bytes.Split(content, []byte("\n"))
+	// check if the file has windows line ending (probably better than just testing the platform)
+	crlf := []byte("\r\n")
+	lf := []byte("\n")
+	eol := lf
+	if bytes.Contains(content, crlf) {
+		eol = crlf
+	}
+	lines := bytes.Split(content, eol)
 	for _, line := range lines {
 		parts := bytes.Split(line, []byte("  "))
 		if len(parts) != 2 {
