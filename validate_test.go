@@ -11,112 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestSHAValidator(t *testing.T) {
-	validator := &SHAValidator{}
-	data, err := ioutil.ReadFile("testdata/foo.zip")
-	if err != nil {
-		t.Fatal(err)
-	}
-	hashData, err := ioutil.ReadFile("testdata/foo.zip.sha256")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := validator.Validate("foo.zip", data, hashData); err != nil {
-		t.Fatal(err)
-	}
-}
-
-func TestSHAValidatorFail(t *testing.T) {
-	validator := &SHAValidator{}
-	data, err := ioutil.ReadFile("testdata/foo.zip")
-	if err != nil {
-		t.Fatal(err)
-	}
-	hashData, err := ioutil.ReadFile("testdata/foo.zip.sha256")
-	if err != nil {
-		t.Fatal(err)
-	}
-	hashData[0] = '0'
-	if err := validator.Validate("foo.zip", data, hashData); err == nil {
-		t.Fatal(err)
-	}
-}
-
-func TestECDSAValidator(t *testing.T) {
-	pemData, err := ioutil.ReadFile("testdata/Test.crt")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	block, _ := pem.Decode(pemData)
-	if block == nil || block.Type != "CERTIFICATE" {
-		t.Fatalf("failed to decode PEM block")
-	}
-
-	cert, err := x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		t.Fatalf("failed to parse certificate")
-	}
-
-	pubKey, ok := cert.PublicKey.(*ecdsa.PublicKey)
-	if !ok {
-		t.Errorf("PublicKey is not ECDSA")
-	}
-
-	validator := &ECDSAValidator{
-		PublicKey: pubKey,
-	}
-	data, err := ioutil.ReadFile("testdata/foo.zip")
-	if err != nil {
-		t.Fatal(err)
-	}
-	signatureData, err := ioutil.ReadFile("testdata/foo.zip.sig")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := validator.Validate("foo.zip", data, signatureData); err != nil {
-		t.Fatal(err)
-	}
-}
-
-func TestECDSAValidatorFail(t *testing.T) {
-	pemData, err := ioutil.ReadFile("testdata/Test.crt")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	block, _ := pem.Decode(pemData)
-	if block == nil || block.Type != "CERTIFICATE" {
-		t.Fatalf("failed to decode PEM block")
-	}
-
-	cert, err := x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		t.Fatalf("failed to parse certificate")
-	}
-
-	pubKey, ok := cert.PublicKey.(*ecdsa.PublicKey)
-	if !ok {
-		t.Errorf("PublicKey is not ECDSA")
-	}
-
-	validator := &ECDSAValidator{
-		PublicKey: pubKey,
-	}
-	data, err := ioutil.ReadFile("testdata/foo.tar.xz")
-	if err != nil {
-		t.Fatal(err)
-	}
-	signatureData, err := ioutil.ReadFile("testdata/foo.zip.sig")
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := validator.Validate("foo.tar.xz", data, signatureData); err == nil {
-		t.Fatal(err)
-	}
-}
-
-func TestValidatorSuffix(t *testing.T) {
+func TestValidatorAssetNames(t *testing.T) {
 	filename := "asset"
 	for _, test := range []struct {
 		validator      Validator
@@ -143,14 +38,132 @@ func TestValidatorSuffix(t *testing.T) {
 	}
 }
 
+// ======= SHAValidator ====================================================
+
+func TestSHAValidatorEmptyFile(t *testing.T) {
+	validator := &SHAValidator{}
+	data, err := ioutil.ReadFile("testdata/foo.zip")
+	require.NoError(t, err)
+	err = validator.Validate("foo.zip", data, nil)
+	assert.EqualError(t, err, ErrIncorrectChecksumFile.Error())
+}
+
+func TestSHAValidatorInvalidFile(t *testing.T) {
+	validator := &SHAValidator{}
+	data, err := ioutil.ReadFile("testdata/foo.zip")
+	require.NoError(t, err)
+	err = validator.Validate("foo.zip", data, []byte("blahblahblah\n"))
+	assert.EqualError(t, err, ErrIncorrectChecksumFile.Error())
+}
+
+func TestSHAValidator(t *testing.T) {
+	validator := &SHAValidator{}
+	data, err := ioutil.ReadFile("testdata/foo.zip")
+	require.NoError(t, err)
+
+	hashData, err := ioutil.ReadFile("testdata/foo.zip.sha256")
+	require.NoError(t, err)
+
+	err = validator.Validate("foo.zip", data, hashData)
+	assert.NoError(t, err)
+}
+
+func TestSHAValidatorFail(t *testing.T) {
+	validator := &SHAValidator{}
+	data, err := ioutil.ReadFile("testdata/foo.zip")
+	require.NoError(t, err)
+
+	hashData, err := ioutil.ReadFile("testdata/foo.zip.sha256")
+	require.NoError(t, err)
+
+	hashData[0] = '0'
+	err = validator.Validate("foo.zip", data, hashData)
+	assert.EqualError(t, err, ErrChecksumValidationFailed.Error())
+}
+
+// ======= ECDSAValidator ====================================================
+
+func TestECDSAValidatorNoPublicKey(t *testing.T) {
+	validator := &ECDSAValidator{
+		PublicKey: nil,
+	}
+	data, err := ioutil.ReadFile("testdata/foo.zip")
+	require.NoError(t, err)
+
+	signatureData, err := ioutil.ReadFile("testdata/foo.zip.sig")
+	require.NoError(t, err)
+
+	err = validator.Validate("foo.zip", data, signatureData)
+	assert.EqualError(t, err, ErrECDSAValidationFailed.Error())
+}
+
+func TestECDSAValidatorEmptySignature(t *testing.T) {
+	validator := &ECDSAValidator{
+		PublicKey: getTestPublicKey(t),
+	}
+	data, err := ioutil.ReadFile("testdata/foo.zip")
+	require.NoError(t, err)
+
+	err = validator.Validate("foo.zip", data, nil)
+	assert.EqualError(t, err, ErrInvalidECDSASignature.Error())
+}
+
+func TestECDSAValidator(t *testing.T) {
+	validator := &ECDSAValidator{
+		PublicKey: getTestPublicKey(t),
+	}
+	data, err := ioutil.ReadFile("testdata/foo.zip")
+	require.NoError(t, err)
+
+	signatureData, err := ioutil.ReadFile("testdata/foo.zip.sig")
+	require.NoError(t, err)
+
+	err = validator.Validate("foo.zip", data, signatureData)
+	assert.NoError(t, err)
+}
+
+func TestECDSAValidatorFail(t *testing.T) {
+	validator := &ECDSAValidator{
+		PublicKey: getTestPublicKey(t),
+	}
+	data, err := ioutil.ReadFile("testdata/foo.tar.xz")
+	require.NoError(t, err)
+
+	signatureData, err := ioutil.ReadFile("testdata/foo.zip.sig")
+	require.NoError(t, err)
+
+	err = validator.Validate("foo.tar.xz", data, signatureData)
+	assert.EqualError(t, err, ErrECDSAValidationFailed.Error())
+}
+
+func getTestPublicKey(t *testing.T) *ecdsa.PublicKey {
+	pemData, err := ioutil.ReadFile("testdata/Test.crt")
+	require.NoError(t, err)
+
+	block, _ := pem.Decode(pemData)
+	if block == nil || block.Type != "CERTIFICATE" {
+		t.Fatalf("failed to decode PEM block")
+	}
+
+	cert, err := x509.ParseCertificate(block.Bytes)
+	require.NoError(t, err)
+
+	pubKey, ok := cert.PublicKey.(*ecdsa.PublicKey)
+	if !ok {
+		t.Errorf("PublicKey is not ECDSA")
+	}
+	return pubKey
+}
+
+// ======= ChecksumValidator ====================================================
+
 func TestChecksumValidatorEmptyFile(t *testing.T) {
 	data, err := ioutil.ReadFile("testdata/foo.zip")
 	require.NoError(t, err)
 
 	validator := &ChecksumValidator{}
 	err = validator.Validate("foo.zip", data, nil)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "hash for file \"foo.zip\" not found in checksum file")
+	assert.EqualError(t, err, ErrHashNotFound.Error())
 }
 
 func TestChecksumValidatorInvalidChecksumFile(t *testing.T) {
@@ -159,8 +172,7 @@ func TestChecksumValidatorInvalidChecksumFile(t *testing.T) {
 
 	validator := &ChecksumValidator{}
 	err = validator.Validate("foo.zip", data, []byte("blahblahblah"))
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "incorrect checksum file format")
+	assert.EqualError(t, err, ErrIncorrectChecksumFile.Error())
 }
 
 func TestChecksumValidatorWithUniqueLine(t *testing.T) {
@@ -184,8 +196,7 @@ func TestChecksumValidatorWillFailWithWrongHash(t *testing.T) {
 
 	validator := &ChecksumValidator{}
 	err = validator.Validate("foo.zip", data, hashData)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "sha256 validation failed")
+	assert.EqualError(t, err, ErrChecksumValidationFailed.Error())
 }
 
 func TestChecksumNotFound(t *testing.T) {
@@ -197,8 +208,7 @@ func TestChecksumNotFound(t *testing.T) {
 
 	validator := &ChecksumValidator{}
 	err = validator.Validate("bar-not-found.zip", data, hashData)
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "hash for file \"bar-not-found.zip\" not found in checksum file")
+	assert.EqualError(t, err, ErrHashNotFound.Error())
 }
 
 func TestChecksumValidatorSuccess(t *testing.T) {
@@ -210,5 +220,5 @@ func TestChecksumValidatorSuccess(t *testing.T) {
 
 	validator := &ChecksumValidator{"SHA256SUM"}
 	err = validator.Validate("foo.tar.xz", data, hashData)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 }
