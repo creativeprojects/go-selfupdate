@@ -43,7 +43,6 @@ func (up *Updater) DetectVersion(slug string, version string) (release *Release,
 	url := asset.GetBrowserDownloadURL()
 	log.Printf("Successfully fetched the latest release. tag: %s, name: %s, URL: %s, Asset: %s", rel.GetTagName(), rel.GetName(), rel.GetURL(), url)
 
-	publishedAt := rel.GetPublishedAt()
 	release = &Release{
 		version:           ver,
 		repoOwner:         repo[0],
@@ -55,14 +54,14 @@ func (up *Updater) DetectVersion(slug string, version string) (release *Release,
 		URL:               rel.GetURL(),
 		ReleaseNotes:      rel.GetReleaseNotes(),
 		Name:              rel.GetName(),
-		PublishedAt:       &publishedAt,
+		PublishedAt:       rel.GetPublishedAt(),
 		OS:                up.os,
 		Arch:              up.arch,
 		Arm:               up.arm,
 	}
 
 	if up.validator != nil {
-		validationName := asset.GetName() + up.validator.Suffix()
+		validationName := up.validator.GetValidationAssetName(asset.GetName())
 		validationAsset, ok := findValidationAsset(rel, validationName)
 		if !ok {
 			return nil, false, fmt.Errorf("failed finding validation file %q", validationName)

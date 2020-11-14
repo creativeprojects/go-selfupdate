@@ -43,7 +43,7 @@ func (up *Updater) UpdateTo(rel *Release, cmdPath string) error {
 		return fmt.Errorf("failed reading validation asset body: %v", err)
 	}
 
-	if err := up.validator.Validate(data, validationData); err != nil {
+	if err := up.validator.Validate(rel.Name, data, validationData); err != nil {
 		return fmt.Errorf("failed validating asset content: %v", err)
 	}
 

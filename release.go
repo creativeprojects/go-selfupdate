@@ -23,7 +23,7 @@ type Release struct {
 	// Name represents a name of the release
 	Name string
 	// PublishedAt is the time when the release was published
-	PublishedAt *time.Time
+	PublishedAt time.Time
 	// OS this release is for
 	OS string
 	// Arch this release is for

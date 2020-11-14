@@ -6,6 +6,9 @@ import (
 	"encoding/pem"
 	"io/ioutil"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSHAValidator(t *testing.T) {
@@ -18,7 +21,7 @@ func TestSHAValidator(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := validator.Validate(data, hashData); err != nil {
+	if err := validator.Validate("foo.zip", data, hashData); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -34,7 +37,7 @@ func TestSHAValidatorFail(t *testing.T) {
 		t.Fatal(err)
 	}
 	hashData[0] = '0'
-	if err := validator.Validate(data, hashData); err == nil {
+	if err := validator.Validate("foo.zip", data, hashData); err == nil {
 		t.Fatal(err)
 	}
 }
@@ -71,7 +74,7 @@ func TestECDSAValidator(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := validator.Validate(data, signatureData); err != nil {
+	if err := validator.Validate("foo.zip", data, signatureData); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -108,29 +111,69 @@ func TestECDSAValidatorFail(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := validator.Validate(data, signatureData); err == nil {
+	if err := validator.Validate("foo.tar.xz", data, signatureData); err == nil {
 		t.Fatal(err)
 	}
 }
 
 func TestValidatorSuffix(t *testing.T) {
+	filename := "asset"
 	for _, test := range []struct {
-		v      Validator
-		suffix string
+		validator      Validator
+		validationName string
 	}{
 		{
-			v:      &SHAValidator{},
-			suffix: ".sha256",
+			validator:      &SHAValidator{},
+			validationName: filename + ".sha256",
 		},
 		{
-			v:      &ECDSAValidator{},
-			suffix: ".sig",
+			validator:      &ECDSAValidator{},
+			validationName: filename + ".sig",
+		},
+		{
+			validator:      &ChecksumValidator{"funny_sha256"},
+			validationName: "funny_sha256",
 		},
 	} {
-		want := test.suffix
-		got := test.v.Suffix()
+		want := test.validationName
+		got := test.validator.GetValidationAssetName(filename)
 		if want != got {
 			t.Errorf("Wanted %q but got %q", want, got)
 		}
 	}
+}
+
+func TestChecksumValidatorEmptyFile(t *testing.T) {
+	data, err := ioutil.ReadFile("testdata/foo.zip")
+	require.NoError(t, err)
+
+	validator := &ChecksumValidator{}
+	err = validator.Validate("foo.zip", data, nil)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "incorrect checksum file format")
+}
+
+func TestChecksumValidatorWithUniqueLine(t *testing.T) {
+	data, err := ioutil.ReadFile("testdata/foo.zip")
+	require.NoError(t, err)
+
+	hashData, err := ioutil.ReadFile("testdata/foo.zip.sha256")
+	require.NoError(t, err)
+
+	validator := &ChecksumValidator{}
+	err = validator.Validate("foo.zip", data, hashData)
+	require.NoError(t, err)
+}
+
+func TestChecksumValidatorWillFailWithWrongHash(t *testing.T) {
+	data, err := ioutil.ReadFile("testdata/foo.tar.xz")
+	require.NoError(t, err)
+
+	hashData, err := ioutil.ReadFile("testdata/foo.zip.sha256")
+	require.NoError(t, err)
+
+	validator := &ChecksumValidator{}
+	err = validator.Validate("foo.zip", data, hashData)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "sha256 validation failed")
 }

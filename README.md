@@ -24,7 +24,7 @@ This library started as a fork of https://github.com/rhysd/go-github-selfupdate.
 - use an interface to send logs (compatible with standard log.Logger)
 - able to detect different ARM CPU architectures (the original library wasn't working on my different versions of raspberry pi)
 - support for assets compressed with bzip2 (.bz2)
-
+- can use a single file containing the sha256 checksums for all the files (one per line)
 
 ### Example
 
