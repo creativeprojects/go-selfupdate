@@ -76,6 +76,10 @@ func findChecksum(filename string, content []byte) (string, error) {
 	}
 	lines := bytes.Split(content, eol)
 	for _, line := range lines {
+		// skip empty line
+		if len(line) == 0 {
+			continue
+		}
 		parts := bytes.Split(line, []byte("  "))
 		if len(parts) != 2 {
 			return "", errors.New("incorrect checksum file format: checksum and file not separated by 2 spaces")

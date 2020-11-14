@@ -263,7 +263,7 @@ func TestBrokenGitHubEnterpriseURL(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = up.UpdateTo(&Release{AssetURL: "https://example.com"}, "foo")
+	err = up.UpdateTo(&Release{AssetURL: "https://example.com", repoOwner: "test", repoName: "test"}, "foo")
 	if err == nil {
 		t.Fatal("Invalid GitHub Enterprise base URL should raise an error")
 	}

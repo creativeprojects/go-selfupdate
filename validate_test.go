@@ -150,6 +150,16 @@ func TestChecksumValidatorEmptyFile(t *testing.T) {
 	validator := &ChecksumValidator{}
 	err = validator.Validate("foo.zip", data, nil)
 	require.Error(t, err)
+	assert.Contains(t, err.Error(), "hash for file \"foo.zip\" not found in checksum file")
+}
+
+func TestChecksumValidatorInvalidChecksumFile(t *testing.T) {
+	data, err := ioutil.ReadFile("testdata/foo.zip")
+	require.NoError(t, err)
+
+	validator := &ChecksumValidator{}
+	err = validator.Validate("foo.zip", data, []byte("blahblahblah"))
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "incorrect checksum file format")
 }
 
@@ -176,4 +186,29 @@ func TestChecksumValidatorWillFailWithWrongHash(t *testing.T) {
 	err = validator.Validate("foo.zip", data, hashData)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "sha256 validation failed")
+}
+
+func TestChecksumNotFound(t *testing.T) {
+	data, err := ioutil.ReadFile("testdata/bar-not-found.zip")
+	require.NoError(t, err)
+
+	hashData, err := ioutil.ReadFile("testdata/SHA256SUM")
+	require.NoError(t, err)
+
+	validator := &ChecksumValidator{}
+	err = validator.Validate("bar-not-found.zip", data, hashData)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "hash for file \"bar-not-found.zip\" not found in checksum file")
+}
+
+func TestChecksumValidatorSuccess(t *testing.T) {
+	data, err := ioutil.ReadFile("testdata/foo.tar.xz")
+	require.NoError(t, err)
+
+	hashData, err := ioutil.ReadFile("testdata/SHA256SUM")
+	require.NoError(t, err)
+
+	validator := &ChecksumValidator{"SHA256SUM"}
+	err = validator.Validate("foo.tar.xz", data, hashData)
+	require.NoError(t, err)
 }
