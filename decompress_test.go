@@ -10,19 +10,18 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCompressionNotRequired(t *testing.T) {
 	buf := []byte{'a', 'b', 'c'}
 	want := bytes.NewReader(buf)
 	r, err := DecompressCommand(want, "https://github.com/foo/bar/releases/download/v1.2.3/foo", "foo", runtime.GOOS, runtime.GOOS)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	have, err := ioutil.ReadAll(r)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
+
 	for i, b := range have {
 		if buf[i] != b {
 			t.Error(i, "th elem is not the same as wanted. want", buf[i], "but got", b)
@@ -54,21 +53,16 @@ func TestDecompress(t *testing.T) {
 	} {
 		t.Run(n, func(t *testing.T) {
 			f, err := os.Open(n)
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err)
 
 			ext := getArchiveFileExt(n)
 			url := "https://github.com/foo/bar/releases/download/v1.2.3/bar" + ext
 			r, err := DecompressCommand(f, url, "bar", runtime.GOOS, runtime.GOOS)
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err)
 
 			bytes, err := ioutil.ReadAll(r)
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err)
+
 			s := string(bytes)
 			if s != "this is test\n" {
 				t.Fatal("Decompressing zip failed into unexpected content", s)
@@ -91,9 +85,7 @@ func TestDecompressInvalidArchive(t *testing.T) {
 		{"testdata/invalid-xz.tar.xz", "failed to decompress .tar.xz file"},
 	} {
 		f, err := os.Open(a.name)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 
 		ext := getArchiveFileExt(a.name)
 		url := "https://github.com/foo/bar/releases/download/v1.2.3/bar" + ext
@@ -120,9 +112,8 @@ func TestTargetNotFound(t *testing.T) {
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			f, err := os.Open(tc.name)
-			if err != nil {
-				t.Fatal(err)
-			}
+			require.NoError(t, err)
+
 			ext := getArchiveFileExt(tc.name)
 			url := "https://github.com/foo/bar/releases/download/v1.2.3/bar" + ext
 			_, err = DecompressCommand(f, url, "bar", runtime.GOOS, runtime.GOOS)

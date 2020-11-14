@@ -4,6 +4,7 @@ import "errors"
 
 // Possible errors returned
 var (
+	ErrInvalidSlug              = errors.New("invalid slug format, expected 'owner/name'")
 	ErrIncorrectParameterOwner  = errors.New("incorrect parameter \"owner\"")
 	ErrIncorrectParameterRepo   = errors.New("incorrect parameter \"repo\"")
 	ErrAssetNotFound            = errors.New("asset not found")

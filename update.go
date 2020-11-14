@@ -100,6 +100,8 @@ func (up *Updater) decompressAndUpdate(src io.Reader, assetURL, cmdPath string) 
 	})
 }
 
+// validate loads the validation file and passes it to the validator.
+// The validation is successful if no error was returned
 func (up *Updater) validate(rel *Release, data []byte) error {
 	validationSrc, err := up.source.DownloadReleaseAsset(rel.repoOwner, rel.repoName, rel.ValidationAssetID)
 	if err != nil {

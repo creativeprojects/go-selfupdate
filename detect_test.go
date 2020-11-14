@@ -175,12 +175,7 @@ func TestInvalidSlug(t *testing.T) {
 		"foo/bar/piyo",
 	} {
 		_, _, err := up.DetectLatest(slug)
-		if err == nil {
-			t.Error(slug, "should be invalid slug")
-		}
-		if !strings.Contains(err.Error(), "invalid slug format") {
-			t.Error("Unexpected error for", slug, ":", err)
-		}
+		assert.EqualError(t, err, ErrInvalidSlug.Error())
 	}
 }
 

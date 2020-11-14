@@ -71,8 +71,8 @@ func TestUpdateViaSymlink(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skip tests in short mode.")
 	}
-	if runtime.GOOS == "windows" && os.Getenv("APPVEYOR") == "" {
-		t.Skip("skipping because creating symlink on windows requires the root privilege")
+	if runtime.GOOS == "windows" {
+		t.Skip("skipping because creating symlink on windows requires admin privilege")
 	}
 
 	setupTestBinary()
@@ -124,8 +124,8 @@ func TestUpdateViaSymlink(t *testing.T) {
 }
 
 func TestUpdateBrokenSymlinks(t *testing.T) {
-	if runtime.GOOS == "windows" && os.Getenv("APPVEYOR") == "" {
-		t.Skip("skipping because creating symlink on windows requires the root privilege")
+	if runtime.GOOS == "windows" {
+		t.Skip("skipping because creating symlink on windows requires admin privilege")
 	}
 
 	// unknown-xxx -> unknown-yyy -> {not existing}
@@ -232,12 +232,7 @@ func TestBrokenBinaryUpdate(t *testing.T) {
 func TestInvalidSlugForUpdate(t *testing.T) {
 	fake := filepath.FromSlash("./testdata/fake-executable")
 	_, err := UpdateCommand(fake, semver.MustParse("1.0.0"), "rhysd/")
-	if err == nil {
-		t.Fatal("Unknown repo should cause an error")
-	}
-	if !strings.Contains(err.Error(), "invalid slug format") {
-		t.Fatal("Unexpected error:", err)
-	}
+	assert.EqualError(t, err, ErrInvalidSlug.Error())
 }
 
 func TestInvalidAssetURL(t *testing.T) {

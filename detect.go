@@ -27,7 +27,7 @@ func (up *Updater) DetectLatest(slug string) (release *Release, found bool, err 
 func (up *Updater) DetectVersion(slug string, version string) (release *Release, found bool, err error) {
 	repo := strings.Split(slug, "/")
 	if len(repo) != 2 || repo[0] == "" || repo[1] == "" {
-		return nil, false, fmt.Errorf("invalid slug format. It should be 'owner/name': %s", slug)
+		return nil, false, ErrInvalidSlug
 	}
 
 	rels, err := up.source.ListReleases(repo[0], repo[1])
