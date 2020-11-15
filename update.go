@@ -15,7 +15,7 @@ import (
 
 // UpdateTo downloads an executable from GitHub Releases API and replace current binary with the downloaded one.
 // It downloads a release asset via GitHub Releases API so this function is available for update releases on private repository.
-// If a redirect occurs, it fallbacks into directly downloading from the redirect URL.
+// If the file is compressed, it does not try to decompress it, it is saved as it is.
 func (up *Updater) UpdateTo(rel *Release, cmdPath string) error {
 	src, err := up.source.DownloadReleaseAsset(rel.repoOwner, rel.repoName, rel.AssetID)
 	if err != nil {
@@ -25,26 +25,14 @@ func (up *Updater) UpdateTo(rel *Release, cmdPath string) error {
 
 	data, err := ioutil.ReadAll(src)
 	if err != nil {
-		return fmt.Errorf("failed reading asset body: %v", err)
+		return fmt.Errorf("failed to read asset: %w", err)
 	}
 
-	if up.validator == nil {
-		return up.decompressAndUpdate(bytes.NewReader(data), rel.AssetURL, cmdPath)
-	}
-
-	validationSrc, err := up.source.DownloadReleaseAsset(rel.repoOwner, rel.repoName, rel.ValidationAssetID)
-	if err != nil {
-		return err
-	}
-	defer validationSrc.Close()
-
-	validationData, err := ioutil.ReadAll(validationSrc)
-	if err != nil {
-		return fmt.Errorf("failed reading validation asset body: %v", err)
-	}
-
-	if err := up.validator.Validate(rel.Name, data, validationData); err != nil {
-		return fmt.Errorf("failed validating asset content: %v", err)
+	if up.validator != nil {
+		err = up.validate(rel, data)
+		if err != nil {
+			return err
+		}
 	}
 
 	return up.decompressAndUpdate(bytes.NewReader(data), rel.AssetURL, cmdPath)
@@ -110,4 +98,24 @@ func (up *Updater) decompressAndUpdate(src io.Reader, assetURL, cmdPath string) 
 	return update.Apply(asset, update.Options{
 		TargetPath: cmdPath,
 	})
+}
+
+// validate loads the validation file and passes it to the validator.
+// The validation is successful if no error was returned
+func (up *Updater) validate(rel *Release, data []byte) error {
+	validationSrc, err := up.source.DownloadReleaseAsset(rel.repoOwner, rel.repoName, rel.ValidationAssetID)
+	if err != nil {
+		return err
+	}
+	defer validationSrc.Close()
+
+	validationData, err := ioutil.ReadAll(validationSrc)
+	if err != nil {
+		return fmt.Errorf("failed reading validation data: %w", err)
+	}
+
+	if err := up.validator.Validate(rel.Name, data, validationData); err != nil {
+		return fmt.Errorf("failed validating asset content: %w", err)
+	}
+	return nil
 }

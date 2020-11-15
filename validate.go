@@ -5,7 +5,6 @@ import (
 	"crypto/ecdsa"
 	"crypto/sha256"
 	"encoding/asn1"
-	"errors"
 	"fmt"
 	"math/big"
 )
@@ -30,10 +29,14 @@ type SHAValidator struct {
 // Validate checks the SHA256 sum of the release against the contents of an
 // additional asset file.
 func (v *SHAValidator) Validate(filename string, release, asset []byte) error {
-	calculatedHash := fmt.Sprintf("%x", sha256.Sum256(release))
+	// we'd better check the size of the file otherwise it's going to panic
+	if len(asset) < sha256.BlockSize {
+		return ErrIncorrectChecksumFile
+	}
 	hash := fmt.Sprintf("%s", asset[:sha256.BlockSize])
+	calculatedHash := fmt.Sprintf("%x", sha256.Sum256(release))
 	if calculatedHash != hash {
-		return fmt.Errorf("sha256 validation failed: expected=%q, got=%q", calculatedHash, hash)
+		return ErrChecksumValidationFailed
 	}
 	return nil
 }
@@ -61,7 +64,7 @@ func (v *ChecksumValidator) Validate(filename string, release, asset []byte) err
 	}
 	calculatedHash := fmt.Sprintf("%x", sha256.Sum256(release))
 	if calculatedHash != hash {
-		return fmt.Errorf("sha256 validation failed: expected=%q, got=%q", calculatedHash, hash)
+		return ErrChecksumValidationFailed
 	}
 	return nil
 }
@@ -76,15 +79,19 @@ func findChecksum(filename string, content []byte) (string, error) {
 	}
 	lines := bytes.Split(content, eol)
 	for _, line := range lines {
+		// skip empty line
+		if len(line) == 0 {
+			continue
+		}
 		parts := bytes.Split(line, []byte("  "))
 		if len(parts) != 2 {
-			return "", errors.New("incorrect checksum file format: checksum and file not separated by 2 spaces")
+			return "", ErrIncorrectChecksumFile
 		}
 		if string(parts[1]) == filename {
 			return string(parts[0]), nil
 		}
 	}
-	return "", fmt.Errorf("hash for file %q not found in checksum file", filename)
+	return "", ErrHashNotFound
 }
 
 // GetValidationAssetName returns the unique asset name for SHA256 validation.
@@ -111,11 +118,11 @@ func (v *ECDSAValidator) Validate(filename string, input, signature []byte) erro
 		S *big.Int
 	}
 	if _, err := asn1.Unmarshal(signature, &rs); err != nil {
-		return fmt.Errorf("failed to unmarshal ecdsa signature: %v", err)
+		return ErrInvalidECDSASignature
 	}
 
-	if !ecdsa.Verify(v.PublicKey, h.Sum([]byte{}), rs.R, rs.S) {
-		return fmt.Errorf("ecdsa: signature verification failed")
+	if v.PublicKey == nil || !ecdsa.Verify(v.PublicKey, h.Sum([]byte{}), rs.R, rs.S) {
+		return ErrECDSAValidationFailed
 	}
 
 	return nil

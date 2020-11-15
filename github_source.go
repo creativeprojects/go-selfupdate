@@ -73,6 +73,10 @@ func NewGitHubSource(config GitHubConfig) (*GitHubSource, error) {
 
 // ListReleases returns all available releases
 func (s *GitHubSource) ListReleases(owner, repo string) ([]SourceRelease, error) {
+	err := checkOwnerRepoParameters(owner, repo)
+	if err != nil {
+		return nil, err
+	}
 	rels, res, err := s.api.Repositories.ListReleases(s.ctx, owner, repo, nil)
 	if err != nil {
 		log.Printf("API returned an error response: %s", err)
@@ -93,6 +97,10 @@ func (s *GitHubSource) ListReleases(owner, repo string) ([]SourceRelease, error)
 // DownloadReleaseAsset downloads an asset from its ID.
 // It returns an io.ReadCloser: it is your responsability to Close it.
 func (s *GitHubSource) DownloadReleaseAsset(owner, repo string, id int64) (io.ReadCloser, error) {
+	err := checkOwnerRepoParameters(owner, repo)
+	if err != nil {
+		return nil, err
+	}
 	// create a new http client so the GitHub library can download the redirected file (if any)
 	// don't pass the "default" one as it could be the one it's already using
 	client := &http.Client{}
