@@ -57,6 +57,11 @@ func update(version string) error {
 }
 ```
 
+### Important note
+
+The API can change anytime until it reaches version 1.0.
+It is unlikely it will change drastically though, but it can.
+
 ### Naming Rules of Released Binaries
 
 go-selfupdate assumes that released binaries are put for each combination of platforms and architectures.

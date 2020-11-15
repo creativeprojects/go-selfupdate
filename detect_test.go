@@ -24,40 +24,38 @@ func skipRateLimitExceeded(t *testing.T, err error) {
 }
 
 func TestDetectReleaseWithVersionPrefix(t *testing.T) {
-	r, ok, err := DetectLatest("rhysd/github-clone-all")
-	skipRateLimitExceeded(t, err)
-	if err != nil {
-		t.Fatal("Fetch failed:", err)
+	testData := []struct {
+		run     bool
+		name    string
+		updater *Updater
+	}{
+		{true, "Mock", newMockUpdater(t, Config{Source: mockSourceRepository(t)})},
+		{!testing.Short(), "GitHub", DefaultUpdater()},
 	}
-	if !ok {
-		t.Fatal("Failed to detect latest")
-	}
-	if r == nil {
-		t.Fatal("Release detected but nil returned for it")
-	}
-	if r.LessThan("2.0.0") {
-		t.Error("Incorrect version:", r.Version())
-	}
-	if !strings.HasSuffix(r.AssetURL, ".zip") && !strings.HasSuffix(r.AssetURL, ".tar.gz") {
-		t.Error("Incorrect URL for asset:", r.AssetURL)
-	}
-	if r.URL == "" {
-		t.Error("Document URL should not be empty")
-	}
-	if r.ReleaseNotes == "" {
-		t.Error("Description should not be empty for this repo")
-	}
-	if r.Name == "" {
-		t.Error("Release name is unexpectedly empty")
-	}
-	if r.AssetByteSize == 0 {
-		t.Error("Asset's size is unexpectedly zero")
-	}
-	if r.AssetID == 0 {
-		t.Error("Asset's ID is unexpectedly zero")
-	}
-	if r.PublishedAt.IsZero() {
-		t.Error("Release time is unexpectedly zero")
+
+	for _, testItem := range testData {
+		if !testItem.run {
+			continue
+		}
+		t.Run(testItem.name, func(t *testing.T) {
+			r, ok, err := testItem.updater.DetectLatest("creativeprojects/resticprofile")
+			skipRateLimitExceeded(t, err)
+			require.NoError(t, err)
+			assert.True(t, ok, "Failed to detect latest")
+			assert.NotNil(t, r, "No release returned")
+			if r.LessThan("0.10.0") {
+				t.Error("Incorrect version:", r.Version())
+			}
+			if !strings.HasSuffix(r.AssetURL, ".zip") && !strings.HasSuffix(r.AssetURL, ".tar.gz") {
+				t.Error("Incorrect URL for asset:", r.AssetURL)
+			}
+			assert.NotEmpty(t, r.URL, "Document URL should not be empty")
+			assert.NotEmpty(t, r.ReleaseNotes, "Description should not be empty for this repo")
+			assert.NotEmpty(t, r.Name, "Release name is unexpectedly empty")
+			assert.NotEmpty(t, r.AssetByteSize, "Asset's size is unexpectedly zero")
+			assert.NotEmpty(t, r.AssetID, "Asset's ID is unexpectedly zero")
+			assert.NotZero(t, r.PublishedAt, "Release time is unexpectedly zero")
+		})
 	}
 }
 
