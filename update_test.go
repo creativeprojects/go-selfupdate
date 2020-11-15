@@ -2,6 +2,7 @@ package selfupdate
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -9,6 +10,7 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/stretchr/testify/assert"
@@ -307,7 +309,7 @@ func TestUpdateFromGitHubPrivateRepo(t *testing.T) {
 	}
 }
 
-// ======================== Test Validation with Mock ============================================
+// ======================== Test validate with Mock ============================================
 
 func TestNoValidationFile(t *testing.T) {
 	source := &MockSource{}
@@ -351,6 +353,35 @@ func TestValidationWrongHash(t *testing.T) {
 	assert.True(t, errors.Is(err, ErrChecksumValidationFailed))
 }
 
+func TestValidationReadError(t *testing.T) {
+	hashData, err := ioutil.ReadFile("testdata/SHA256SUM")
+	require.NoError(t, err)
+
+	source := &MockSource{
+		readError: true,
+		files: map[int64][]byte{
+			123: hashData,
+		},
+	}
+	release := &Release{
+		repoOwner:         "test",
+		repoName:          "test",
+		ValidationAssetID: 123,
+		Name:              "foo.tar.xz",
+	}
+	updater := &Updater{
+		source:    source,
+		validator: &ChecksumValidator{},
+	}
+
+	data, err := ioutil.ReadFile("testdata/foo.tar.xz")
+	require.NoError(t, err)
+
+	err = updater.validate(release, data)
+	require.Error(t, err)
+	assert.True(t, errors.Is(err, errTestRead))
+}
+
 func TestValidationSuccess(t *testing.T) {
 	hashData, err := ioutil.ReadFile("testdata/SHA256SUM")
 	require.NoError(t, err)
@@ -376,4 +407,121 @@ func TestValidationSuccess(t *testing.T) {
 
 	err = updater.validate(release, data)
 	require.NoError(t, err)
+}
+
+// ======================== Test UpdateTo with Mock ==========================================
+
+func TestUpdateToInvalidOwner(t *testing.T) {
+	source := &MockSource{}
+	updater := &Updater{source: source}
+	release := &Release{
+		repoName: "test",
+		AssetID:  123,
+	}
+	err := updater.UpdateTo(release, "")
+	assert.EqualError(t, err, ErrIncorrectParameterOwner.Error())
+}
+
+func TestUpdateToInvalidRepo(t *testing.T) {
+	source := &MockSource{}
+	updater := &Updater{source: source}
+	release := &Release{
+		repoOwner: "test",
+		AssetID:   123,
+	}
+	err := updater.UpdateTo(release, "")
+	assert.EqualError(t, err, ErrIncorrectParameterRepo.Error())
+}
+
+func TestUpdateToReadError(t *testing.T) {
+	source := &MockSource{
+		readError: true,
+		files: map[int64][]byte{
+			123: []byte("some data"),
+		},
+	}
+	updater := &Updater{source: source}
+	release := &Release{
+		repoOwner: "test",
+		repoName:  "test",
+		AssetID:   123,
+	}
+	err := updater.UpdateTo(release, "")
+	require.Error(t, err)
+	assert.True(t, errors.Is(err, errTestRead))
+}
+
+func TestUpdateToWithWrongHash(t *testing.T) {
+	data, err := ioutil.ReadFile("testdata/foo.tar.xz")
+	require.NoError(t, err)
+
+	hashData, err := ioutil.ReadFile("testdata/SHA256SUM")
+	require.NoError(t, err)
+
+	source := &MockSource{
+		files: map[int64][]byte{
+			111: data,
+			123: hashData,
+		},
+	}
+	release := &Release{
+		repoOwner:         "test",
+		repoName:          "test",
+		AssetID:           111,
+		ValidationAssetID: 123,
+		Name:              "foo.zip",
+	}
+	updater := &Updater{
+		source:    source,
+		validator: &ChecksumValidator{},
+	}
+
+	err = updater.UpdateTo(release, "")
+	require.Error(t, err)
+	assert.True(t, errors.Is(err, ErrChecksumValidationFailed))
+}
+
+func TestUpdateToSuccess(t *testing.T) {
+	data, err := ioutil.ReadFile("testdata/foo.tar.xz")
+	require.NoError(t, err)
+
+	hashData, err := ioutil.ReadFile("testdata/SHA256SUM")
+	require.NoError(t, err)
+
+	source := &MockSource{
+		files: map[int64][]byte{
+			111: data,
+			123: hashData,
+		},
+	}
+	release := &Release{
+		repoOwner:         "test",
+		repoName:          "test",
+		AssetID:           111,
+		ValidationAssetID: 123,
+		Name:              "foo.tar.xz",
+	}
+	updater := &Updater{
+		source:    source,
+		validator: &ChecksumValidator{},
+	}
+
+	tempfile, err := createEmptyFile(t, "TestUpdateToSuccess")
+	require.NoError(t, err)
+	defer os.Remove(tempfile)
+
+	err = updater.UpdateTo(release, tempfile)
+	require.NoError(t, err)
+}
+
+// createEmptyFile creates an empty file with a unique name in the system temporary folder
+func createEmptyFile(t *testing.T, basename string) (string, error) {
+	tempfile := filepath.Join(os.TempDir(), fmt.Sprintf("%s%d%d.tmp", basename, time.Now().UnixNano(), os.Getpid()))
+	t.Logf("use temporary file %q", tempfile)
+	file, err := os.OpenFile(tempfile, os.O_WRONLY|os.O_CREATE, 0777)
+	if err != nil {
+		return "", err
+	}
+	file.Close()
+	return tempfile, nil
 }

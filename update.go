@@ -15,7 +15,7 @@ import (
 
 // UpdateTo downloads an executable from GitHub Releases API and replace current binary with the downloaded one.
 // It downloads a release asset via GitHub Releases API so this function is available for update releases on private repository.
-// If a redirect occurs, it fallbacks into directly downloading from the redirect URL.
+// If the file is compressed, it does not try to decompress it, it is saved as it is.
 func (up *Updater) UpdateTo(rel *Release, cmdPath string) error {
 	src, err := up.source.DownloadReleaseAsset(rel.repoOwner, rel.repoName, rel.AssetID)
 	if err != nil {
@@ -25,7 +25,7 @@ func (up *Updater) UpdateTo(rel *Release, cmdPath string) error {
 
 	data, err := ioutil.ReadAll(src)
 	if err != nil {
-		return fmt.Errorf("failed reading asset body: %v", err)
+		return fmt.Errorf("failed to read asset: %w", err)
 	}
 
 	if up.validator != nil {

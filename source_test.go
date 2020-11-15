@@ -8,8 +8,9 @@ import (
 
 // MockSource is a Source in memory used for unit tests
 type MockSource struct {
-	releases []SourceRelease
-	files    map[int64][]byte
+	releases  []SourceRelease
+	files     map[int64][]byte
+	readError bool
 }
 
 // NewMockSource instantiates a new MockSource
@@ -39,7 +40,11 @@ func (s *MockSource) DownloadReleaseAsset(owner, repo string, id int64) (io.Read
 	if !ok {
 		return nil, ErrAssetNotFound
 	}
-	buffer := bytes.NewBuffer(content)
+	var buffer io.Reader = bytes.NewBuffer(content)
+	if s.readError {
+		// will return a read error after reading 4 caracters
+		buffer = newErrorReader(buffer, 4)
+	}
 	return ioutil.NopCloser(buffer), nil
 }
 
