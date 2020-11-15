@@ -15,6 +15,69 @@ import (
 	"github.com/creativeprojects/go-selfupdate"
 )
 
+func main() {
+	var help, verbose bool
+	var checksum string
+	flag.BoolVar(&help, "h", false, "Show help")
+	flag.BoolVar(&verbose, "v", false, "Display debugging information")
+	flag.StringVar(&checksum, "checksum", "", "Use this checksum file to validate the binary")
+
+	flag.Usage = usage
+	flag.Parse()
+
+	if help || flag.NArg() != 1 || !strings.HasPrefix(flag.Arg(0), "github.com/") {
+		usage()
+		os.Exit(1)
+	}
+
+	if verbose {
+		selfupdate.SetLogger(log.New(os.Stdout, "", 0))
+	}
+
+	slug, ok := parseSlug(flag.Arg(0))
+	if !ok {
+		usage()
+		os.Exit(1)
+	}
+
+	updater := selfupdate.DefaultUpdater()
+	if checksum != "" {
+		updater, _ = selfupdate.NewUpdater(selfupdate.Config{
+			Validator: &selfupdate.ChecksumValidator{UniqueFilename: checksum},
+		})
+	}
+	latest, found, err := updater.DetectLatest(slug)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Error while detecting the latest version:", err)
+		os.Exit(1)
+	}
+	if !found {
+		fmt.Fprintln(os.Stderr, "No release was found in", slug)
+		os.Exit(1)
+	}
+
+	cmd := getCommand(flag.Arg(0))
+	cmdPath := filepath.Join(build.Default.GOPATH, "bin", cmd)
+	if _, err := os.Stat(cmdPath); err != nil {
+		// When executable is not existing yet
+		if err := installFrom(latest.AssetURL, cmd, cmdPath); err != nil {
+			fmt.Fprintf(os.Stderr, "Error while installing the release binary from %s: %s\n", latest.AssetURL, err)
+			os.Exit(1)
+		}
+	} else {
+		if err := updater.UpdateTo(latest, cmdPath); err != nil {
+			fmt.Fprintf(os.Stderr, "Error while replacing the binary with %s: %s\n", latest.AssetURL, err)
+			os.Exit(1)
+		}
+	}
+
+	fmt.Printf(`Command was updated to the latest version %s: %s
+
+Release Notes:
+%s
+`, latest.Version(), cmdPath, latest.ReleaseNotes)
+}
+
 func usage() {
 	fmt.Fprintln(os.Stderr, `Usage: go-get-release [flags] {package}
 
@@ -75,59 +138,4 @@ func installFrom(url, cmd, path string) error {
 		return fmt.Errorf("failed to write binary to %s: %s", path, err)
 	}
 	return nil
-}
-
-func main() {
-	var help, verbose bool
-	flag.BoolVar(&help, "h", false, "Show help")
-	flag.BoolVar(&verbose, "v", false, "Display debugging information")
-
-	flag.Usage = usage
-	flag.Parse()
-
-	if help || flag.NArg() != 1 || !strings.HasPrefix(flag.Arg(0), "github.com/") {
-		usage()
-		os.Exit(1)
-	}
-
-	if verbose {
-		selfupdate.SetLogger(log.New(os.Stdout, "", 0))
-	}
-
-	slug, ok := parseSlug(flag.Arg(0))
-	if !ok {
-		usage()
-		os.Exit(1)
-	}
-
-	latest, found, err := selfupdate.DetectLatest(slug)
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error while detecting the latest version:", err)
-		os.Exit(1)
-	}
-	if !found {
-		fmt.Fprintln(os.Stderr, "No release was found in", slug)
-		os.Exit(1)
-	}
-
-	cmd := getCommand(flag.Arg(0))
-	cmdPath := filepath.Join(build.Default.GOPATH, "bin", cmd)
-	if _, err := os.Stat(cmdPath); err != nil {
-		// When executable is not existing yet
-		if err := installFrom(latest.AssetURL, cmd, cmdPath); err != nil {
-			fmt.Fprintf(os.Stderr, "Error while installing the release binary from %s: %s\n", latest.AssetURL, err)
-			os.Exit(1)
-		}
-	} else {
-		if err := selfupdate.UpdateTo(latest.AssetURL, cmdPath); err != nil {
-			fmt.Fprintf(os.Stderr, "Error while replacing the binary with %s: %s\n", latest.AssetURL, err)
-			os.Exit(1)
-		}
-	}
-
-	fmt.Printf(`Command was updated to the latest version %s: %s
-
-Release Notes:
-%s
-`, latest.Version(), cmdPath, latest.ReleaseNotes)
 }

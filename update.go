@@ -15,7 +15,6 @@ import (
 
 // UpdateTo downloads an executable from GitHub Releases API and replace current binary with the downloaded one.
 // It downloads a release asset via GitHub Releases API so this function is available for update releases on private repository.
-// If the file is compressed, it does not try to decompress it, it is saved as it is.
 func (up *Updater) UpdateTo(rel *Release, cmdPath string) error {
 	src, err := up.source.DownloadReleaseAsset(rel.repoOwner, rel.repoName, rel.AssetID)
 	if err != nil {
@@ -40,7 +39,12 @@ func (up *Updater) UpdateTo(rel *Release, cmdPath string) error {
 
 // UpdateCommand updates a given command binary to the latest version.
 // 'slug' represents 'owner/name' repository on GitHub and 'current' means the current version.
-func (up *Updater) UpdateCommand(cmdPath string, current *semver.Version, slug string) (*Release, error) {
+func (up *Updater) UpdateCommand(cmdPath string, current string, slug string) (*Release, error) {
+	version, err := semver.NewVersion(current)
+	if err != nil {
+		return nil, fmt.Errorf("incorrect version %q: %w", current, err)
+	}
+
 	if up.os == "windows" && !strings.HasSuffix(cmdPath, ".exe") {
 		// Ensure to add '.exe' to given path on Windows
 		cmdPath = cmdPath + ".exe"
@@ -64,10 +68,10 @@ func (up *Updater) UpdateCommand(cmdPath string, current *semver.Version, slug s
 	}
 	if !ok {
 		log.Print("No release detected. Current version is considered up-to-date")
-		return &Release{version: current}, nil
+		return &Release{version: version}, nil
 	}
-	if current.Equal(rel.version) {
-		log.Printf("Current version %s is the latest. Update is not needed", current.String())
+	if version.Equal(rel.version) {
+		log.Printf("Current version %s is the latest. Update is not needed", version.String())
 		return rel, nil
 	}
 	log.Printf("Will update %s to the latest version %s", cmdPath, rel.Version())
@@ -79,7 +83,7 @@ func (up *Updater) UpdateCommand(cmdPath string, current *semver.Version, slug s
 
 // UpdateSelf updates the running executable itself to the latest version.
 // 'slug' represents 'owner/name' repository on GitHub and 'current' means the current version.
-func (up *Updater) UpdateSelf(current *semver.Version, slug string) (*Release, error) {
+func (up *Updater) UpdateSelf(current string, slug string) (*Release, error) {
 	cmdPath, err := os.Executable()
 	if err != nil {
 		return nil, err
@@ -114,7 +118,7 @@ func (up *Updater) validate(rel *Release, data []byte) error {
 		return fmt.Errorf("failed reading validation data: %w", err)
 	}
 
-	if err := up.validator.Validate(rel.Name, data, validationData); err != nil {
+	if err := up.validator.Validate(rel.AssetName, data, validationData); err != nil {
 		return fmt.Errorf("failed validating asset content: %w", err)
 	}
 	return nil

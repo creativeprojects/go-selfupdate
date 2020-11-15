@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-
-	"github.com/Masterminds/semver/v3"
 )
 
 // DetectLatest detects the latest release of the slug (owner/repo).
@@ -36,13 +34,13 @@ func UpdateTo(assetURL, cmdPath string) error {
 
 // UpdateCommand updates a given command binary to the latest version.
 // This function is a shortcut version of updater.UpdateCommand.
-func UpdateCommand(cmdPath string, current *semver.Version, slug string) (*Release, error) {
+func UpdateCommand(cmdPath string, current string, slug string) (*Release, error) {
 	return DefaultUpdater().UpdateCommand(cmdPath, current, slug)
 }
 
 // UpdateSelf updates the running executable itself to the latest version.
 // This function is a shortcut version of updater.UpdateSelf.
-func UpdateSelf(current *semver.Version, slug string) (*Release, error) {
+func UpdateSelf(current string, slug string) (*Release, error) {
 	return DefaultUpdater().UpdateSelf(current, slug)
 }
 

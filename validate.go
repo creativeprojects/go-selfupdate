@@ -75,9 +75,11 @@ func findChecksum(filename string, content []byte) (string, error) {
 	lf := []byte("\n")
 	eol := lf
 	if bytes.Contains(content, crlf) {
+		log.Print("Checksum file is using windows line ending")
 		eol = crlf
 	}
 	lines := bytes.Split(content, eol)
+	log.Printf("Checksum validator: %d checksums available, searching for %q", len(lines), filename)
 	for _, line := range lines {
 		// skip empty line
 		if len(line) == 0 {
