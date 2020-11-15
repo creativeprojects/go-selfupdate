@@ -1,6 +1,9 @@
 package selfupdate
 
 import (
+	"bytes"
+	"crypto/sha256"
+	"fmt"
 	"io/ioutil"
 	"testing"
 
@@ -150,6 +153,27 @@ func mockSourceRepository(t *testing.T) *MockSource {
 		24: gzData,
 		25: gzData,
 		26: zipData,
+	}
+
+	// generates checksum files automatically
+	for i, release := range releases {
+		rel := release.(*GitHubRelease)
+		checksums := &bytes.Buffer{}
+		for _, asset := range rel.assets {
+			file, ok := files[asset.GetID()]
+			if !ok {
+				t.Errorf("file ID %d not found", asset.GetID())
+			}
+			hash := sha256.Sum256(file)
+			checksums.WriteString(fmt.Sprintf("%x  %s\n", hash, asset.GetName()))
+		}
+		id := int64(i*10 + 9)
+		rel.assets = append(rel.assets, &GitHubAsset{
+			id:   id,
+			name: "checksums.txt",
+		})
+		files[id] = checksums.Bytes()
+		t.Logf("file id %d contains checksums:\n%s\n", id, string(files[id]))
 	}
 
 	return NewMockSource(releases, files)
