@@ -17,7 +17,7 @@ COVERAGE_FILE=coverage.out
 BUILD_DATE=`date`
 BUILD_COMMIT=`git rev-parse HEAD`
 
-.PHONY: all test build coverage clean toc staticcheck
+.PHONY: all test build coverage full-coverage clean toc staticcheck
 
 all: test build
 
@@ -28,6 +28,10 @@ test:
 		$(GOTEST) -race -v $(TESTS)
 
 coverage:
+		$(GOTEST) -short -coverprofile=$(COVERAGE_FILE) $(TESTS)
+		$(GOTOOL) cover -html=$(COVERAGE_FILE)
+
+full-coverage:
 		$(GOTEST) -coverprofile=$(COVERAGE_FILE) $(TESTS)
 		$(GOTOOL) cover -html=$(COVERAGE_FILE)
 

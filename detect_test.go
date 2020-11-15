@@ -62,31 +62,51 @@ func TestDetectReleaseWithVersionPrefix(t *testing.T) {
 }
 
 func TestDetectVersionExisting(t *testing.T) {
-	testVersion := "v2.2.0"
-	r, ok, err := DetectVersion("rhysd/github-clone-all", testVersion)
-	skipRateLimitExceeded(t, err)
-	if err != nil {
-		t.Fatal("Fetch failed:", err)
+	testVersion := "v0.10.0"
+	testData := []struct {
+		run     bool
+		name    string
+		updater *Updater
+	}{
+		{true, "Mock", newMockUpdater(t, Config{Source: mockSourceRepository(t)})},
+		{!testing.Short(), "GitHub", DefaultUpdater()},
 	}
-	if !ok {
-		t.Fatalf("Failed to detect %s", testVersion)
-	}
-	if r == nil {
-		t.Fatal("Release detected but nil returned for it")
+
+	for _, testItem := range testData {
+		if !testItem.run {
+			continue
+		}
+		t.Run(testItem.name, func(t *testing.T) {
+			r, ok, err := testItem.updater.DetectVersion("creativeprojects/resticprofile", testVersion)
+			skipRateLimitExceeded(t, err)
+			require.NoError(t, err)
+			assert.Truef(t, ok, "Failed to detect %s", testVersion)
+			assert.NotNil(t, r, "No release returned")
+		})
 	}
 }
 
 func TestDetectVersionNotExisting(t *testing.T) {
-	r, ok, err := DetectVersion("rhysd/github-clone-all", "foobar")
-	skipRateLimitExceeded(t, err)
-	if err != nil {
-		t.Fatal("Fetch failed:", err)
+	testData := []struct {
+		run     bool
+		name    string
+		updater *Updater
+	}{
+		{true, "Mock", newMockUpdater(t, Config{Source: mockSourceRepository(t)})},
+		{!testing.Short(), "GitHub", DefaultUpdater()},
 	}
-	if ok {
-		t.Fatal("Failed to correctly detect foobar")
-	}
-	if r != nil {
-		t.Fatal("Release not detected but got a returned value for it")
+
+	for _, testItem := range testData {
+		if !testItem.run {
+			continue
+		}
+		t.Run(testItem.name, func(t *testing.T) {
+			r, ok, err := testItem.updater.DetectVersion("creativeprojects/resticprofile", "foobar")
+			skipRateLimitExceeded(t, err)
+			require.NoError(t, err)
+			assert.False(t, ok, "Failed to correctly detect foobar")
+			assert.Nil(t, r, "Release not detected but got a returned value for it")
+		})
 	}
 }
 
@@ -143,24 +163,39 @@ func TestDetectReleasesForVariousArchives(t *testing.T) {
 }
 
 func TestDetectReleaseButNoAsset(t *testing.T) {
-	_, ok, err := DetectLatest("rhysd/clever-f.vim")
-	skipRateLimitExceeded(t, err)
-	if err != nil {
-		t.Fatal("Fetch failed:", err)
+	testData := []struct {
+		run     bool
+		name    string
+		updater *Updater
+	}{
+		{true, "Mock", newMockUpdater(t, Config{Source: NewMockSource(
+			[]SourceRelease{
+				&GitHubRelease{
+					name:    "first",
+					tagName: "v1.0",
+					assets:  nil,
+				},
+				&GitHubRelease{
+					name:    "second",
+					tagName: "v2.0",
+					assets:  nil,
+				},
+			},
+			nil,
+		)})},
+		{!testing.Short(), "GitHub", DefaultUpdater()},
 	}
-	if ok {
-		t.Fatal("When no asset found, result should be marked as 'not found'")
-	}
-}
 
-func TestDetectNoRelease(t *testing.T) {
-	_, ok, err := DetectLatest("rhysd/clever-f.vim")
-	skipRateLimitExceeded(t, err)
-	if err != nil {
-		t.Fatal("Fetch failed:", err)
-	}
-	if ok {
-		t.Fatal("When no release found, result should be marked as 'not found'")
+	for _, testItem := range testData {
+		if !testItem.run {
+			continue
+		}
+		t.Run(testItem.name, func(t *testing.T) {
+			_, ok, err := testItem.updater.DetectLatest("rhysd/clever-f.vim")
+			skipRateLimitExceeded(t, err)
+			require.NoError(t, err)
+			assert.False(t, ok, "When no asset found, result should be marked as 'not found'")
+		})
 	}
 }
 
@@ -180,24 +215,48 @@ func TestInvalidSlug(t *testing.T) {
 }
 
 func TestNonExistingRepo(t *testing.T) {
-	v, ok, err := DetectLatest("rhysd/non-existing-repo")
-	skipRateLimitExceeded(t, err)
-	if err != nil {
-		t.Fatal("Non-existing repo should not cause an error:", v)
+	testData := []struct {
+		run     bool
+		name    string
+		updater *Updater
+	}{
+		{true, "Mock", newMockUpdater(t, Config{Source: NewMockSource(nil, nil)})},
+		{!testing.Short(), "GitHub", DefaultUpdater()},
 	}
-	if ok {
-		t.Fatal("Release for non-existing repo should not be found")
+
+	for _, testItem := range testData {
+		if !testItem.run {
+			continue
+		}
+		t.Run(testItem.name, func(t *testing.T) {
+			_, ok, err := testItem.updater.DetectLatest("rhysd/non-existing-repo")
+			skipRateLimitExceeded(t, err)
+			require.NoError(t, err)
+			assert.False(t, ok, "Release for non-existing repo should not be found")
+		})
 	}
 }
 
 func TestNoReleaseFound(t *testing.T) {
-	_, ok, err := DetectLatest("rhysd/misc")
-	skipRateLimitExceeded(t, err)
-	if err != nil {
-		t.Fatal("Repo having no release should not cause an error:", err)
+	testData := []struct {
+		run     bool
+		name    string
+		updater *Updater
+	}{
+		{true, "Mock", newMockUpdater(t, Config{Source: NewMockSource(nil, nil)})},
+		{!testing.Short(), "GitHub", DefaultUpdater()},
 	}
-	if ok {
-		t.Fatal("Repo having no release should not be found")
+
+	for _, testItem := range testData {
+		if !testItem.run {
+			continue
+		}
+		t.Run(testItem.name, func(t *testing.T) {
+			_, ok, err := testItem.updater.DetectLatest("rhysd/misc")
+			skipRateLimitExceeded(t, err)
+			require.NoError(t, err)
+			assert.False(t, ok, "Repo having no release should not be found")
+		})
 	}
 }
 
@@ -642,4 +701,10 @@ func TestFindReleaseAndAsset(t *testing.T) {
 			}
 		})
 	}
+}
+
+func newMockUpdater(t *testing.T, config Config) *Updater {
+	updater, err := NewUpdater(config)
+	require.NoError(t, err)
+	return updater
 }
