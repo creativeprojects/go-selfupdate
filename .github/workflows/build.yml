@@ -1,0 +1,47 @@
+name: Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+
+  build:
+    name: Build and test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        go_version: ['1.13', '1.14', '1.15']
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+
+    - name: Set up Go ${{ matrix.go_version }}
+      uses: actions/setup-go@v2
+      with:
+        go-version: ${{ matrix.go_version }}
+
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v2
+
+    - name: Get dependencies
+      run: |
+        go get -v -t -d ./...
+
+    - name: Build
+      run: go build -v ./...
+
+    - name: Test
+      shell: bash
+      run: |
+    if [[ "${GITHUB_TOKEN}" != "" ]]; then
+      go test -v -race -coverprofile=coverage.txt . ./update
+    else
+      go test -v -race -short . ./update
+    fi
+
+    - name: Code coverage
+      shell: bash
+      run: "if [ -f coverage.out ]; then bash <(curl -s https://codecov.io/bash); fi"
