@@ -2,7 +2,7 @@ Self-Update library for GitHub hosted applications in Go
 ========================================================
 
 [![Godoc reference](https://godoc.org/github.com/creativeprojects/go-selfupdate?status.svg)](http://godoc.org/github.com/creativeprojects/go-selfupdate)
-[![Build Status](https://travis-ci.com/creativeprojects/go-selfupdate.svg?branch=main)](https://travis-ci.com/creativeprojects/go-selfupdate)
+[![Build](https://github.com/creativeprojects/go-selfupdate/workflows/Build/badge.svg)](https://github.com/creativeprojects/go-selfupdate/actions)
 [![codecov](https://codecov.io/gh/creativeprojects/go-selfupdate/branch/main/graph/badge.svg?token=3FejM0fkw2)](https://codecov.io/gh/creativeprojects/go-selfupdate)
 
 go-selfupdate detects the information of the latest release via [GitHub Releases API][] and
