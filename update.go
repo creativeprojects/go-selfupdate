@@ -16,7 +16,7 @@ import (
 // UpdateTo downloads an executable from GitHub Releases API and replace current binary with the downloaded one.
 // It downloads a release asset via GitHub Releases API so this function is available for update releases on private repository.
 func (up *Updater) UpdateTo(rel *Release, cmdPath string) error {
-	src, err := up.source.DownloadReleaseAsset(rel.repoOwner, rel.repoName, rel.AssetID)
+	src, err := up.source.DownloadReleaseAsset(rel.repoOwner, rel.repoName, rel.ReleaseID, rel.AssetID)
 	if err != nil {
 		return err
 	}
@@ -34,7 +34,7 @@ func (up *Updater) UpdateTo(rel *Release, cmdPath string) error {
 		}
 	}
 
-	return up.decompressAndUpdate(bytes.NewReader(data), rel.AssetURL, cmdPath)
+	return up.decompressAndUpdate(bytes.NewReader(data), rel.AssetName, rel.AssetURL, cmdPath)
 }
 
 // UpdateCommand updates a given command binary to the latest version.
@@ -91,9 +91,9 @@ func (up *Updater) UpdateSelf(current string, slug string) (*Release, error) {
 	return up.UpdateCommand(cmdPath, current, slug)
 }
 
-func (up *Updater) decompressAndUpdate(src io.Reader, assetURL, cmdPath string) error {
+func (up *Updater) decompressAndUpdate(src io.Reader, assetName, assetURL, cmdPath string) error {
 	_, cmd := filepath.Split(cmdPath)
-	asset, err := DecompressCommand(src, assetURL, cmd, up.os, up.arch)
+	asset, err := DecompressCommand(src, assetName, cmd, up.os, up.arch)
 	if err != nil {
 		return err
 	}
@@ -107,7 +107,7 @@ func (up *Updater) decompressAndUpdate(src io.Reader, assetURL, cmdPath string) 
 // validate loads the validation file and passes it to the validator.
 // The validation is successful if no error was returned
 func (up *Updater) validate(rel *Release, data []byte) error {
-	validationSrc, err := up.source.DownloadReleaseAsset(rel.repoOwner, rel.repoName, rel.ValidationAssetID)
+	validationSrc, err := up.source.DownloadReleaseAsset(rel.repoOwner, rel.repoName, rel.ReleaseID, rel.ValidationAssetID)
 	if err != nil {
 		return err
 	}

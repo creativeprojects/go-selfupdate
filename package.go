@@ -22,14 +22,14 @@ func DetectVersion(slug string, version string) (*Release, bool, error) {
 // This function is low-level API to update the binary. Because it does not use GitHub API and downloads asset directly from the URL via HTTP,
 // this function is not available to update a release for private repositories.
 // cmdPath is a file path to command executable.
-func UpdateTo(assetURL, cmdPath string) error {
+func UpdateTo(assetURL, assetFileName, cmdPath string) error {
 	up := DefaultUpdater()
 	src, err := downloadReleaseAssetFromURL(context.Background(), assetURL)
 	if err != nil {
 		return err
 	}
 	defer src.Close()
-	return up.decompressAndUpdate(src, assetURL, cmdPath)
+	return up.decompressAndUpdate(src, assetURL, assetFileName, cmdPath)
 }
 
 // UpdateCommand updates a given command binary to the latest version.

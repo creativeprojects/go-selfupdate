@@ -31,7 +31,7 @@ func (s *MockSource) ListReleases(owner, repo string) ([]SourceRelease, error) {
 }
 
 // DownloadReleaseAsset returns a file from its ID. Owner and repo parameters are not used.
-func (s *MockSource) DownloadReleaseAsset(owner, repo string, id int64) (io.ReadCloser, error) {
+func (s *MockSource) DownloadReleaseAsset(owner, repo string, releaseid, id int64) (io.ReadCloser, error) {
 	err := checkOwnerRepoParameters(owner, repo)
 	if err != nil {
 		return nil, err

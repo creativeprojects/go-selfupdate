@@ -12,11 +12,13 @@ type Release struct {
 	AssetURL string
 	// AssetSize represents the size of asset in bytes
 	AssetByteSize int
-	// AssetID is the ID of the asset on GitHub
+	// AssetID is the ID of the asset on the source platform
 	AssetID int64
+	// ReleaseID is the ID of the release on the source platform
+	ReleaseID int64
 	// AssetName is the filename of the asset
 	AssetName string
-	// ValidationAssetID is the ID of additional validaton asset on GitHub
+	// ValidationAssetID is the ID of additional validaton asset on the source platform
 	ValidationAssetID int64
 	// URL is a URL to release page for browsing
 	URL string

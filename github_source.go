@@ -96,7 +96,7 @@ func (s *GitHubSource) ListReleases(owner, repo string) ([]SourceRelease, error)
 
 // DownloadReleaseAsset downloads an asset from its ID.
 // It returns an io.ReadCloser: it is your responsability to Close it.
-func (s *GitHubSource) DownloadReleaseAsset(owner, repo string, id int64) (io.ReadCloser, error) {
+func (s *GitHubSource) DownloadReleaseAsset(owner, repo string, releaseid, id int64) (io.ReadCloser, error) {
 	err := checkOwnerRepoParameters(owner, repo)
 	if err != nil {
 		return nil, err

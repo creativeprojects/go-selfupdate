@@ -7,6 +7,7 @@ import (
 )
 
 type GitHubRelease struct {
+	releaseID    int64
 	name         string
 	tagName      string
 	url          string
@@ -19,6 +20,7 @@ type GitHubRelease struct {
 
 func NewGitHubRelease(from *github.RepositoryRelease) *GitHubRelease {
 	release := &GitHubRelease{
+		releaseID:    from.GetID(),
 		name:         from.GetName(),
 		tagName:      from.GetTagName(),
 		url:          from.GetHTMLURL(),
@@ -32,6 +34,10 @@ func NewGitHubRelease(from *github.RepositoryRelease) *GitHubRelease {
 		release.assets[i] = NewGitHubAsset(fromAsset)
 	}
 	return release
+}
+
+func (a *GitHubRelease) GetID() int64 {
+	return a.releaseID
 }
 
 func (r *GitHubRelease) GetTagName() string {

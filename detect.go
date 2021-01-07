@@ -22,7 +22,7 @@ func (up *Updater) DetectLatest(slug string) (release *Release, found bool, err 
 	return up.DetectVersion(slug, "")
 }
 
-// DetectVersion tries to get the given version of the repository on Github. `slug` means `owner/name` formatted string.
+// DetectVersion tries to get the given version of the repository on the source. `slug` means `owner/name` formatted string.
 // And version indicates the required version.
 func (up *Updater) DetectVersion(slug string, version string) (release *Release, found bool, err error) {
 	repo := strings.Split(slug, "/")
@@ -53,6 +53,7 @@ func (up *Updater) DetectVersion(slug string, version string) (release *Release,
 		AssetName:         asset.GetName(),
 		ValidationAssetID: -1,
 		URL:               rel.GetURL(),
+		ReleaseID:         rel.GetID(),
 		ReleaseNotes:      rel.GetReleaseNotes(),
 		Name:              rel.GetName(),
 		PublishedAt:       rel.GetPublishedAt(),
