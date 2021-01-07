@@ -1,6 +1,7 @@
 module github.com/creativeprojects/go-selfupdate
 
 require (
+	code.gitea.io/sdk/gitea v0.13.2
 	github.com/Masterminds/semver/v3 v3.1.0
 	github.com/google/go-github/v30 v30.1.0
 	github.com/stretchr/testify v1.6.1
