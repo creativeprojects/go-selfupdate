@@ -58,7 +58,7 @@ func main() {
 	cmdPath := filepath.Join(build.Default.GOPATH, "bin", cmd)
 	if _, err := os.Stat(cmdPath); err != nil {
 		// When executable is not existing yet
-		if err := installFrom(latest.AssetURL, cmd, cmdPath); err != nil {
+		if err := installFrom(latest.AssetURL, cmd, latest.AssetName, cmdPath); err != nil {
 			fmt.Fprintf(os.Stderr, "Error while installing the release binary from %s: %s\n", latest.AssetURL, err)
 			os.Exit(1)
 		}
@@ -105,7 +105,7 @@ func installFrom(url, cmd, name, path string) error {
 	if res.StatusCode != 200 {
 		return fmt.Errorf("failed to download release binary from %s: Invalid response ", url)
 	}
-	executable, err := selfupdate.DecompressCommand(res.Body, url, name, cmd, runtime.GOOS, runtime.GOARCH)
+	executable, err := selfupdate.DecompressCommand(res.Body, url, cmd, runtime.GOOS, runtime.GOARCH)
 	if err != nil {
 		return fmt.Errorf("failed to decompress downloaded asset from %s: %s", url, err)
 	}
