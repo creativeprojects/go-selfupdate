@@ -10,7 +10,6 @@ import (
 	"runtime"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -510,7 +509,7 @@ func TestUpdateToSuccess(t *testing.T) {
 		validator: &ChecksumValidator{},
 	}
 
-	tempfile, err := createEmptyFile(t, "TestUpdateToSuccess")
+	tempfile, err := createEmptyFile(t, "foo")
 	require.NoError(t, err)
 	defer os.Remove(tempfile)
 
@@ -520,7 +519,7 @@ func TestUpdateToSuccess(t *testing.T) {
 
 // createEmptyFile creates an empty file with a unique name in the system temporary folder
 func createEmptyFile(t *testing.T, basename string) (string, error) {
-	tempfile := filepath.Join(os.TempDir(), fmt.Sprintf("%s%d%d.tmp", basename, time.Now().UnixNano(), os.Getpid()))
+	tempfile := filepath.Join(os.TempDir(), fmt.Sprintf("%s", basename))
 	t.Logf("use temporary file %q", tempfile)
 	file, err := os.OpenFile(tempfile, os.O_WRONLY|os.O_CREATE, 0777)
 	if err != nil {
