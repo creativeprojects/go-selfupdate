@@ -19,7 +19,7 @@ func DetectVersion(slug string, version string) (*Release, bool, error) {
 }
 
 // UpdateTo downloads an executable from assetURL and replaces the current binary with the downloaded one.
-// This function is low-level API to update the binary. Because it does not use GitHub API and downloads asset directly from the URL via HTTP,
+// This function is low-level API to update the binary. Because it does not use a source provider and downloads asset directly from the URL via HTTP,
 // this function is not available to update a release for private repositories.
 // cmdPath is a file path to command executable.
 func UpdateTo(assetURL, assetFileName, cmdPath string) error {

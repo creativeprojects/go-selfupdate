@@ -261,6 +261,7 @@ func TestNoReleaseFound(t *testing.T) {
 func TestFindAssetFromRelease(t *testing.T) {
 	type findReleaseAndAssetFixture struct {
 		name            string
+		config          Config
 		release         SourceRelease
 		targetVersion   string
 		filters         []*regexp.Regexp
@@ -280,7 +281,8 @@ func TestFindAssetFromRelease(t *testing.T) {
 	url1 := "https://asset1"
 	url2 := "https://asset2"
 	url11 := "https://asset11"
-	for _, fixture := range []findReleaseAndAssetFixture{
+
+	testData := []findReleaseAndAssetFixture{
 		{
 			name:          "empty fixture",
 			release:       nil,
@@ -294,13 +296,70 @@ func TestFindAssetFromRelease(t *testing.T) {
 				name:    rel1,
 				tagName: v1,
 				assets: []SourceAsset{
-					&GitHubAsset{
-						name: asset1,
-						url:  url1,
-					},
+					&GitHubAsset{name: asset1, url: url1},
 				},
 			},
 			targetVersion:   "1.0.0",
+			expectedAsset:   asset1,
+			expectedVersion: "1.0.0",
+			expectedFound:   true,
+		},
+		{
+			name: "find asset, no target version",
+			release: &GitHubRelease{
+				name:    rel1,
+				tagName: v1,
+				assets: []SourceAsset{
+					&GitHubAsset{name: asset1, url: url1},
+				},
+			},
+			targetVersion:   "",
+			expectedAsset:   asset1,
+			expectedVersion: "1.0.0",
+			expectedFound:   true,
+		},
+		{
+			name: "don't find prerelease",
+			release: &GitHubRelease{
+				name:    rel1,
+				tagName: v1,
+				assets: []SourceAsset{
+					&GitHubAsset{name: asset1, url: url1},
+				},
+				prerelease: true,
+			},
+			targetVersion:   "",
+			expectedAsset:   asset1,
+			expectedVersion: "1.0.0",
+			expectedFound:   false,
+		},
+		{
+			name: "find named prerelease",
+			release: &GitHubRelease{
+				name:    rel1,
+				tagName: v1,
+				assets: []SourceAsset{
+					&GitHubAsset{name: asset1, url: url1},
+				},
+				prerelease: true,
+			},
+			targetVersion:   "1.0.0",
+			expectedAsset:   asset1,
+			expectedVersion: "1.0.0",
+			expectedFound:   true,
+		},
+		{
+			name:   "find prerelease",
+			config: Config{Prerelease: true},
+			release: &GitHubRelease{
+				name:    rel1,
+				tagName: v1,
+				assets: []SourceAsset{
+					&GitHubAsset{name: asset1, url: url1},
+				},
+				prerelease: true,
+			},
+			targetVersion:   "",
 			expectedAsset:   asset1,
 			expectedVersion: "1.0.0",
 			expectedFound:   true,
@@ -311,10 +370,7 @@ func TestFindAssetFromRelease(t *testing.T) {
 				name:    rel11,
 				tagName: v11,
 				assets: []SourceAsset{
-					&GitHubAsset{
-						name: wrongAsset1,
-						url:  url11,
-					},
+					&GitHubAsset{name: wrongAsset1, url: url11},
 				},
 			},
 			targetVersion: "1.1.0",
@@ -326,10 +382,7 @@ func TestFindAssetFromRelease(t *testing.T) {
 				name:    rel11,
 				tagName: v11,
 				assets: []SourceAsset{
-					&GitHubAsset{
-						name: asset1,
-						url:  url11,
-					},
+					&GitHubAsset{name: asset1, url: url11},
 				},
 			},
 			targetVersion:   "1.1.0",
@@ -343,10 +396,7 @@ func TestFindAssetFromRelease(t *testing.T) {
 				name:    rel11,
 				tagName: v11,
 				assets: []SourceAsset{
-					&GitHubAsset{
-						name: asset11,
-						url:  url11,
-					},
+					&GitHubAsset{name: asset11, url: url11},
 				},
 			},
 			targetVersion:   "1.1.0",
@@ -361,14 +411,8 @@ func TestFindAssetFromRelease(t *testing.T) {
 				name:    rel11,
 				tagName: v11,
 				assets: []SourceAsset{
-					&GitHubAsset{
-						name: asset11,
-						url:  url11,
-					},
-					&GitHubAsset{
-						name: asset1,
-						url:  url1,
-					},
+					&GitHubAsset{name: asset11, url: url11},
+					&GitHubAsset{name: asset1, url: url1},
 				},
 			},
 			targetVersion:   "1.1.0",
@@ -383,14 +427,8 @@ func TestFindAssetFromRelease(t *testing.T) {
 				name:    rel11,
 				tagName: v11,
 				assets: []SourceAsset{
-					&GitHubAsset{
-						name: asset11,
-						url:  url11,
-					},
-					&GitHubAsset{
-						name: asset1,
-						url:  url1,
-					},
+					&GitHubAsset{name: asset11, url: url11},
+					&GitHubAsset{name: asset1, url: url1},
 				},
 			},
 			targetVersion:   "1.1.0",
@@ -405,14 +443,8 @@ func TestFindAssetFromRelease(t *testing.T) {
 				name:    rel11,
 				tagName: v11,
 				assets: []SourceAsset{
-					&GitHubAsset{
-						name: asset11,
-						url:  url11,
-					},
-					&GitHubAsset{
-						name: asset2,
-						url:  url2,
-					},
+					&GitHubAsset{name: asset11, url: url11},
+					&GitHubAsset{name: asset2, url: url2},
 				},
 			},
 			targetVersion: "1.1.0",
@@ -430,14 +462,8 @@ func TestFindAssetFromRelease(t *testing.T) {
 				name:    rel11,
 				tagName: v11,
 				assets: []SourceAsset{
-					&GitHubAsset{
-						name: asset11,
-						url:  url11,
-					},
-					&GitHubAsset{
-						name: asset2,
-						url:  url2,
-					},
+					&GitHubAsset{name: asset11, url: url11},
+					&GitHubAsset{name: asset2, url: url2},
 				},
 			},
 			targetVersion: "1.1.0",
@@ -447,27 +473,28 @@ func TestFindAssetFromRelease(t *testing.T) {
 			},
 			expectedFound: false,
 		},
-	} {
-		asset, ver, found := findAssetFromRelease(fixture.release, []string{".gz"}, fixture.targetVersion, fixture.filters)
-		if fixture.expectedFound {
-			if !found {
-				t.Errorf("expected to find an asset for this fixture: %q", fixture.name)
-				continue
-			}
-			if asset.GetName() == "" {
-				t.Errorf("invalid asset struct returned from fixture: %q, got: %v", fixture.name, asset)
-				continue
-			}
-			if asset.GetName() != fixture.expectedAsset {
-				t.Errorf("expected asset %q in fixture: %q, got: %s", fixture.expectedAsset, fixture.name, asset.GetName())
-				continue
-			}
-			t.Logf("asset %v, %v", asset, ver)
-		} else if found {
-			t.Errorf("expected not to find an asset for this fixture: %q, but got: %v", fixture.name, asset)
-		}
 	}
 
+	for _, fixture := range testData {
+		t.Run(fixture.name, func(t *testing.T) {
+			updater := newMockUpdater(t, fixture.config)
+			asset, ver, found := updater.findAssetFromRelease(fixture.release, []string{".gz"}, fixture.targetVersion, fixture.filters)
+			if fixture.expectedFound {
+				if !found {
+					t.Fatalf("expected to find an asset for this fixture: %q", fixture.name)
+				}
+				if asset.GetName() == "" {
+					t.Fatalf("invalid asset struct returned from fixture: %q, got: %v", fixture.name, asset)
+				}
+				if asset.GetName() != fixture.expectedAsset {
+					t.Fatalf("expected asset %q in fixture: %q, got: %s", fixture.expectedAsset, fixture.name, asset.GetName())
+				}
+				t.Logf("asset %v, %v", asset, ver)
+			} else if found {
+				t.Fatalf("expected not to find an asset for this fixture: %q, but got: %v", fixture.name, asset)
+			}
+		})
+	}
 }
 
 func TestFindReleaseAndAsset(t *testing.T) {

@@ -8,12 +8,13 @@ import (
 
 // Updater is responsible for managing the context of self-update.
 type Updater struct {
-	source    Source
-	validator Validator
-	filters   []*regexp.Regexp
-	os        string
-	arch      string
-	arm       uint8
+	source     Source
+	validator  Validator
+	filters    []*regexp.Regexp
+	os         string
+	arch       string
+	arm        uint8
+	prerelease bool
 }
 
 // keep the default updater instance in cache
@@ -32,7 +33,7 @@ func NewUpdater(config Config) (*Updater, error) {
 	for _, filter := range config.Filters {
 		re, err := regexp.Compile(filter)
 		if err != nil {
-			return nil, fmt.Errorf("could not compile regular expression %q for filtering releases: %v", filter, err)
+			return nil, fmt.Errorf("could not compile regular expression %q for filtering releases: %w", filter, err)
 		}
 		filtersRe = append(filtersRe, re)
 	}
@@ -51,12 +52,13 @@ func NewUpdater(config Config) (*Updater, error) {
 	}
 
 	return &Updater{
-		source:    source,
-		validator: config.Validator,
-		filters:   filtersRe,
-		os:        os,
-		arch:      arch,
-		arm:       arm,
+		source:     source,
+		validator:  config.Validator,
+		filters:    filtersRe,
+		os:         os,
+		arch:       arch,
+		arm:        arm,
+		prerelease: config.Prerelease,
 	}, nil
 }
 
