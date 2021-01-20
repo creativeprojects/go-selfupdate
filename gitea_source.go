@@ -84,14 +84,14 @@ func (s *GiteaSource) ListReleases(owner, repo string) ([]SourceRelease, error) 
 
 // DownloadReleaseAsset downloads an asset from its ID.
 // It returns an io.ReadCloser: it is your responsability to Close it.
-func (s *GiteaSource) DownloadReleaseAsset(owner, repo string, releaseid, id int64) (io.ReadCloser, error) {
+func (s *GiteaSource) DownloadReleaseAsset(owner, repo string, releaseID, id int64) (io.ReadCloser, error) {
 	err := checkOwnerRepoParameters(owner, repo)
 	if err != nil {
 		return nil, err
 	}
 	// create a new http client so the GitHub library can download the redirected file (if any)
 	// don't pass the "default" one as it could be the one it's already using
-	attachment, _, err := s.api.GetReleaseAttachment(owner, repo, releaseid, id)
+	attachment, _, err := s.api.GetReleaseAttachment(owner, repo, releaseID, id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to call Gitea Releases API for getting the asset ID %d on repository '%s/%s': %w", id, owner, repo, err)
 	}
@@ -113,3 +113,6 @@ func (s *GiteaSource) DownloadReleaseAsset(owner, repo string, releaseid, id int
 
 	return rc.Body, nil
 }
+
+// Verify interface
+var _ Source = &GiteaSource{}

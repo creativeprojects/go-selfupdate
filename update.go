@@ -13,8 +13,8 @@ import (
 	"github.com/creativeprojects/go-selfupdate/update"
 )
 
-// UpdateTo downloads an executable from GitHub Releases API and replace current binary with the downloaded one.
-// It downloads a release asset via GitHub Releases API so this function is available for update releases on private repository.
+// UpdateTo downloads an executable from the source provider and replace current binary with the downloaded one.
+// It downloads a release asset via the source provider so this function is available for update releases on private repository.
 func (up *Updater) UpdateTo(rel *Release, cmdPath string) error {
 	src, err := up.source.DownloadReleaseAsset(rel.repoOwner, rel.repoName, rel.ReleaseID, rel.AssetID)
 	if err != nil {

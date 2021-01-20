@@ -1,15 +1,15 @@
-Self-Update library for GitHub hosted applications in Go
-========================================================
+Self-Update library for GitHub/Gitea hosted applications in Go
+==============================================================
 
 [![Godoc reference](https://godoc.org/github.com/creativeprojects/go-selfupdate?status.svg)](http://godoc.org/github.com/creativeprojects/go-selfupdate)
 [![Build](https://github.com/creativeprojects/go-selfupdate/workflows/Build/badge.svg)](https://github.com/creativeprojects/go-selfupdate/actions)
 [![codecov](https://codecov.io/gh/creativeprojects/go-selfupdate/branch/main/graph/badge.svg?token=3FejM0fkw2)](https://codecov.io/gh/creativeprojects/go-selfupdate)
 
-go-selfupdate detects the information of the latest release via [GitHub Releases API][] and
+go-selfupdate detects the information of the latest release via a source provider and
 checks the current version. If a newer version than itself is detected, it downloads the released binary from
-GitHub and replaces itself.
+the source provider and replaces itself.
 
-- Automatically detect the latest version of released binary on GitHub
+- Automatically detect the latest version of released binary on the source provider
 - Retrieve the proper binary for the OS and arch where the binary is running
 - Update the binary with rollback support on failure
 - Tested on Linux, macOS and Windows
@@ -17,7 +17,9 @@ GitHub and replaces itself.
 - Support private repositories
 - Support hash, signature validation
 
-[GitHub Releases API]: https://developer.github.com/v3/repos/releases/
+Two source providers are available:
+- GitHub
+- Gitea
 
 This library started as a fork of https://github.com/rhysd/go-github-selfupdate. A few things have changed from the original implementation:
 - don't expose an external semver.Version type, but provide the same functionality through the API: LessThan, Equal and GreaterThan
@@ -25,6 +27,7 @@ This library started as a fork of https://github.com/rhysd/go-github-selfupdate.
 - able to detect different ARM CPU architectures (the original library wasn't working on my different versions of raspberry pi)
 - support for assets compressed with bzip2 (.bz2)
 - can use a single file containing the sha256 checksums for all the files (one per line)
+- separate the provider and the updater, so we can add more providers (GitHub, Gitea, Gitlab, etc.)
 
 ### Example
 
@@ -59,7 +62,7 @@ func update(version string) error {
 
 ### Important note
 
-The API can change anytime until it reaches version 1.0.
+**The API can change anytime until it reaches version 1.0.**
 It is unlikely it will change drastically though, but it can.
 
 ### Naming Rules of Released Binaries
@@ -141,12 +144,12 @@ In summary, structure of releases on GitHub looks like:
 
 ### Special case for ARM architecture
 
-If you're using goreleaser targeting ARM CPUs, it will use the version of the ARM architecture as a name:
+If you're using [goreleaser](https://github.com/goreleaser/goreleaser/) targeting ARM CPUs, it will use the version of the ARM architecture as a name:
 - `armv5`
 - `armv6`
 - `armv7`
 
-go-selfupdate will check which architecture was used to build the current binary. Please note it's not detecting the hardware, but the binary target instead. If you run an `armv6` binary on an `armv7` CPU, it will keep `armv6` as a target.
+go-selfupdate will check which architecture was used to build the current binary. Please note it's **not detecting the hardware**, but the binary target instead. If you run an `armv6` binary on an `armv7` CPU, it will keep `armv6` as a target.
 
 As a rule, it will search for a binary with the same architecture first, then try the architectures below if available, and as a last resort will try a simple `arm` architecture tag.
 
@@ -168,16 +171,16 @@ user can implement the `Validator` interface for own validation mechanisms.
 type Validator interface {
 	// Validate validates release bytes against an additional asset bytes.
 	// See SHAValidator or ECDSAValidator for more information.
-	Validate(release, asset []byte) error
-	// Suffix describes the additional file ending which is used for finding the
-	// additional asset.
-	Suffix() string
+	Validate(filename string, release, asset []byte) error
+	// GetValidationAssetName returns the additional asset name containing the validation checksum.
+	// The asset containing the checksum can be based on the release asset name
+	GetValidationAssetName(releaseFilename string) string
 }
 ```
 
 #### SHA256
 
-To verify the integrity by SHA256 generate a hash sum and save it within a file which has the
+To verify the integrity by SHA256, generate a hash sum and save it within a file which has the
 same naming as original file with the suffix `.sha256`.
 For e.g. use sha256sum, the file `selfupdate/testdata/foo.zip.sha256` is generated with:
 ```shell
@@ -192,7 +195,7 @@ For e.g. use openssl, the file `selfupdate/testdata/foo.zip.sig` is generated wi
 openssl dgst -sha256 -sign Test.pem -out foo.zip.sig foo.zip
 ```
 
-go-selfupdate makes use of go internal crypto package. Therefore the used private key
+go-selfupdate makes use of go internal crypto package. Therefore the private key
 has to be compatible with FIPS 186-3.
 
 ### Using other providers than Github
@@ -203,9 +206,10 @@ Currently implemented are
 - Gitea 
 
 Check the *-custom examples in cmd to see how a custom source like the GiteaSource can be used
+
 ### Copyright
 
-This work is based on:
+This work is heavily based on:
 
 
 - [go-github-selfupdate](https://github.com/rhysd/go-github-selfupdate): [Copyright (c) 2017 rhysd](https://github.com/rhysd/go-github-selfupdate/blob/master/LICENSE)
