@@ -18,7 +18,7 @@ import (
 var (
 	fileTypes = []struct {
 		ext        string
-		decompress func(src io.Reader, url, cmd, os, arch string) (io.Reader, error)
+		decompress func(src io.Reader, cmd, os, arch string) (io.Reader, error)
 	}{
 		{".zip", unzip},
 		{".tar.gz", untar},
@@ -38,15 +38,15 @@ var (
 func DecompressCommand(src io.Reader, url, cmd, os, arch string) (io.Reader, error) {
 	for _, fileType := range fileTypes {
 		if strings.HasSuffix(url, fileType.ext) {
-			return fileType.decompress(src, url, cmd, os, arch)
+			return fileType.decompress(src, cmd, os, arch)
 		}
 	}
-	log.Printf("File %q is not compressed", url)
+	log.Print("File is not compressed")
 	return src, nil
 }
 
-func unzip(src io.Reader, url, cmd, os, arch string) (io.Reader, error) {
-	log.Printf("Decompressing zip file %s", url)
+func unzip(src io.Reader, cmd, os, arch string) (io.Reader, error) {
+	log.Print("Decompressing zip file")
 
 	// Zip format requires its file size for Decompressing.
 	// So we need to read the HTTP response into a buffer at first.
@@ -69,62 +69,62 @@ func unzip(src io.Reader, url, cmd, os, arch string) (io.Reader, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("file %q is not found in %s", cmd, url)
+	return nil, fmt.Errorf("file %q is not found", cmd)
 }
 
-func untar(src io.Reader, url, cmd, os, arch string) (io.Reader, error) {
-	log.Printf("Decompressing tar.gz file %s", url)
+func untar(src io.Reader, cmd, os, arch string) (io.Reader, error) {
+	log.Print("Decompressing tar.gz file")
 
 	gz, err := gzip.NewReader(src)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decompress .tar.gz file: %s", err)
 	}
 
-	return unarchiveTar(gz, url, cmd, os, arch)
+	return unarchiveTar(gz, cmd, os, arch)
 }
 
-func gunzip(src io.Reader, url, cmd, os, arch string) (io.Reader, error) {
-	log.Printf("Decompressing gzip file %s", url)
+func gunzip(src io.Reader, cmd, os, arch string) (io.Reader, error) {
+	log.Print("Decompressing gzip file")
 
 	r, err := gzip.NewReader(src)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decompress gzip file downloaded from %s: %s", url, err)
+		return nil, fmt.Errorf("failed to decompress gzip file: %s", err)
 	}
 
 	name := r.Header.Name
 	if !matchExecutableName(cmd, os, arch, name) {
-		return nil, fmt.Errorf("file name '%s' does not match to command '%s' found in %s", name, cmd, url)
+		return nil, fmt.Errorf("file name '%s' does not match to command '%s' found", name, cmd)
 	}
 
 	log.Printf("Executable file %q was found in gzip file", name)
 	return r, nil
 }
 
-func untarxz(src io.Reader, url, cmd, os, arch string) (io.Reader, error) {
-	log.Printf("Decompressing tar.xz file %s", url)
+func untarxz(src io.Reader, cmd, os, arch string) (io.Reader, error) {
+	log.Print("Decompressing tar.xz file")
 
 	xzip, err := xz.NewReader(src)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decompress .tar.xz file: %s", err)
 	}
 
-	return unarchiveTar(xzip, url, cmd, os, arch)
+	return unarchiveTar(xzip, cmd, os, arch)
 }
 
-func unxz(src io.Reader, url, cmd, os, arch string) (io.Reader, error) {
-	log.Printf("Decompressing xzip file %s", url)
+func unxz(src io.Reader, cmd, os, arch string) (io.Reader, error) {
+	log.Print("Decompressing xzip file")
 
 	xzip, err := xz.NewReader(src)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decompress xzip file downloaded from %s: %s", url, err)
+		return nil, fmt.Errorf("failed to decompress xzip file: %s", err)
 	}
 
 	log.Printf("Decompressed file from xzip is assumed to be an executable: %s", cmd)
 	return xzip, nil
 }
 
-func unbz2(src io.Reader, url, cmd, os, arch string) (io.Reader, error) {
-	log.Printf("Decompressing bzip2 file %s", url)
+func unbz2(src io.Reader, cmd, os, arch string) (io.Reader, error) {
+	log.Print("Decompressing bzip2 file")
 
 	bz2 := bzip2.NewReader(src)
 
@@ -152,7 +152,7 @@ func matchExecutableName(cmd, os, arch, target string) bool {
 	return false
 }
 
-func unarchiveTar(src io.Reader, url, cmd, os, arch string) (io.Reader, error) {
+func unarchiveTar(src io.Reader, cmd, os, arch string) (io.Reader, error) {
 	t := tar.NewReader(src)
 	for {
 		h, err := t.Next()
@@ -160,7 +160,7 @@ func unarchiveTar(src io.Reader, url, cmd, os, arch string) (io.Reader, error) {
 			break
 		}
 		if err != nil {
-			return nil, fmt.Errorf("failed to unarchive .tar file: %s", err)
+			return nil, fmt.Errorf("failed to unarchive tar file: %s", err)
 		}
 		_, name := filepath.Split(h.Name)
 		if matchExecutableName(cmd, os, arch, name) {
@@ -168,6 +168,5 @@ func unarchiveTar(src io.Reader, url, cmd, os, arch string) (io.Reader, error) {
 			return t, nil
 		}
 	}
-
-	return nil, fmt.Errorf("file %q is not found in %s", cmd, url)
+	return nil, fmt.Errorf("file %q is not found in tar", cmd)
 }

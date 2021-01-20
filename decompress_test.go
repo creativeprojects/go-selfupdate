@@ -21,12 +21,7 @@ func TestCompressionNotRequired(t *testing.T) {
 
 	have, err := ioutil.ReadAll(r)
 	require.NoError(t, err)
-
-	for i, b := range have {
-		if buf[i] != b {
-			t.Error(i, "th elem is not the same as wanted. want", buf[i], "but got", b)
-		}
-	}
+	assert.Equal(t, buf, have)
 }
 
 func getArchiveFileExt(file string) string {
@@ -78,10 +73,10 @@ func TestDecompressInvalidArchive(t *testing.T) {
 	}{
 		{"testdata/invalid.zip", "not a valid zip file"},
 		{"testdata/invalid.gz", "failed to decompress gzip file"},
-		{"testdata/invalid-tar.tar.gz", "failed to unarchive .tar file"},
+		{"testdata/invalid-tar.tar.gz", "failed to unarchive tar file"},
 		{"testdata/invalid-gzip.tar.gz", "failed to decompress .tar.gz file"},
 		{"testdata/invalid.xz", "failed to decompress xzip file"},
-		{"testdata/invalid-tar.tar.xz", "failed to unarchive .tar file"},
+		{"testdata/invalid-tar.tar.xz", "failed to unarchive tar file"},
 		{"testdata/invalid-xz.tar.xz", "failed to decompress .tar.xz file"},
 	} {
 		f, err := os.Open(a.name)
