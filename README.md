@@ -195,7 +195,14 @@ openssl dgst -sha256 -sign Test.pem -out foo.zip.sig foo.zip
 go-selfupdate makes use of go internal crypto package. Therefore the used private key
 has to be compatible with FIPS 186-3.
 
+### Using other providers than Github
 
+This library can be easily extended by providing a new source and release implementation for any git provider
+Currently implemented are 
+- Github (default)
+- Gitea 
+
+Check the *-custom examples in cmd to see how a custom source like the GiteaSource can be used
 ### Copyright
 
 This work is based on:

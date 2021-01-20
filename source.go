@@ -6,6 +6,7 @@ import (
 )
 
 type SourceRelease interface {
+	GetID() int64
 	GetTagName() string
 	GetDraft() bool
 	GetPrerelease() bool
@@ -27,7 +28,7 @@ type SourceAsset interface {
 // Source interface to load the releases from (GitHubSource for example)
 type Source interface {
 	ListReleases(owner, repo string) ([]SourceRelease, error)
-	DownloadReleaseAsset(owner, repo string, id int64) (io.ReadCloser, error)
+	DownloadReleaseAsset(owner, repo string, releaseid, id int64) (io.ReadCloser, error)
 }
 
 // checkOwnerRepoParameters is a helper function to check both parameters are valid
