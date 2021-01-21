@@ -4,7 +4,6 @@ import (
 	"fmt"
 	stdlog "log"
 	"os"
-	"regexp"
 	"runtime"
 	"strings"
 	"testing"
@@ -264,7 +263,6 @@ func TestFindAssetFromRelease(t *testing.T) {
 		config          Config
 		release         SourceRelease
 		targetVersion   string
-		filters         []*regexp.Regexp
 		expectedAsset   string
 		expectedVersion string
 		expectedFound   bool
@@ -285,9 +283,9 @@ func TestFindAssetFromRelease(t *testing.T) {
 	testData := []findReleaseAndAssetFixture{
 		{
 			name:          "empty fixture",
+			config:        Config{},
 			release:       nil,
 			targetVersion: "",
-			filters:       nil,
 			expectedFound: false,
 		},
 		{
@@ -402,7 +400,6 @@ func TestFindAssetFromRelease(t *testing.T) {
 			targetVersion:   "1.1.0",
 			expectedAsset:   asset11,
 			expectedVersion: "1.1.0",
-			filters:         nil,
 			expectedFound:   true,
 		},
 		{
@@ -416,7 +413,7 @@ func TestFindAssetFromRelease(t *testing.T) {
 				},
 			},
 			targetVersion:   "1.1.0",
-			filters:         []*regexp.Regexp{regexp.MustCompile("11")},
+			config:          Config{Filters: []string{"11"}},
 			expectedAsset:   asset11,
 			expectedVersion: "1.1.0",
 			expectedFound:   true,
@@ -432,7 +429,7 @@ func TestFindAssetFromRelease(t *testing.T) {
 				},
 			},
 			targetVersion:   "1.1.0",
-			filters:         []*regexp.Regexp{regexp.MustCompile("([^1])1{1}([^1])")},
+			config:          Config{Filters: []string{"([^1])1{1}([^1])"}},
 			expectedAsset:   asset1,
 			expectedVersion: "1.1.0",
 			expectedFound:   true,
@@ -447,11 +444,8 @@ func TestFindAssetFromRelease(t *testing.T) {
 					&GitHubAsset{name: asset2, url: url2},
 				},
 			},
-			targetVersion: "1.1.0",
-			filters: []*regexp.Regexp{
-				regexp.MustCompile("([^1])1{1}([^1])"),
-				regexp.MustCompile("([^1])2{1}([^1])"),
-			},
+			targetVersion:   "1.1.0",
+			config:          Config{Filters: []string{"([^1])1{1}([^1])", "([^1])2{1}([^1])"}},
 			expectedAsset:   asset2,
 			expectedVersion: "1.1.0",
 			expectedFound:   true,
@@ -466,11 +460,8 @@ func TestFindAssetFromRelease(t *testing.T) {
 					&GitHubAsset{name: asset2, url: url2},
 				},
 			},
-			targetVersion: "1.1.0",
-			filters: []*regexp.Regexp{
-				regexp.MustCompile("another"),
-				regexp.MustCompile("binary"),
-			},
+			targetVersion: "",
+			config:        Config{Filters: []string{"another", "binary"}},
 			expectedFound: false,
 		},
 	}
@@ -478,7 +469,7 @@ func TestFindAssetFromRelease(t *testing.T) {
 	for _, fixture := range testData {
 		t.Run(fixture.name, func(t *testing.T) {
 			updater := newMockUpdater(t, fixture.config)
-			asset, ver, found := updater.findAssetFromRelease(fixture.release, []string{".gz"}, fixture.targetVersion, fixture.filters)
+			asset, ver, found := updater.findAssetFromRelease(fixture.release, []string{".gz"}, fixture.targetVersion)
 			if fixture.expectedFound {
 				if !found {
 					t.Fatalf("expected to find an asset for this fixture: %q", fixture.name)

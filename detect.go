@@ -87,7 +87,7 @@ func (up *Updater) findReleaseAndAsset(rels []SourceRelease, targetVersion strin
 	// we put the detected arch at the end of the list: that's fine for ARM so far,
 	// as the additional arch are more accurate than the generic one
 	for _, arch := range append(generateAdditionalArch(up.arch, up.arm), up.arch) {
-		release, asset, version, found := up.findReleaseAndAssetForArch(up.os, arch, rels, targetVersion, up.filters)
+		release, asset, version, found := up.findReleaseAndAssetForArch(arch, rels, targetVersion)
 		if found {
 			return release, asset, version, found
 		}
@@ -96,21 +96,16 @@ func (up *Updater) findReleaseAndAsset(rels []SourceRelease, targetVersion strin
 	return nil, nil, nil, false
 }
 
-func (up *Updater) findReleaseAndAssetForArch(
-	os string,
-	arch string,
-	rels []SourceRelease,
-	targetVersion string,
-	filters []*regexp.Regexp,
+func (up *Updater) findReleaseAndAssetForArch(arch string, rels []SourceRelease, targetVersion string,
 ) (SourceRelease, SourceAsset, *semver.Version, bool) {
 	// Generate candidates
 	suffixes := make([]string, 0, 2*7*2)
 	for _, sep := range []rune{'_', '-'} {
 		for _, ext := range []string{".zip", ".tar.gz", ".tgz", ".gzip", ".gz", ".tar.xz", ".xz", ".bz2", ""} {
-			suffix := fmt.Sprintf("%s%c%s%s", os, sep, arch, ext)
+			suffix := fmt.Sprintf("%s%c%s%s", up.os, sep, arch, ext)
 			suffixes = append(suffixes, suffix)
-			if os == "windows" {
-				suffix = fmt.Sprintf("%s%c%s.exe%s", os, sep, arch, ext)
+			if up.os == "windows" {
+				suffix = fmt.Sprintf("%s%c%s.exe%s", up.os, sep, arch, ext)
 				suffixes = append(suffixes, suffix)
 			}
 		}
@@ -123,7 +118,7 @@ func (up *Updater) findReleaseAndAssetForArch(
 	// Find the latest version from the list of releases.
 	// Returned list from GitHub API is in the order of the date when created.
 	for _, rel := range rels {
-		if a, v, ok := up.findAssetFromRelease(rel, suffixes, targetVersion, filters); ok {
+		if a, v, ok := up.findAssetFromRelease(rel, suffixes, targetVersion); ok {
 			// Note: any version with suffix is less than any version without suffix.
 			// e.g. 0.0.1 > 0.0.1-beta
 			if release == nil || v.GreaterThan(ver) {
@@ -135,14 +130,14 @@ func (up *Updater) findReleaseAndAssetForArch(
 	}
 
 	if release == nil {
-		log.Printf("Could not find any release for os %q and arch %q", os, arch)
+		log.Printf("Could not find any release for os %q and arch %q", up.os, arch)
 		return nil, nil, nil, false
 	}
 
 	return release, asset, ver, true
 }
 
-func (up *Updater) findAssetFromRelease(rel SourceRelease, suffixes []string, targetVersion string, filters []*regexp.Regexp) (SourceAsset, *semver.Version, bool) {
+func (up *Updater) findAssetFromRelease(rel SourceRelease, suffixes []string, targetVersion string) (SourceAsset, *semver.Version, bool) {
 	if rel == nil {
 		log.Print("No source release information")
 		return nil, nil, false
@@ -182,10 +177,10 @@ func (up *Updater) findAssetFromRelease(rel SourceRelease, suffixes []string, ta
 
 	for _, asset := range rel.GetAssets() {
 		name := asset.GetName()
-		if len(filters) > 0 {
+		if len(up.filters) > 0 {
 			// if some filters are defined, match them: if any one matches, the asset is selected
 			matched := false
-			for _, filter := range filters {
+			for _, filter := range up.filters {
 				if filter.MatchString(name) {
 					log.Printf("Selected filtered asset: %s", name)
 					matched = true
