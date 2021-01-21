@@ -2,6 +2,7 @@ package selfupdate
 
 import (
 	"bytes"
+	"errors"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -71,12 +72,12 @@ func TestDecompressInvalidArchive(t *testing.T) {
 		name string
 		msg  string
 	}{
-		{"testdata/invalid.zip", "not a valid zip file"},
+		{"testdata/invalid.zip", "failed to decompress zip file"},
 		{"testdata/invalid.gz", "failed to decompress gzip file"},
-		{"testdata/invalid-tar.tar.gz", "failed to unarchive tar file"},
-		{"testdata/invalid-gzip.tar.gz", "failed to decompress .tar.gz file"},
+		{"testdata/invalid-tar.tar.gz", "failed to decompress tar file"},
+		{"testdata/invalid-gzip.tar.gz", "failed to decompress tar.gz file"},
 		{"testdata/invalid.xz", "failed to decompress xzip file"},
-		{"testdata/invalid-tar.tar.xz", "failed to unarchive tar file"},
+		{"testdata/invalid-tar.tar.xz", "failed to decompress tar file"},
 		{"testdata/invalid-xz.tar.xz", "failed to decompress .tar.xz file"},
 	} {
 		f, err := os.Open(a.name)
@@ -85,9 +86,8 @@ func TestDecompressInvalidArchive(t *testing.T) {
 		ext := getArchiveFileExt(a.name)
 		url := "https://github.com/foo/bar/releases/download/v1.2.3/bar" + ext
 		_, err = DecompressCommand(f, url, "bar", runtime.GOOS, runtime.GOOS)
-		if err == nil {
-			t.Fatal("Error should be raised")
-		}
+		require.Error(t, err)
+		assert.True(t, errors.Is(err, ErrCannotDecompressFile))
 		if !strings.Contains(err.Error(), a.msg) {
 			t.Fatal("Unexpected error:", err)
 		}
@@ -99,11 +99,11 @@ func TestTargetNotFound(t *testing.T) {
 		name string
 		msg  string
 	}{
-		{"testdata/empty.zip", "is not found"},
-		{"testdata/bar-not-found.zip", "is not found"},
-		{"testdata/bar-not-found.gzip", "does not match to command"},
-		{"testdata/empty.tar.gz", "is not found"},
-		{"testdata/bar-not-found.tar.gz", "is not found"},
+		{"testdata/empty.zip", "not found"},
+		{"testdata/bar-not-found.zip", "not found"},
+		{"testdata/bar-not-found.gzip", "not found"},
+		{"testdata/empty.tar.gz", "not found"},
+		{"testdata/bar-not-found.tar.gz", "not found"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			f, err := os.Open(tc.name)
@@ -112,9 +112,8 @@ func TestTargetNotFound(t *testing.T) {
 			ext := getArchiveFileExt(tc.name)
 			url := "https://github.com/foo/bar/releases/download/v1.2.3/bar" + ext
 			_, err = DecompressCommand(f, url, "bar", runtime.GOOS, runtime.GOOS)
-			if err == nil {
-				t.Fatal("Error should be raised for")
-			}
+			require.Error(t, err)
+			assert.True(t, errors.Is(err, ErrExecutableNotFoundInArchive))
 			if !strings.Contains(err.Error(), tc.msg) {
 				t.Fatal("Unexpected error:", err)
 			}

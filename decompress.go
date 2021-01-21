@@ -32,9 +32,15 @@ var (
 )
 
 // DecompressCommand decompresses the given source. Archive and compression format is
-// automatically detected from 'url' parameter, which represents the URL of asset.
+// automatically detected from 'url' parameter, which represents the URL of asset,
+// or simply a filename (with an extension).
 // This returns a reader for the decompressed command given by 'cmd'. '.zip',
 // '.tar.gz', '.tar.xz', '.tgz', '.gz', '.bz2' and '.xz' are supported.
+//
+// These wrapped errors can be returned:
+//  - ErrCannotDecompressFile
+//  - ErrExecutableNotFoundInArchive
+//  - ErrCannotReadStream
 func DecompressCommand(src io.Reader, url, cmd, os, arch string) (io.Reader, error) {
 	for _, fileType := range fileTypes {
 		if strings.HasSuffix(url, fileType.ext) {
@@ -52,13 +58,13 @@ func unzip(src io.Reader, cmd, os, arch string) (io.Reader, error) {
 	// So we need to read the HTTP response into a buffer at first.
 	buf, err := ioutil.ReadAll(src)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create buffer for zip file: %s", err)
+		return nil, fmt.Errorf("%w for zip file: %v", ErrCannotReadStream, err)
 	}
 
 	r := bytes.NewReader(buf)
 	z, err := zip.NewReader(r, r.Size())
 	if err != nil {
-		return nil, fmt.Errorf("failed to decompress zip file: %s", err)
+		return nil, fmt.Errorf("%w zip file: %s", ErrCannotDecompressFile, err)
 	}
 
 	for _, file := range z.File {
@@ -69,7 +75,7 @@ func unzip(src io.Reader, cmd, os, arch string) (io.Reader, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("file %q is not found", cmd)
+	return nil, fmt.Errorf("%w in zip file: %q", ErrExecutableNotFoundInArchive, cmd)
 }
 
 func untar(src io.Reader, cmd, os, arch string) (io.Reader, error) {
@@ -77,7 +83,7 @@ func untar(src io.Reader, cmd, os, arch string) (io.Reader, error) {
 
 	gz, err := gzip.NewReader(src)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decompress .tar.gz file: %s", err)
+		return nil, fmt.Errorf("%w tar.gz file: %s", ErrCannotDecompressFile, err)
 	}
 
 	return unarchiveTar(gz, cmd, os, arch)
@@ -88,12 +94,12 @@ func gunzip(src io.Reader, cmd, os, arch string) (io.Reader, error) {
 
 	r, err := gzip.NewReader(src)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decompress gzip file: %s", err)
+		return nil, fmt.Errorf("%w gzip file: %s", ErrCannotDecompressFile, err)
 	}
 
 	name := r.Header.Name
 	if !matchExecutableName(cmd, os, arch, name) {
-		return nil, fmt.Errorf("file name '%s' does not match to command '%s' found", name, cmd)
+		return nil, fmt.Errorf("%w: expected %q but found %q", ErrExecutableNotFoundInArchive, cmd, name)
 	}
 
 	log.Printf("Executable file %q was found in gzip file", name)
@@ -105,7 +111,7 @@ func untarxz(src io.Reader, cmd, os, arch string) (io.Reader, error) {
 
 	xzip, err := xz.NewReader(src)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decompress .tar.xz file: %s", err)
+		return nil, fmt.Errorf("%w .tar.xz file: %s", ErrCannotDecompressFile, err)
 	}
 
 	return unarchiveTar(xzip, cmd, os, arch)
@@ -116,7 +122,7 @@ func unxz(src io.Reader, cmd, os, arch string) (io.Reader, error) {
 
 	xzip, err := xz.NewReader(src)
 	if err != nil {
-		return nil, fmt.Errorf("failed to decompress xzip file: %s", err)
+		return nil, fmt.Errorf("%w xzip file: %s", ErrCannotDecompressFile, err)
 	}
 
 	log.Printf("Decompressed file from xzip is assumed to be an executable: %s", cmd)
@@ -160,7 +166,7 @@ func unarchiveTar(src io.Reader, cmd, os, arch string) (io.Reader, error) {
 			break
 		}
 		if err != nil {
-			return nil, fmt.Errorf("failed to unarchive tar file: %s", err)
+			return nil, fmt.Errorf("%w tar file: %s", ErrCannotDecompressFile, err)
 		}
 		_, name := filepath.Split(h.Name)
 		if matchExecutableName(cmd, os, arch, name) {
@@ -168,5 +174,5 @@ func unarchiveTar(src io.Reader, cmd, os, arch string) (io.Reader, error) {
 			return t, nil
 		}
 	}
-	return nil, fmt.Errorf("file %q is not found in tar", cmd)
+	return nil, fmt.Errorf("%w in tar: %q", ErrExecutableNotFoundInArchive, cmd)
 }

@@ -229,7 +229,7 @@ func TestBrokenBinaryUpdate(t *testing.T) {
 	if err == nil {
 		t.Fatal("Error should occur for broken package")
 	}
-	if !strings.Contains(err.Error(), "failed to decompress .tar.gz file") {
+	if !strings.Contains(err.Error(), "failed to decompress tar.gz file") {
 		t.Fatal("Unexpected error:", err)
 	}
 }
