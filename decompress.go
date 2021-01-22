@@ -40,7 +40,6 @@ var (
 // These wrapped errors can be returned:
 //  - ErrCannotDecompressFile
 //  - ErrExecutableNotFoundInArchive
-//  - ErrCannotReadStream
 func DecompressCommand(src io.Reader, url, cmd, os, arch string) (io.Reader, error) {
 	for _, fileType := range fileTypes {
 		if strings.HasSuffix(url, fileType.ext) {
@@ -58,7 +57,7 @@ func unzip(src io.Reader, cmd, os, arch string) (io.Reader, error) {
 	// So we need to read the HTTP response into a buffer at first.
 	buf, err := ioutil.ReadAll(src)
 	if err != nil {
-		return nil, fmt.Errorf("%w for zip file: %v", ErrCannotReadStream, err)
+		return nil, fmt.Errorf("%w zip file: %v", ErrCannotDecompressFile, err)
 	}
 
 	r := bytes.NewReader(buf)
@@ -111,7 +110,7 @@ func untarxz(src io.Reader, cmd, os, arch string) (io.Reader, error) {
 
 	xzip, err := xz.NewReader(src)
 	if err != nil {
-		return nil, fmt.Errorf("%w .tar.xz file: %s", ErrCannotDecompressFile, err)
+		return nil, fmt.Errorf("%w tar.xz file: %s", ErrCannotDecompressFile, err)
 	}
 
 	return unarchiveTar(xzip, cmd, os, arch)

@@ -15,5 +15,4 @@ var (
 	ErrInvalidECDSASignature       = errors.New("invalid ECDSA signature")
 	ErrCannotDecompressFile        = errors.New("failed to decompress")
 	ErrExecutableNotFoundInArchive = errors.New("executable not found")
-	ErrCannotReadStream            = errors.New("error reading from stream")
 )

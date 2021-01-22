@@ -78,7 +78,7 @@ func TestDecompressInvalidArchive(t *testing.T) {
 		{"testdata/invalid-gzip.tar.gz", "failed to decompress tar.gz file"},
 		{"testdata/invalid.xz", "failed to decompress xzip file"},
 		{"testdata/invalid-tar.tar.xz", "failed to decompress tar file"},
-		{"testdata/invalid-xz.tar.xz", "failed to decompress .tar.xz file"},
+		{"testdata/invalid-xz.tar.xz", "failed to decompress tar.xz file"},
 	} {
 		f, err := os.Open(a.name)
 		require.NoError(t, err)
@@ -139,6 +139,34 @@ func TestMatchExecutableName(t *testing.T) {
 	for _, testItem := range testData {
 		t.Run(testItem.target, func(t *testing.T) {
 			assert.Equal(t, testItem.found, matchExecutableName(testItem.cmd, testItem.os, testItem.arch, testItem.target))
+		})
+	}
+}
+
+func TestErrorFromReader(t *testing.T) {
+	extensions := []string{
+		"zip",
+		"tar.gz",
+		"tgz",
+		"gzip",
+		"gz",
+		"tar.xz",
+		"xz",
+		"bz2",
+	}
+
+	for _, extension := range extensions {
+		t.Run(extension, func(t *testing.T) {
+			reader, err := DecompressCommand(&bogusReader{}, "foo."+extension, "foo."+extension, runtime.GOOS, runtime.GOARCH)
+			if err != nil {
+				t.Log(err)
+				assert.True(t, errors.Is(err, ErrCannotDecompressFile))
+			} else {
+				// bz2 does not return an error straight away: it only fails when you start reading from the output reader
+				_, err = ioutil.ReadAll(reader)
+				t.Log(err)
+				assert.Error(t, err)
+			}
 		})
 	}
 }
