@@ -22,7 +22,7 @@ func (up *Updater) DetectLatest(slug string) (release *Release, found bool, err 
 	return up.DetectVersion(slug, "")
 }
 
-// DetectVersion tries to get the given version of the repository on the source. `slug` means `owner/name` formatted string.
+// DetectVersion tries to get the given version from the source provider. `slug` means `owner/name` formatted string.
 // And version indicates the required version.
 func (up *Updater) DetectVersion(slug string, version string) (release *Release, found bool, err error) {
 	repo := strings.Split(slug, "/")
@@ -40,14 +40,13 @@ func (up *Updater) DetectVersion(slug string, version string) (release *Release,
 		return nil, false, nil
 	}
 
-	url := asset.GetBrowserDownloadURL()
-	log.Printf("Successfully fetched the latest release. tag: %s, name: %s, URL: %s, Asset: %s", rel.GetTagName(), rel.GetName(), rel.GetURL(), url)
+	log.Printf("Successfully fetched release %s, name: %s, URL: %s, asset: %s", rel.GetTagName(), rel.GetName(), rel.GetURL(), asset.GetBrowserDownloadURL())
 
 	release = &Release{
 		version:           ver,
 		repoOwner:         repo[0],
 		repoName:          repo[1],
-		AssetURL:          url,
+		AssetURL:          asset.GetBrowserDownloadURL(),
 		AssetByteSize:     asset.GetSize(),
 		AssetID:           asset.GetID(),
 		AssetName:         asset.GetName(),
@@ -66,7 +65,7 @@ func (up *Updater) DetectVersion(slug string, version string) (release *Release,
 		validationName := up.validator.GetValidationAssetName(asset.GetName())
 		validationAsset, ok := findValidationAsset(rel, validationName)
 		if !ok {
-			return nil, false, fmt.Errorf("failed finding validation file %q", validationName)
+			return nil, false, fmt.Errorf("%w: %q", ErrValidationAssetNotFound, validationName)
 		}
 		release.ValidationAssetID = validationAsset.GetID()
 	}
@@ -74,6 +73,7 @@ func (up *Updater) DetectVersion(slug string, version string) (release *Release,
 	return release, true, nil
 }
 
+// findValidationAsset returns the source asset used for validation
 func findValidationAsset(rel SourceRelease, validationName string) (SourceAsset, bool) {
 	for _, asset := range rel.GetAssets() {
 		if asset.GetName() == validationName {
@@ -83,6 +83,7 @@ func findValidationAsset(rel SourceRelease, validationName string) (SourceAsset,
 	return nil, false
 }
 
+// findReleaseAndAsset returns the release and asset matching the target version, or latest if target version is empty
 func (up *Updater) findReleaseAndAsset(rels []SourceRelease, targetVersion string) (SourceRelease, SourceAsset, *semver.Version, bool) {
 	// we put the detected arch at the end of the list: that's fine for ARM so far,
 	// as the additional arch are more accurate than the generic one

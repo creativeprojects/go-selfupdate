@@ -1,6 +1,7 @@
 package selfupdate
 
 import (
+	"errors"
 	"fmt"
 	stdlog "log"
 	"os"
@@ -60,13 +61,14 @@ func TestDetectReleaseWithVersionPrefix(t *testing.T) {
 
 func TestDetectVersionExisting(t *testing.T) {
 	testVersion := "v0.10.0"
+	gitHub, _ := NewUpdater(Config{Validator: &ChecksumValidator{UniqueFilename: "checksums.txt"}})
 	testData := []struct {
 		run     bool
 		name    string
 		updater *Updater
 	}{
-		{true, "Mock", newMockUpdater(t, Config{Source: mockSourceRepository(t)})},
-		{!testing.Short(), "GitHub", DefaultUpdater()},
+		{true, "Mock", newMockUpdater(t, Config{Source: mockSourceRepository(t), Validator: &ChecksumValidator{UniqueFilename: "checksums.txt"}})},
+		{!testing.Short(), "GitHub", gitHub},
 	}
 
 	for _, testItem := range testData {
@@ -79,6 +81,32 @@ func TestDetectVersionExisting(t *testing.T) {
 			require.NoError(t, err)
 			assert.Truef(t, ok, "Failed to detect %s", testVersion)
 			assert.NotNil(t, r, "No release returned")
+			assert.Greater(t, r.ValidationAssetID, int64(-1))
+		})
+	}
+}
+
+func TestDetectVersionExistingWithNoValidationFile(t *testing.T) {
+	testVersion := "v0.10.0"
+	gitHub, _ := NewUpdater(Config{Validator: &ChecksumValidator{UniqueFilename: "notfound.txt"}})
+	testData := []struct {
+		run     bool
+		name    string
+		updater *Updater
+	}{
+		{true, "Mock", newMockUpdater(t, Config{Source: mockSourceRepository(t), Validator: &ChecksumValidator{UniqueFilename: "notfound.txt"}})},
+		{!testing.Short(), "GitHub", gitHub},
+	}
+
+	for _, testItem := range testData {
+		if !testItem.run {
+			continue
+		}
+		t.Run(testItem.name, func(t *testing.T) {
+			_, _, err := testItem.updater.DetectVersion("creativeprojects/resticprofile", testVersion)
+			skipRateLimitExceeded(t, err)
+			require.Error(t, err)
+			assert.True(t, errors.Is(err, ErrValidationAssetNotFound))
 		})
 	}
 }
