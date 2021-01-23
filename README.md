@@ -28,6 +28,7 @@ This library started as a fork of https://github.com/rhysd/go-github-selfupdate.
 - support for assets compressed with bzip2 (.bz2)
 - can use a single file containing the sha256 checksums for all the files (one per line)
 - separate the provider and the updater, so we can add more providers (GitHub, Gitea, Gitlab, etc.)
+- return wrapped well defined errors that can be checked with `errors.Is(err error, target error)`
 
 ### Example
 
@@ -163,8 +164,8 @@ More information on targeting ARM cpu can be found here: [GoArm](https://github.
 ### Hash or Signature Validation
 
 go-selfupdate supports hash or signature validation of the downloaded files. It comes
-with support for sha256 hashes or ECDSA signatures. In addition to internal functions the
-user can implement the `Validator` interface for own validation mechanisms.
+with support for sha256 hashes or ECDSA signatures. If you need something different,
+you can implement the `Validator` interface with your own validation mechanism:
 
 ```go
 // Validator represents an interface which enables additional validation of releases.
@@ -174,6 +175,8 @@ type Validator interface {
 	Validate(filename string, release, asset []byte) error
 	// GetValidationAssetName returns the additional asset name containing the validation checksum.
 	// The asset containing the checksum can be based on the release asset name
+	// Please note if the validation file cannot be found, the DetectLatest and DetectVersion methods
+	// will fail with a wrapped ErrValidationAssetNotFound error
 	GetValidationAssetName(releaseFilename string) string
 }
 ```

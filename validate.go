@@ -16,6 +16,8 @@ type Validator interface {
 	Validate(filename string, release, asset []byte) error
 	// GetValidationAssetName returns the additional asset name containing the validation checksum.
 	// The asset containing the checksum can be based on the release asset name
+	// Please note if the validation file cannot be found, the DetectLatest and DetectVersion methods
+	// will fail with a wrapped ErrValidationAssetNotFound error
 	GetValidationAssetName(releaseFilename string) string
 }
 
