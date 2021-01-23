@@ -15,6 +15,7 @@ type Updater struct {
 	arch       string
 	arm        uint8
 	prerelease bool
+	draft      bool
 }
 
 // keep the default updater instance in cache
@@ -59,6 +60,7 @@ func NewUpdater(config Config) (*Updater, error) {
 		arch:       arch,
 		arm:        arm,
 		prerelease: config.Prerelease,
+		draft:      config.Draft,
 	}, nil
 }
 

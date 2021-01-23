@@ -148,7 +148,7 @@ func (up *Updater) findAssetFromRelease(rel SourceRelease, suffixes []string, ta
 		return nil, nil, false
 	}
 
-	if rel.GetDraft() && targetVersion == "" {
+	if rel.GetDraft() && !up.draft && targetVersion == "" {
 		log.Printf("Skip draft version %s", rel.GetTagName())
 		return nil, nil, false
 	}

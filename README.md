@@ -198,6 +198,14 @@ openssl dgst -sha256 -sign Test.pem -out foo.zip.sig foo.zip
 go-selfupdate makes use of go internal crypto package. Therefore the private key
 has to be compatible with FIPS 186-3.
 
+#### Using a single checksum file for all your assets
+
+Tools like [goreleaser][] produce a single checksum file for all your assets. A Validator is provided out of the box for this case:
+
+```go
+updater, _ := NewUpdater(Config{Validator: &ChecksumValidator{UniqueFilename: "checksums.txt"}})
+```
+
 ### Using other providers than Github
 
 This library can be easily extended by providing a new source and release implementation for any git provider
