@@ -33,13 +33,13 @@ func UpdateTo(assetURL, assetFileName, cmdPath string) error {
 }
 
 // UpdateCommand updates a given command binary to the latest version.
-// This function is a shortcut version of updater.UpdateCommand.
+// This function is a shortcut version of updater.UpdateCommand using a DefaultUpdater()
 func UpdateCommand(cmdPath string, current string, slug string) (*Release, error) {
 	return DefaultUpdater().UpdateCommand(cmdPath, current, slug)
 }
 
 // UpdateSelf updates the running executable itself to the latest version.
-// This function is a shortcut version of updater.UpdateSelf.
+// This function is a shortcut version of updater.UpdateSelf using a DefaultUpdater()
 func UpdateSelf(current string, slug string) (*Release, error) {
 	return DefaultUpdater().UpdateSelf(current, slug)
 }

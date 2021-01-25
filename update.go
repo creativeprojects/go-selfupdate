@@ -38,7 +38,7 @@ func (up *Updater) UpdateTo(rel *Release, cmdPath string) error {
 }
 
 // UpdateCommand updates a given command binary to the latest version.
-// 'slug' represents 'owner/name' repository on GitHub and 'current' means the current version.
+// 'slug' represents 'owner/name' repository on the source provider and 'current' means the current version.
 func (up *Updater) UpdateCommand(cmdPath string, current string, slug string) (*Release, error) {
 	version, err := semver.NewVersion(current)
 	if err != nil {
@@ -82,7 +82,7 @@ func (up *Updater) UpdateCommand(cmdPath string, current string, slug string) (*
 }
 
 // UpdateSelf updates the running executable itself to the latest version.
-// 'slug' represents 'owner/name' repository on GitHub and 'current' means the current version.
+// 'slug' represents 'owner/name' repository on the source provider and 'current' means the current version.
 func (up *Updater) UpdateSelf(current string, slug string) (*Release, error) {
 	cmdPath, err := os.Executable()
 	if err != nil {

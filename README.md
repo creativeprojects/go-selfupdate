@@ -28,7 +28,7 @@ This library started as a fork of https://github.com/rhysd/go-github-selfupdate.
 - support for assets compressed with bzip2 (.bz2)
 - can use a single file containing the sha256 checksums for all the files (one per line)
 - separate the provider and the updater, so we can add more providers (GitHub, Gitea, Gitlab, etc.)
-- return wrapped well defined errors that can be checked with `errors.Is(err error, target error)`
+- return well defined wrapped errors that can be checked with `errors.Is(err error, target error)`
 
 ### Example
 
