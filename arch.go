@@ -17,5 +17,8 @@ func generateAdditionalArch(arch string, goarm uint8) []string {
 			additionalArch = append(additionalArch, fmt.Sprintf("armv%d", v))
 		}
 	}
+	if arch == "amd64" {
+		additionalArch = append(additionalArch, "x86_64")
+	}
 	return additionalArch
 }

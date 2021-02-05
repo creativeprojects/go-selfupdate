@@ -520,11 +520,11 @@ func TestFindReleaseAndAsset(t *testing.T) {
 	SetLogger(stdlog.New(os.Stderr, "", 0))
 	defer SetLogger(&emptyLogger{})
 
-	// stupid library using pointer to strings everywhere
 	tag2 := "v2.0.0"
 	rel2 := "rel2"
-	assetLinuxI32 := "asset_linux_386.tgz"
-	assetLinuxI64 := "asset_linux_amd64.tgz"
+	assetLinux386 := "asset_linux_386.tgz"
+	assetLinuxAMD64 := "asset_linux_amd64.tgz"
+	assetLinuxX86_64 := "asset_linux_x86_64.tgz"
 	assetLinuxARM := "asset_linux_arm.tgz"
 	assetLinuxARMv5 := "asset_linux_armv5.tgz"
 	assetLinuxARMv6 := "asset_linux_armv6.tgz"
@@ -551,10 +551,10 @@ func TestFindReleaseAndAsset(t *testing.T) {
 					tagName: tag2,
 					assets: []SourceAsset{
 						&GitHubAsset{
-							name: assetLinuxI32,
+							name: assetLinux386,
 						},
 						&GitHubAsset{
-							name: assetLinuxI64,
+							name: assetLinuxAMD64,
 						},
 					},
 				},
@@ -562,7 +562,7 @@ func TestFindReleaseAndAsset(t *testing.T) {
 			version:           "v2.0.0",
 			filters:           nil,
 			found:             false,
-			expectedAssetName: &assetLinuxI64,
+			expectedAssetName: &assetLinuxAMD64,
 		},
 		{
 			name: "simple match",
@@ -574,10 +574,10 @@ func TestFindReleaseAndAsset(t *testing.T) {
 					tagName: tag2,
 					assets: []SourceAsset{
 						&GitHubAsset{
-							name: assetLinuxI32,
+							name: assetLinux386,
 						},
 						&GitHubAsset{
-							name: assetLinuxI64,
+							name: assetLinuxAMD64,
 						},
 					},
 				},
@@ -585,7 +585,7 @@ func TestFindReleaseAndAsset(t *testing.T) {
 			version:           "v2.0.0",
 			filters:           nil,
 			found:             true,
-			expectedAssetName: &assetLinuxI64,
+			expectedAssetName: &assetLinuxAMD64,
 		},
 		{
 			name: "match default arm",
@@ -726,6 +726,29 @@ func TestFindReleaseAndAsset(t *testing.T) {
 			filters:           nil,
 			found:             false,
 			expectedAssetName: &assetLinuxARM,
+		},
+		{
+			name: "match x86_64 for adm64",
+			os:   "linux",
+			arch: "amd64",
+			releases: []SourceRelease{
+				&GitHubRelease{
+					name:    rel2,
+					tagName: tag2,
+					assets: []SourceAsset{
+						&GitHubAsset{
+							name: assetLinux386,
+						},
+						&GitHubAsset{
+							name: assetLinuxX86_64,
+						},
+					},
+				},
+			},
+			version:           "v2.0.0",
+			filters:           nil,
+			found:             true,
+			expectedAssetName: &assetLinuxX86_64,
 		},
 	}
 
