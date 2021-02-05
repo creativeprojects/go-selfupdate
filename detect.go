@@ -194,9 +194,12 @@ func (up *Updater) findAssetFromRelease(rel SourceRelease, suffixes []string, ta
 			}
 		}
 
+		// case insensitive search
+		name = strings.ToLower(name)
+
 		for _, s := range suffixes {
 			if strings.HasSuffix(name, s) { // require version, arch etc
-				// default: assume single artifact
+				// assuming a unique artifact will be a match (or first one will do)
 				return asset, ver, true
 			}
 		}

@@ -539,7 +539,7 @@ func TestFindReleaseAndAsset(t *testing.T) {
 		version           string
 		filters           []string
 		found             bool
-		expectedAssetName *string
+		expectedAssetName string
 	}{
 		{
 			name: "no match",
@@ -562,7 +562,7 @@ func TestFindReleaseAndAsset(t *testing.T) {
 			version:           "v2.0.0",
 			filters:           nil,
 			found:             false,
-			expectedAssetName: &assetLinuxAMD64,
+			expectedAssetName: assetLinuxAMD64,
 		},
 		{
 			name: "simple match",
@@ -585,7 +585,30 @@ func TestFindReleaseAndAsset(t *testing.T) {
 			version:           "v2.0.0",
 			filters:           nil,
 			found:             true,
-			expectedAssetName: &assetLinuxAMD64,
+			expectedAssetName: assetLinuxAMD64,
+		},
+		{
+			name: "simple match case insensitive",
+			os:   "linux",
+			arch: "amd64",
+			releases: []SourceRelease{
+				&GitHubRelease{
+					name:    rel2,
+					tagName: tag2,
+					assets: []SourceAsset{
+						&GitHubAsset{
+							name: assetLinux386,
+						},
+						&GitHubAsset{
+							name: "asset_Linux_AMD64.tgz",
+						},
+					},
+				},
+			},
+			version:           "v2.0.0",
+			filters:           nil,
+			found:             true,
+			expectedAssetName: "asset_Linux_AMD64.tgz",
 		},
 		{
 			name: "match default arm",
@@ -617,7 +640,7 @@ func TestFindReleaseAndAsset(t *testing.T) {
 			version:           "v2.0.0",
 			filters:           nil,
 			found:             true,
-			expectedAssetName: &assetLinuxARM,
+			expectedAssetName: assetLinuxARM,
 		},
 		{
 			name: "match armv6",
@@ -650,7 +673,7 @@ func TestFindReleaseAndAsset(t *testing.T) {
 			version:           "v2.0.0",
 			filters:           nil,
 			found:             true,
-			expectedAssetName: &assetLinuxARMv6,
+			expectedAssetName: assetLinuxARMv6,
 		},
 		{
 			name: "fallback to armv5",
@@ -677,7 +700,7 @@ func TestFindReleaseAndAsset(t *testing.T) {
 			version:           "v2.0.0",
 			filters:           nil,
 			found:             true,
-			expectedAssetName: &assetLinuxARMv5,
+			expectedAssetName: assetLinuxARMv5,
 		},
 		{
 			name: "fallback to arm",
@@ -701,7 +724,7 @@ func TestFindReleaseAndAsset(t *testing.T) {
 			version:           "v2.0.0",
 			filters:           nil,
 			found:             true,
-			expectedAssetName: &assetLinuxARM,
+			expectedAssetName: assetLinuxARM,
 		},
 		{
 			name: "arm not found",
@@ -725,7 +748,7 @@ func TestFindReleaseAndAsset(t *testing.T) {
 			version:           "v2.0.0",
 			filters:           nil,
 			found:             false,
-			expectedAssetName: &assetLinuxARM,
+			expectedAssetName: assetLinuxARM,
 		},
 		{
 			name: "match x86_64 for adm64",
@@ -748,7 +771,7 @@ func TestFindReleaseAndAsset(t *testing.T) {
 			version:           "v2.0.0",
 			filters:           nil,
 			found:             true,
-			expectedAssetName: &assetLinuxX86_64,
+			expectedAssetName: assetLinuxX86_64,
 		},
 	}
 
@@ -764,7 +787,7 @@ func TestFindReleaseAndAsset(t *testing.T) {
 			_, asset, _, found := updater.findReleaseAndAsset(testItem.releases, testItem.version)
 			assert.Equal(t, testItem.found, found)
 			if found {
-				assert.Equal(t, *testItem.expectedAssetName, asset.GetName())
+				assert.Equal(t, testItem.expectedAssetName, asset.GetName())
 			}
 		})
 	}
