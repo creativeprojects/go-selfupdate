@@ -5,6 +5,26 @@ Self-Update library for GitHub/Gitea hosted applications in Go
 [![Build](https://github.com/creativeprojects/go-selfupdate/workflows/Build/badge.svg)](https://github.com/creativeprojects/go-selfupdate/actions)
 [![codecov](https://codecov.io/gh/creativeprojects/go-selfupdate/branch/main/graph/badge.svg?token=3FejM0fkw2)](https://codecov.io/gh/creativeprojects/go-selfupdate)
 
+<!--ts-->
+* [Self\-Update library for GitHub/Gitea hosted applications in Go](#self-update-library-for-githubgitea-hosted-applications-in-go)
+* [Introduction](#introduction)
+* [Example](#example)
+* [Important note](#important-note)
+* [Naming Rules of Released Binaries](#naming-rules-of-released-binaries)
+* [Naming Rules of Versions (=Git Tags)](#naming-rules-of-versions-git-tags)
+* [Structure of Releases](#structure-of-releases)
+* [Special case for ARM architecture](#special-case-for-arm-architecture)
+* [Hash or Signature Validation](#hash-or-signature-validation)
+  * [SHA256](#sha256)
+  * [ECDSA](#ecdsa)
+  * [Using a single checksum file for all your assets](#using-a-single-checksum-file-for-all-your-assets)
+* [Using other providers than Github](#using-other-providers-than-github)
+* [Copyright](#copyright)
+
+<!--te-->
+
+# Introduction
+
 go-selfupdate detects the information of the latest release via a source provider and
 checks the current version. If a newer version than itself is detected, it downloads the released binary from
 the source provider and replaces itself.
@@ -30,7 +50,7 @@ This library started as a fork of https://github.com/rhysd/go-github-selfupdate.
 - separate the provider and the updater, so we can add more providers (GitHub, Gitea, Gitlab, etc.)
 - return well defined wrapped errors that can be checked with `errors.Is(err error, target error)`
 
-### Example
+# Example
 
 Here's an example how to use the library for an application to update itself
 
@@ -61,12 +81,12 @@ func update(version string) error {
 }
 ```
 
-### Important note
+# Important note
 
 **The API can change anytime until it reaches version 1.0.**
 It is unlikely it will change drastically though, but it can.
 
-### Naming Rules of Released Binaries
+# Naming Rules of Released Binaries
 
 go-selfupdate assumes that released binaries are put for each combination of platforms and architectures.
 Binaries for each platform can be easily built using tools like [goreleaser][]
@@ -107,7 +127,7 @@ To archive the executable directly on Windows, `.exe` can be added before file e
 [goreleaser]: https://github.com/goreleaser/goreleaser/
 
 
-### Naming Rules of Versions (=Git Tags)
+# Naming Rules of Versions (=Git Tags)
 
 go-selfupdate searches binaries' versions via Git tag names (not a release title).
 When your tool's version is `1.2.3`, you should use the version number for tag of the Git
@@ -125,7 +145,7 @@ are also ignored.
 [semantic versioning]: https://semver.org/
 
 
-### Structure of Releases
+# Structure of Releases
 
 In summary, structure of releases on GitHub looks like:
 
@@ -143,7 +163,7 @@ In summary, structure of releases on GitHub looks like:
   - ... (Other binaries for v1.1.3)
 - ... (older versions)
 
-### Special case for ARM architecture
+# Special case for ARM architecture
 
 If you're using [goreleaser](https://github.com/goreleaser/goreleaser/) targeting ARM CPUs, it will use the version of the ARM architecture as a name:
 - `armv5`
@@ -161,7 +181,7 @@ So if you're running a `armv6` binary, it will try these targets in order:
 
 More information on targeting ARM cpu can be found here: [GoArm](https://github.com/golang/go/wiki/GoArm)
 
-### Hash or Signature Validation
+# Hash or Signature Validation
 
 go-selfupdate supports hash or signature validation of the downloaded files. It comes
 with support for sha256 hashes or ECDSA signatures. If you need something different,
@@ -181,7 +201,7 @@ type Validator interface {
 }
 ```
 
-#### SHA256
+## SHA256
 
 To verify the integrity by SHA256, generate a hash sum and save it within a file which has the
 same naming as original file with the suffix `.sha256`.
@@ -190,7 +210,7 @@ For e.g. use sha256sum, the file `selfupdate/testdata/foo.zip.sha256` is generat
 sha256sum foo.zip > foo.zip.sha256
 ```
 
-#### ECDSA
+## ECDSA
 To verify the signature by ECDSA generate a signature and save it within a file which has the
 same naming as original file with the suffix `.sig`.
 For e.g. use openssl, the file `selfupdate/testdata/foo.zip.sig` is generated with:
@@ -201,7 +221,7 @@ openssl dgst -sha256 -sign Test.pem -out foo.zip.sig foo.zip
 go-selfupdate makes use of go internal crypto package. Therefore the private key
 has to be compatible with FIPS 186-3.
 
-#### Using a single checksum file for all your assets
+## Using a single checksum file for all your assets
 
 Tools like [goreleaser][] produce a single checksum file for all your assets. A Validator is provided out of the box for this case:
 
@@ -209,7 +229,7 @@ Tools like [goreleaser][] produce a single checksum file for all your assets. A 
 updater, _ := NewUpdater(Config{Validator: &ChecksumValidator{UniqueFilename: "checksums.txt"}})
 ```
 
-### Using other providers than Github
+# Using other providers than Github
 
 This library can be easily extended by providing a new source and release implementation for any git provider
 Currently implemented are 
@@ -218,7 +238,7 @@ Currently implemented are
 
 Check the *-custom examples in cmd to see how a custom source like the GiteaSource can be used
 
-### Copyright
+# Copyright
 
 This work is heavily based on:
 

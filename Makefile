@@ -17,7 +17,12 @@ COVERAGE_FILE=coverage.out
 BUILD_DATE=`date`
 BUILD_COMMIT=`git rev-parse HEAD`
 
-.PHONY: all test build coverage full-coverage clean toc staticcheck
+README=README.md
+TOC_START=<\!--ts-->
+TOC_END=<\!--te-->
+TOC_PATH=toc.md
+
+.PHONY: all test build coverage full-coverage clean toc
 
 all: test build
 
@@ -40,11 +45,10 @@ clean:
 		$(GOCLEAN)
 
 toc:
+	go get github.com/ekalinin/github-markdown-toc.go
 	go install github.com/ekalinin/github-markdown-toc.go
 	go mod tidy
-	cat README.md | github-markdown-toc.go --hide-footer
-
-staticcheck:
-	go get -u honnef.co/go/tools/cmd/staticcheck
-	go mod tidy
-	go run honnef.co/go/tools/cmd/staticcheck ./...
+	cat ${README} | github-markdown-toc.go --hide-footer > ${TOC_PATH}
+	sed -i ".1" "/${TOC_START}/,/${TOC_END}/{//!d;}" "${README}"
+	sed -i ".2" "/${TOC_START}/r ${TOC_PATH}" "${README}"
+	rm ${README}.1 ${README}.2 ${TOC_PATH}
