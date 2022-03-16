@@ -35,7 +35,7 @@ type GitHubSource struct {
 // It initializes a GitHub API client.
 // If you set your API token to the $GITHUB_TOKEN environment variable, the client will use it.
 // You can pass an empty GitHubSource{} to use the default configuration
-// The function will return an error if the GitHub Entreprise URLs in the config object cannot be parsed
+// The function will return an error if the GitHub Enterprise URLs in the config object cannot be parsed
 func NewGitHubSource(config GitHubConfig) (*GitHubSource, error) {
 	token := config.APIToken
 	if token == "" {
