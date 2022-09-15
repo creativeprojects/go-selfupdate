@@ -45,7 +45,11 @@ func UpdateSelf(current string, slug string) (*Release, error) {
 }
 
 func downloadReleaseAssetFromURL(ctx context.Context, url string) (rc io.ReadCloser, err error) {
-	client := http.DefaultClient
+	client := &http.Client{
+		Transport: &http.Transport{
+			Proxy: http.ProxyFromEnvironment,
+		},
+	}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
