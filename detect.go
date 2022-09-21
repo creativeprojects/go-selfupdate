@@ -1,6 +1,7 @@
 package selfupdate
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strings"
@@ -30,7 +31,7 @@ func (up *Updater) DetectVersion(slug string, version string) (release *Release,
 		return nil, false, ErrInvalidSlug
 	}
 
-	rels, err := up.source.ListReleases(repo[0], repo[1])
+	rels, err := up.source.ListReleases(context.TODO(), repo[0], repo[1])
 	if err != nil {
 		return nil, false, err
 	}

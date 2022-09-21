@@ -16,14 +16,13 @@ type GiteaConfig struct {
 	APIToken string
 	// BaseURL is a base URL of your gitea instance
 	BaseURL string
-	// Context used by the http client (default to context.Background)
+	// Deprecated: Context option is no longer used
 	Context context.Context
 }
 
 // GiteaSource is used to load release information from Gitea
 type GiteaSource struct {
 	api   *gitea.Client
-	ctx   context.Context
 	token string
 }
 
@@ -53,13 +52,12 @@ func NewGiteaSource(config GiteaConfig) (*GiteaSource, error) {
 
 	return &GiteaSource{
 		api:   client,
-		ctx:   ctx,
 		token: token,
 	}, nil
 }
 
 // ListReleases returns all available releases
-func (s *GiteaSource) ListReleases(owner, repo string) ([]SourceRelease, error) {
+func (s *GiteaSource) ListReleases(ctx context.Context, owner, repo string) ([]SourceRelease, error) {
 	err := checkOwnerRepoParameters(owner, repo)
 	if err != nil {
 		return nil, err
@@ -84,7 +82,7 @@ func (s *GiteaSource) ListReleases(owner, repo string) ([]SourceRelease, error) 
 
 // DownloadReleaseAsset downloads an asset from its ID.
 // It returns an io.ReadCloser: it is your responsability to Close it.
-func (s *GiteaSource) DownloadReleaseAsset(owner, repo string, releaseID, id int64) (io.ReadCloser, error) {
+func (s *GiteaSource) DownloadReleaseAsset(ctx context.Context, owner, repo string, releaseID, id int64) (io.ReadCloser, error) {
 	err := checkOwnerRepoParameters(owner, repo)
 	if err != nil {
 		return nil, err

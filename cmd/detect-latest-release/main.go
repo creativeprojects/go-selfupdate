@@ -18,7 +18,9 @@ func usage() {
 
 func main() {
 	var verbose bool
+	var cvsType string
 	flag.BoolVar(&verbose, "v", false, "Display debugging information")
+	flag.StringVar(&cvsType, "t", "auto", "Version control: \"github\", \"gitea\" or \"gitlab\"")
 
 	flag.Usage = usage
 	flag.Parse()
@@ -45,7 +47,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	latest, found, err := selfupdate.DetectLatest(repo)
+	source := getSource(cvsType, repo)
+	updater, err := selfupdate.NewUpdater(selfupdate.Config{
+		Source: source,
+	})
+
+	latest, found, err := updater.DetectLatest(repo)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -58,4 +65,9 @@ func main() {
 	fmt.Printf("Download URL: %s\n", latest.AssetURL)
 	fmt.Printf("Release URL: %s\n", latest.URL)
 	fmt.Printf("Release Notes:\n%s\n", latest.ReleaseNotes)
+}
+
+func getSource(cvsType, repo string) selfupdate.Source {
+	source, _ := selfupdate.NewGiteaSource(selfupdate.GiteaConfig{BaseURL: "https://gitea.com/"})
+	return source
 }

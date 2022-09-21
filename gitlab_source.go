@@ -1,6 +1,7 @@
 package selfupdate
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/url"
@@ -47,12 +48,12 @@ func NewGitLabSource(config GitLabConfig) (*GitLabSource, error) {
 }
 
 // ListReleases returns all available releases
-func (s *GitLabSource) ListReleases(owner, repo string) ([]SourceRelease, error) {
+func (s *GitLabSource) ListReleases(ctx context.Context, owner, repo string) ([]SourceRelease, error) {
 	err := checkOwnerRepoParameters(owner, repo)
 	if err != nil {
 		return nil, err
 	}
-	rels, _, err := s.api.Releases.ListReleases(url.PathEscape(owner+"/"+repo), nil)
+	rels, _, err := s.api.Releases.ListReleases(url.PathEscape(owner+"/"+repo), nil, gitlab.WithContext(ctx))
 	if err != nil {
 		return nil, fmt.Errorf("list releases: %w", err)
 	}
@@ -66,7 +67,7 @@ func (s *GitLabSource) ListReleases(owner, repo string) ([]SourceRelease, error)
 // DownloadReleaseAsset downloads an asset from its ID.
 // It returns an io.ReadCloser: it is your responsability to Close it.
 // Please note releaseID is not used by GitLabSource.
-func (s *GitLabSource) DownloadReleaseAsset(owner, repo string, releaseID, id int64) (io.ReadCloser, error) {
+func (s *GitLabSource) DownloadReleaseAsset(ctx context.Context, owner, repo string, releaseID, id int64) (io.ReadCloser, error) {
 	err := checkOwnerRepoParameters(owner, repo)
 	if err != nil {
 		return nil, err

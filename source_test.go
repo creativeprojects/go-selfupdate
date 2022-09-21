@@ -2,6 +2,7 @@ package selfupdate
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"io/ioutil"
 )
@@ -22,7 +23,7 @@ func NewMockSource(releases []SourceRelease, files map[int64][]byte) *MockSource
 }
 
 // ListReleases returns a list of releases. Owner and repo parameters are not used.
-func (s *MockSource) ListReleases(owner, repo string) ([]SourceRelease, error) {
+func (s *MockSource) ListReleases(ctx context.Context, owner, repo string) ([]SourceRelease, error) {
 	err := checkOwnerRepoParameters(owner, repo)
 	if err != nil {
 		return nil, err
@@ -31,7 +32,7 @@ func (s *MockSource) ListReleases(owner, repo string) ([]SourceRelease, error) {
 }
 
 // DownloadReleaseAsset returns a file from its ID. Owner and repo parameters are not used.
-func (s *MockSource) DownloadReleaseAsset(owner, repo string, releaseID, id int64) (io.ReadCloser, error) {
+func (s *MockSource) DownloadReleaseAsset(ctx context.Context, owner, repo string, releaseID, id int64) (io.ReadCloser, error) {
 	err := checkOwnerRepoParameters(owner, repo)
 	if err != nil {
 		return nil, err

@@ -1,6 +1,7 @@
 package selfupdate
 
 import (
+	"context"
 	"io"
 	"time"
 )
@@ -27,8 +28,8 @@ type SourceAsset interface {
 
 // Source interface to load the releases from (GitHubSource for example)
 type Source interface {
-	ListReleases(owner, repo string) ([]SourceRelease, error)
-	DownloadReleaseAsset(owner, repo string, releaseID, id int64) (io.ReadCloser, error)
+	ListReleases(ctx context.Context, owner, repo string) ([]SourceRelease, error)
+	DownloadReleaseAsset(ctx context.Context, owner, repo string, releaseID, id int64) (io.ReadCloser, error)
 }
 
 // checkOwnerRepoParameters is a helper function to check both parameters are valid
