@@ -14,7 +14,7 @@ import (
 type GitLabConfig struct {
 	// APIToken represents GitLab API token. If it's not empty, it will be used for authentication for the API
 	APIToken string
-	// BaseURL is a base URL of your GitLab instance
+	// BaseURL is a base URL of your private GitLab instance
 	BaseURL string
 }
 

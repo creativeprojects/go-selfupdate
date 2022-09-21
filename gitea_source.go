@@ -14,7 +14,7 @@ import (
 type GiteaConfig struct {
 	// APIToken represents Gitea API token. If it's not empty, it will be used for authentication for the API
 	APIToken string
-	// BaseURL is a base URL of your gitea instance
+	// BaseURL is a base URL of your gitea instance. This parameter has NO default value.
 	BaseURL string
 	// Deprecated: Context option is no longer used
 	Context context.Context

@@ -28,7 +28,7 @@ func (up *Updater) DetectLatest(slug string) (release *Release, found bool, err 
 func (up *Updater) DetectVersion(slug string, version string) (release *Release, found bool, err error) {
 	repo := strings.Split(slug, "/")
 	if len(repo) != 2 || repo[0] == "" || repo[1] == "" {
-		return nil, false, ErrInvalidSlug
+		return nil, false, fmt.Errorf("'%s': %w", slug, ErrInvalidSlug)
 	}
 
 	rels, err := up.source.ListReleases(context.TODO(), repo[0], repo[1])
