@@ -235,7 +235,7 @@ func TestInvalidSlug(t *testing.T) {
 		"foo/bar/piyo",
 	} {
 		_, _, err := up.DetectLatest(slug)
-		assert.EqualError(t, err, ErrInvalidSlug.Error())
+		assert.EqualError(t, err, fmt.Sprintf("'%s': %s", slug, ErrInvalidSlug.Error()))
 	}
 }
 

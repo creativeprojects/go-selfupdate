@@ -237,7 +237,7 @@ func TestBrokenBinaryUpdate(t *testing.T) {
 func TestInvalidSlugForUpdate(t *testing.T) {
 	fake := filepath.FromSlash("./testdata/fake-executable")
 	_, err := UpdateCommand(fake, "1.0.0", "rhysd/")
-	assert.EqualError(t, err, ErrInvalidSlug.Error())
+	assert.EqualError(t, err, "'rhysd/': "+ErrInvalidSlug.Error())
 }
 
 func TestInvalidAssetURL(t *testing.T) {
