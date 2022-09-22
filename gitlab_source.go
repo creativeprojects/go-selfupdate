@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"net/url"
 	"os"
 
 	"github.com/xanzy/go-gitlab"
@@ -53,7 +52,9 @@ func (s *GitLabSource) ListReleases(ctx context.Context, owner, repo string) ([]
 	if err != nil {
 		return nil, err
 	}
-	rels, _, err := s.api.Releases.ListReleases(url.PathEscape(owner+"/"+repo), nil, gitlab.WithContext(ctx))
+	slug := owner + "/" + repo
+	log.Printf("load releases for %q", slug)
+	rels, _, err := s.api.Releases.ListReleases(slug, nil, gitlab.WithContext(ctx))
 	if err != nil {
 		return nil, fmt.Errorf("list releases: %w", err)
 	}
