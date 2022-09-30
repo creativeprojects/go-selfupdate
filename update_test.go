@@ -1,6 +1,7 @@
 package selfupdate
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -32,7 +33,7 @@ func teardownTestBinary() {
 }
 
 func TestUpdateCommandWithWrongVersion(t *testing.T) {
-	_, err := UpdateCommand("path", "wrong version", "test/test")
+	_, err := UpdateCommand(context.Background(), "path", "wrong version", ParseSlug("test/test"))
 	assert.Error(t, err)
 }
 
@@ -53,7 +54,7 @@ func TestUpdateCommand(t *testing.T) {
 			setupTestBinary()
 			defer teardownTestBinary()
 			prev := "1.2.2"
-			rel, err := UpdateCommand("github-release-test", prev, slug)
+			rel, err := UpdateCommand(context.Background(), "github-release-test", prev, ParseSlug(slug))
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -94,7 +95,7 @@ func TestUpdateViaSymlink(t *testing.T) {
 	defer os.Remove(symPath)
 
 	prev := "1.2.2"
-	rel, err := UpdateCommand(symPath, prev, "rhysd-test/test-release-zip")
+	rel, err := UpdateCommand(context.Background(), symPath, prev, ParseSlug("rhysd-test/test-release-zip"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -151,7 +152,7 @@ func TestUpdateBrokenSymlinks(t *testing.T) {
 
 	v := "1.2.2"
 	for _, p := range []string{yyy, xxx} {
-		_, err := UpdateCommand(p, v, "owner/repo")
+		_, err := UpdateCommand(context.Background(), p, v, ParseSlug("owner/repo"))
 		if err == nil {
 			t.Fatal("Error should occur for unlinked symlink", p)
 		}
@@ -162,7 +163,7 @@ func TestUpdateBrokenSymlinks(t *testing.T) {
 }
 
 func TestNotExistingCommandPath(t *testing.T) {
-	_, err := UpdateCommand("not-existing-command-path", "1.2.2", "owner/repo")
+	_, err := UpdateCommand(context.Background(), "not-existing-command-path", "1.2.2", ParseSlug("owner/repo"))
 	if err == nil {
 		t.Fatal("Not existing command path should cause an error")
 	}
@@ -174,7 +175,7 @@ func TestNotExistingCommandPath(t *testing.T) {
 func TestNoReleaseFoundForUpdate(t *testing.T) {
 	v := "1.0.0"
 	fake := filepath.FromSlash("./testdata/fake-executable")
-	rel, err := UpdateCommand(fake, v, "rhysd/misc")
+	rel, err := UpdateCommand(context.Background(), fake, v, ParseSlug("rhysd/misc"))
 	skipRateLimitExceeded(t, err)
 	if err != nil {
 		t.Fatal("No release should not make an error:", err)
@@ -201,7 +202,7 @@ func TestCurrentIsTheLatest(t *testing.T) {
 	defer teardownTestBinary()
 
 	v := "1.2.3"
-	rel, err := UpdateCommand("github-release-test", v, "rhysd-test/test-release-zip")
+	rel, err := UpdateCommand(context.Background(), "github-release-test", v, ParseSlug("rhysd-test/test-release-zip"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -225,7 +226,7 @@ func TestBrokenBinaryUpdate(t *testing.T) {
 	}
 
 	fake := filepath.FromSlash("./testdata/fake-executable")
-	_, err := UpdateCommand(fake, "1.2.2", "rhysd-test/test-incorrect-release")
+	_, err := UpdateCommand(context.Background(), fake, "1.2.2", ParseSlug("rhysd-test/test-incorrect-release"))
 	if err == nil {
 		t.Fatal("Error should occur for broken package")
 	}
@@ -236,8 +237,8 @@ func TestBrokenBinaryUpdate(t *testing.T) {
 
 func TestInvalidSlugForUpdate(t *testing.T) {
 	fake := filepath.FromSlash("./testdata/fake-executable")
-	_, err := UpdateCommand(fake, "1.0.0", "rhysd/")
-	assert.EqualError(t, err, "'rhysd/': "+ErrInvalidSlug.Error())
+	_, err := UpdateCommand(context.Background(), fake, "1.0.0", ParseSlug("rhysd/"))
+	assert.Error(t, err)
 }
 
 func TestInvalidAssetURL(t *testing.T) {
@@ -267,7 +268,11 @@ func TestBrokenGitHubEnterpriseURL(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = up.UpdateTo(&Release{AssetURL: "https://example.com", repoOwner: "test", repoName: "test"}, "foo")
+	err = up.UpdateTo(
+		context.Background(),
+		&Release{AssetURL: "https://example.com",
+			repository: NewRepositorySlug("test", "test")},
+		"foo")
 	if err == nil {
 		t.Fatal("Invalid GitHub Enterprise base URL should raise an error")
 	}
@@ -292,7 +297,7 @@ func TestUpdateFromGitHubPrivateRepo(t *testing.T) {
 	}
 
 	prev := "1.2.2"
-	rel, err := up.UpdateCommand("github-release-test", prev, "rhysd/private-release-test")
+	rel, err := up.UpdateCommand(context.Background(), "github-release-test", prev, ParseSlug("rhysd/private-release-test"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -317,8 +322,7 @@ func TestUpdateFromGitHubPrivateRepo(t *testing.T) {
 func TestNoValidationFile(t *testing.T) {
 	source := &MockSource{}
 	release := &Release{
-		repoOwner:         "test",
-		repoName:          "test",
+		repository:        NewRepositorySlug("test", "test"),
 		ValidationAssetID: 123,
 	}
 	updater := &Updater{
@@ -338,8 +342,7 @@ func TestValidationWrongHash(t *testing.T) {
 		},
 	}
 	release := &Release{
-		repoOwner:         "test",
-		repoName:          "test",
+		repository:        NewRepositorySlug("test", "test"),
 		ValidationAssetID: 123,
 		AssetName:         "foo.zip",
 	}
@@ -367,8 +370,7 @@ func TestValidationReadError(t *testing.T) {
 		},
 	}
 	release := &Release{
-		repoOwner:         "test",
-		repoName:          "test",
+		repository:        NewRepositorySlug("test", "test"),
 		ValidationAssetID: 123,
 		AssetName:         "foo.tar.xz",
 	}
@@ -395,8 +397,7 @@ func TestValidationSuccess(t *testing.T) {
 		},
 	}
 	release := &Release{
-		repoOwner:         "test",
-		repoName:          "test",
+		repository:        NewRepositorySlug("test", "test"),
 		ValidationAssetID: 123,
 		AssetName:         "foo.tar.xz",
 	}
@@ -418,10 +419,10 @@ func TestUpdateToInvalidOwner(t *testing.T) {
 	source := &MockSource{}
 	updater := &Updater{source: source}
 	release := &Release{
-		repoName: "test",
-		AssetID:  123,
+		repository: NewRepositorySlug("", "test"),
+		AssetID:    123,
 	}
-	err := updater.UpdateTo(release, "")
+	err := updater.UpdateTo(context.Background(), release, "")
 	assert.EqualError(t, err, ErrIncorrectParameterOwner.Error())
 }
 
@@ -429,10 +430,10 @@ func TestUpdateToInvalidRepo(t *testing.T) {
 	source := &MockSource{}
 	updater := &Updater{source: source}
 	release := &Release{
-		repoOwner: "test",
-		AssetID:   123,
+		repository: NewRepositorySlug("test", ""),
+		AssetID:    123,
 	}
-	err := updater.UpdateTo(release, "")
+	err := updater.UpdateTo(context.Background(), release, "")
 	assert.EqualError(t, err, ErrIncorrectParameterRepo.Error())
 }
 
@@ -445,11 +446,10 @@ func TestUpdateToReadError(t *testing.T) {
 	}
 	updater := &Updater{source: source}
 	release := &Release{
-		repoOwner: "test",
-		repoName:  "test",
-		AssetID:   123,
+		repository: NewRepositorySlug("test", "test"),
+		AssetID:    123,
 	}
-	err := updater.UpdateTo(release, "")
+	err := updater.UpdateTo(context.Background(), release, "")
 	require.Error(t, err)
 	assert.True(t, errors.Is(err, errTestRead))
 }
@@ -468,8 +468,7 @@ func TestUpdateToWithWrongHash(t *testing.T) {
 		},
 	}
 	release := &Release{
-		repoOwner:         "test",
-		repoName:          "test",
+		repository:        NewRepositorySlug("test", "test"),
 		AssetID:           111,
 		ValidationAssetID: 123,
 		AssetName:         "foo.zip",
@@ -479,7 +478,7 @@ func TestUpdateToWithWrongHash(t *testing.T) {
 		validator: &ChecksumValidator{},
 	}
 
-	err = updater.UpdateTo(release, "")
+	err = updater.UpdateTo(context.Background(), release, "")
 	require.Error(t, err)
 	assert.True(t, errors.Is(err, ErrChecksumValidationFailed))
 }
@@ -498,8 +497,7 @@ func TestUpdateToSuccess(t *testing.T) {
 		},
 	}
 	release := &Release{
-		repoOwner:         "test",
-		repoName:          "test",
+		repository:        NewRepositorySlug("test", "test"),
 		AssetID:           111,
 		ValidationAssetID: 123,
 		AssetName:         "foo.tar.xz",
@@ -513,7 +511,7 @@ func TestUpdateToSuccess(t *testing.T) {
 	require.NoError(t, err)
 	defer os.Remove(tempfile)
 
-	err = updater.UpdateTo(release, tempfile)
+	err = updater.UpdateTo(context.Background(), release, tempfile)
 	require.NoError(t, err)
 }
 

@@ -3,7 +3,7 @@ Download and install the latest release of any binary from GitHub.
 ## Installation
 
 ```
-$ go get -u github.com/creativeprojects/go-selfupdate/cmd/go-get-release
+$ go get -u github.com/creativeprojects/go-selfupdate/cmd/get-release
 ```
 
 ## Usage
@@ -11,7 +11,7 @@ $ go get -u github.com/creativeprojects/go-selfupdate/cmd/go-get-release
 Usage is quite similar to `go get`. But `{package}` must be hosted on GitHub. So it needs to start with `github.com/`.
 
 ```
-$ go-get-release {package}
+$ get-release {package}
 ```
 
 Please note that this command assumes that specified package is following Git tag naming rules and
@@ -21,7 +21,7 @@ For example, following command downloads and installs the released binary of [gh
 to `$GOPATH/bin`.
 
 ```
-$ go-get-release github.com/tcnksm/ghr
+$ get-release github.com/tcnksm/ghr
 Command was updated to the latest version 0.5.4: /Users/you/.go/bin/ghr
 
 $ ghr -version

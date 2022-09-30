@@ -7,6 +7,7 @@ var (
 	ErrInvalidSlug                 = errors.New("invalid slug format, expected 'owner/name'")
 	ErrIncorrectParameterOwner     = errors.New("incorrect parameter \"owner\"")
 	ErrIncorrectParameterRepo      = errors.New("incorrect parameter \"repo\"")
+	ErrInvalidID                   = errors.New("invalid repository ID, expected 'owner/name' but found number")
 	ErrAssetNotFound               = errors.New("asset not found")
 	ErrValidationAssetNotFound     = errors.New("validation file not found")
 	ErrIncorrectChecksumFile       = errors.New("incorrect checksum file format")

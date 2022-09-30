@@ -1,6 +1,7 @@
 package selfupdate
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	stdlog "log"
@@ -11,6 +12,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+)
+
+var (
+	testGithubRepository = NewRepositorySlug("creativeprojects", "resticprofile")
 )
 
 func skipRateLimitExceeded(t *testing.T, err error) {
@@ -38,7 +43,7 @@ func TestDetectReleaseWithVersionPrefix(t *testing.T) {
 			continue
 		}
 		t.Run(testItem.name, func(t *testing.T) {
-			r, ok, err := testItem.updater.DetectLatest("creativeprojects/resticprofile")
+			r, ok, err := testItem.updater.DetectLatest(context.Background(), testGithubRepository)
 			skipRateLimitExceeded(t, err)
 			require.NoError(t, err)
 			assert.True(t, ok, "Failed to detect latest")
@@ -76,7 +81,7 @@ func TestDetectVersionExisting(t *testing.T) {
 			continue
 		}
 		t.Run(testItem.name, func(t *testing.T) {
-			r, ok, err := testItem.updater.DetectVersion("creativeprojects/resticprofile", testVersion)
+			r, ok, err := testItem.updater.DetectVersion(context.Background(), testGithubRepository, testVersion)
 			skipRateLimitExceeded(t, err)
 			require.NoError(t, err)
 			assert.Truef(t, ok, "Failed to detect %s", testVersion)
@@ -103,7 +108,7 @@ func TestDetectVersionExistingWithNoValidationFile(t *testing.T) {
 			continue
 		}
 		t.Run(testItem.name, func(t *testing.T) {
-			_, _, err := testItem.updater.DetectVersion("creativeprojects/resticprofile", testVersion)
+			_, _, err := testItem.updater.DetectVersion(context.Background(), testGithubRepository, testVersion)
 			skipRateLimitExceeded(t, err)
 			require.Error(t, err)
 			assert.True(t, errors.Is(err, ErrValidationAssetNotFound))
@@ -126,7 +131,7 @@ func TestDetectVersionNotExisting(t *testing.T) {
 			continue
 		}
 		t.Run(testItem.name, func(t *testing.T) {
-			r, ok, err := testItem.updater.DetectVersion("creativeprojects/resticprofile", "foobar")
+			r, ok, err := testItem.updater.DetectVersion(context.Background(), testGithubRepository, "foobar")
 			skipRateLimitExceeded(t, err)
 			require.NoError(t, err)
 			assert.False(t, ok, "Failed to correctly detect foobar")
@@ -147,7 +152,7 @@ func TestDetectReleasesForVariousArchives(t *testing.T) {
 		{"rhysd-test/test-release-tar-xz", "release-"},
 	} {
 		t.Run(tc.slug, func(t *testing.T) {
-			r, ok, err := DetectLatest(tc.slug)
+			r, ok, err := DetectLatest(context.Background(), ParseSlug(tc.slug))
 			skipRateLimitExceeded(t, err)
 			if err != nil {
 				t.Fatal("Fetch failed:", err)
@@ -216,26 +221,11 @@ func TestDetectReleaseButNoAsset(t *testing.T) {
 			continue
 		}
 		t.Run(testItem.name, func(t *testing.T) {
-			_, ok, err := testItem.updater.DetectLatest("rhysd/clever-f.vim")
+			_, ok, err := testItem.updater.DetectLatest(context.Background(), ParseSlug("rhysd/clever-f.vim"))
 			skipRateLimitExceeded(t, err)
 			require.NoError(t, err)
 			assert.False(t, ok, "When no asset found, result should be marked as 'not found'")
 		})
-	}
-}
-
-func TestInvalidSlug(t *testing.T) {
-	up := DefaultUpdater()
-
-	for _, slug := range []string{
-		"foo",
-		"/",
-		"foo/",
-		"/bar",
-		"foo/bar/piyo",
-	} {
-		_, _, err := up.DetectLatest(slug)
-		assert.EqualError(t, err, fmt.Sprintf("'%s': %s", slug, ErrInvalidSlug.Error()))
 	}
 }
 
@@ -254,7 +244,7 @@ func TestNonExistingRepo(t *testing.T) {
 			continue
 		}
 		t.Run(testItem.name, func(t *testing.T) {
-			_, ok, err := testItem.updater.DetectLatest("rhysd/non-existing-repo")
+			_, ok, err := testItem.updater.DetectLatest(context.Background(), ParseSlug("rhysd/non-existing-repo"))
 			skipRateLimitExceeded(t, err)
 			require.NoError(t, err)
 			assert.False(t, ok, "Release for non-existing repo should not be found")
@@ -277,7 +267,7 @@ func TestNoReleaseFound(t *testing.T) {
 			continue
 		}
 		t.Run(testItem.name, func(t *testing.T) {
-			_, ok, err := testItem.updater.DetectLatest("rhysd/misc")
+			_, ok, err := testItem.updater.DetectLatest(context.Background(), ParseSlug("rhysd/misc"))
 			skipRateLimitExceeded(t, err)
 			require.NoError(t, err)
 			assert.False(t, ok, "Repo having no release should not be found")

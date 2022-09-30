@@ -35,9 +35,8 @@ type Release struct {
 	// Arm 32bits version (if any). Valid values are 0 (unknown), 5, 6 or 7
 	Arm uint8
 	// version is the parsed *semver.Version
-	version   *semver.Version
-	repoOwner string
-	repoName  string
+	version    *semver.Version
+	repository Repository
 }
 
 // Version is the version string of the release

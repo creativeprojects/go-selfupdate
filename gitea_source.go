@@ -57,8 +57,8 @@ func NewGiteaSource(config GiteaConfig) (*GiteaSource, error) {
 }
 
 // ListReleases returns all available releases
-func (s *GiteaSource) ListReleases(ctx context.Context, owner, repo string) ([]SourceRelease, error) {
-	err := checkOwnerRepoParameters(owner, repo)
+func (s *GiteaSource) ListReleases(ctx context.Context, repository Repository) ([]SourceRelease, error) {
+	owner, repo, err := repository.GetSlug()
 	if err != nil {
 		return nil, err
 	}
@@ -82,8 +82,8 @@ func (s *GiteaSource) ListReleases(ctx context.Context, owner, repo string) ([]S
 
 // DownloadReleaseAsset downloads an asset from its ID.
 // It returns an io.ReadCloser: it is your responsability to Close it.
-func (s *GiteaSource) DownloadReleaseAsset(ctx context.Context, owner, repo string, releaseID, id int64) (io.ReadCloser, error) {
-	err := checkOwnerRepoParameters(owner, repo)
+func (s *GiteaSource) DownloadReleaseAsset(ctx context.Context, repository Repository, releaseID, id int64) (io.ReadCloser, error) {
+	owner, repo, err := repository.GetSlug()
 	if err != nil {
 		return nil, err
 	}

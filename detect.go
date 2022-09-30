@@ -12,26 +12,20 @@ import (
 var reVersion = regexp.MustCompile(`\d+\.\d+\.\d+`)
 
 // DetectLatest tries to get the latest version from the source provider.
-// 'slug' means 'owner/name' formatted string.
 // It fetches releases information from the source provider and find out the latest release with matching the tag names and asset names.
 // Drafts and pre-releases are ignored.
 // Assets would be suffixed by the OS name and the arch name such as 'foo_linux_amd64' where 'foo' is a command name.
 // '-' can also be used as a separator. File can be compressed with zip, gzip, zxip, bzip2, tar&gzip or tar&zxip.
 // So the asset can have a file extension for the corresponding compression format such as '.zip'.
 // On Windows, '.exe' also can be contained such as 'foo_windows_amd64.exe.zip'.
-func (up *Updater) DetectLatest(slug string) (release *Release, found bool, err error) {
-	return up.DetectVersion(slug, "")
+func (up *Updater) DetectLatest(ctx context.Context, repository Repository) (release *Release, found bool, err error) {
+	return up.DetectVersion(ctx, repository, "")
 }
 
-// DetectVersion tries to get the given version from the source provider. `slug` means `owner/name` formatted string.
+// DetectVersion tries to get the given version from the source provider.
 // And version indicates the required version.
-func (up *Updater) DetectVersion(slug string, version string) (release *Release, found bool, err error) {
-	repo := strings.Split(slug, "/")
-	if len(repo) != 2 || repo[0] == "" || repo[1] == "" {
-		return nil, false, fmt.Errorf("'%s': %w", slug, ErrInvalidSlug)
-	}
-
-	rels, err := up.source.ListReleases(context.TODO(), repo[0], repo[1])
+func (up *Updater) DetectVersion(ctx context.Context, repository Repository, version string) (release *Release, found bool, err error) {
+	rels, err := up.source.ListReleases(ctx, repository)
 	if err != nil {
 		return nil, false, err
 	}
@@ -45,8 +39,7 @@ func (up *Updater) DetectVersion(slug string, version string) (release *Release,
 
 	release = &Release{
 		version:           ver,
-		repoOwner:         repo[0],
-		repoName:          repo[1],
+		repository:        repository,
 		AssetURL:          asset.GetBrowserDownloadURL(),
 		AssetByteSize:     asset.GetSize(),
 		AssetID:           asset.GetID(),

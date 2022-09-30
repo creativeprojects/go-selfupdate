@@ -6,6 +6,12 @@ import (
 	"time"
 )
 
+// Source interface to load the releases from (GitHubSource for example)
+type Source interface {
+	ListReleases(ctx context.Context, repository Repository) ([]SourceRelease, error)
+	DownloadReleaseAsset(ctx context.Context, repository Repository, releaseID, id int64) (io.ReadCloser, error)
+}
+
 type SourceRelease interface {
 	GetID() int64
 	GetTagName() string
@@ -24,21 +30,4 @@ type SourceAsset interface {
 	GetName() string
 	GetSize() int
 	GetBrowserDownloadURL() string
-}
-
-// Source interface to load the releases from (GitHubSource for example)
-type Source interface {
-	ListReleases(ctx context.Context, owner, repo string) ([]SourceRelease, error)
-	DownloadReleaseAsset(ctx context.Context, owner, repo string, releaseID, id int64) (io.ReadCloser, error)
-}
-
-// checkOwnerRepoParameters is a helper function to check both parameters are valid
-func checkOwnerRepoParameters(owner, repo string) error {
-	if owner == "" {
-		return ErrIncorrectParameterOwner
-	}
-	if repo == "" {
-		return ErrIncorrectParameterRepo
-	}
-	return nil
 }

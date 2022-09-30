@@ -65,8 +65,8 @@ func NewGitHubSource(config GitHubConfig) (*GitHubSource, error) {
 }
 
 // ListReleases returns all available releases
-func (s *GitHubSource) ListReleases(ctx context.Context, owner, repo string) ([]SourceRelease, error) {
-	err := checkOwnerRepoParameters(owner, repo)
+func (s *GitHubSource) ListReleases(ctx context.Context, repository Repository) ([]SourceRelease, error) {
+	owner, repo, err := repository.GetSlug()
 	if err != nil {
 		return nil, err
 	}
@@ -90,8 +90,8 @@ func (s *GitHubSource) ListReleases(ctx context.Context, owner, repo string) ([]
 // DownloadReleaseAsset downloads an asset from its ID.
 // It returns an io.ReadCloser: it is your responsibility to Close it.
 // Please note releaseID is not used by GitHubSource.
-func (s *GitHubSource) DownloadReleaseAsset(ctx context.Context, owner, repo string, releaseID, id int64) (io.ReadCloser, error) {
-	err := checkOwnerRepoParameters(owner, repo)
+func (s *GitHubSource) DownloadReleaseAsset(ctx context.Context, repository Repository, releaseID, id int64) (io.ReadCloser, error) {
+	owner, repo, err := repository.GetSlug()
 	if err != nil {
 		return nil, err
 	}

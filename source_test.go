@@ -22,19 +22,17 @@ func NewMockSource(releases []SourceRelease, files map[int64][]byte) *MockSource
 	}
 }
 
-// ListReleases returns a list of releases. Owner and repo parameters are not used.
-func (s *MockSource) ListReleases(ctx context.Context, owner, repo string) ([]SourceRelease, error) {
-	err := checkOwnerRepoParameters(owner, repo)
-	if err != nil {
+// ListReleases returns a list of releases. repository parameter is not used.
+func (s *MockSource) ListReleases(ctx context.Context, repository Repository) ([]SourceRelease, error) {
+	if _, _, err := repository.GetSlug(); err != nil {
 		return nil, err
 	}
 	return s.releases, nil
 }
 
-// DownloadReleaseAsset returns a file from its ID. Owner and repo parameters are not used.
-func (s *MockSource) DownloadReleaseAsset(ctx context.Context, owner, repo string, releaseID, id int64) (io.ReadCloser, error) {
-	err := checkOwnerRepoParameters(owner, repo)
-	if err != nil {
+// DownloadReleaseAsset returns a file from its ID. repository parameter is not used.
+func (s *MockSource) DownloadReleaseAsset(ctx context.Context, repository Repository, releaseID, id int64) (io.ReadCloser, error) {
+	if _, _, err := repository.GetSlug(); err != nil {
 		return nil, err
 	}
 	content, ok := s.files[id]

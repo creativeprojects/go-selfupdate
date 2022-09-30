@@ -16,8 +16,8 @@ import (
 
 // UpdateTo downloads an executable from the source provider and replace current binary with the downloaded one.
 // It downloads a release asset via the source provider so this function is available for update releases on private repository.
-func (up *Updater) UpdateTo(rel *Release, cmdPath string) error {
-	src, err := up.source.DownloadReleaseAsset(context.TODO(), rel.repoOwner, rel.repoName, rel.ReleaseID, rel.AssetID)
+func (up *Updater) UpdateTo(ctx context.Context, rel *Release, cmdPath string) error {
+	src, err := up.source.DownloadReleaseAsset(ctx, rel.repository, rel.ReleaseID, rel.AssetID)
 	if err != nil {
 		return err
 	}
@@ -39,8 +39,8 @@ func (up *Updater) UpdateTo(rel *Release, cmdPath string) error {
 }
 
 // UpdateCommand updates a given command binary to the latest version.
-// 'slug' represents 'owner/name' repository on the source provider and 'current' means the current version.
-func (up *Updater) UpdateCommand(cmdPath string, current string, slug string) (*Release, error) {
+// 'current' is used to check the latest version against the current version.
+func (up *Updater) UpdateCommand(ctx context.Context, cmdPath string, current string, repository Repository) (*Release, error) {
 	version, err := semver.NewVersion(current)
 	if err != nil {
 		return nil, fmt.Errorf("incorrect version %q: %w", current, err)
@@ -63,7 +63,7 @@ func (up *Updater) UpdateCommand(cmdPath string, current string, slug string) (*
 		cmdPath = p
 	}
 
-	rel, ok, err := up.DetectLatest(slug)
+	rel, ok, err := up.DetectLatest(ctx, repository)
 	if err != nil {
 		return nil, err
 	}
@@ -76,20 +76,20 @@ func (up *Updater) UpdateCommand(cmdPath string, current string, slug string) (*
 		return rel, nil
 	}
 	log.Printf("Will update %s to the latest version %s", cmdPath, rel.Version())
-	if err := up.UpdateTo(rel, cmdPath); err != nil {
+	if err := up.UpdateTo(ctx, rel, cmdPath); err != nil {
 		return nil, err
 	}
 	return rel, nil
 }
 
 // UpdateSelf updates the running executable itself to the latest version.
-// 'slug' represents 'owner/name' repository on the source provider and 'current' means the current version.
-func (up *Updater) UpdateSelf(current string, slug string) (*Release, error) {
+// 'current' is used to check the latest version against the current version.
+func (up *Updater) UpdateSelf(ctx context.Context, current string, repository Repository) (*Release, error) {
 	cmdPath, err := os.Executable()
 	if err != nil {
 		return nil, err
 	}
-	return up.UpdateCommand(cmdPath, current, slug)
+	return up.UpdateCommand(ctx, cmdPath, current, repository)
 }
 
 func (up *Updater) decompressAndUpdate(src io.Reader, assetName, assetURL, cmdPath string) error {
@@ -108,7 +108,7 @@ func (up *Updater) decompressAndUpdate(src io.Reader, assetName, assetURL, cmdPa
 // validate loads the validation file and passes it to the validator.
 // The validation is successful if no error was returned
 func (up *Updater) validate(rel *Release, data []byte) error {
-	validationSrc, err := up.source.DownloadReleaseAsset(context.TODO(), rel.repoOwner, rel.repoName, rel.ReleaseID, rel.ValidationAssetID)
+	validationSrc, err := up.source.DownloadReleaseAsset(context.TODO(), rel.repository, rel.ReleaseID, rel.ValidationAssetID)
 	if err != nil {
 		return err
 	}
