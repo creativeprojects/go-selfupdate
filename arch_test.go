@@ -19,6 +19,7 @@ func TestAdditionalArch(t *testing.T) {
 		{"arm", 6, []string{"armv6", "armv5"}},
 		{"arm", 5, []string{"armv5"}},
 		{"arm", 4, []string{}}, // go is not supporting below armv5
+		{"amd64", 0, []string{"x86_64"}},
 	}
 
 	for _, testItem := range testData {

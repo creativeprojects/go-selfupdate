@@ -93,19 +93,6 @@ func (up *Updater) findReleaseAndAsset(rels []SourceRelease, targetVersion strin
 
 func (up *Updater) findReleaseAndAssetForArch(arch string, rels []SourceRelease, targetVersion string,
 ) (SourceRelease, SourceAsset, *semver.Version, bool) {
-	// Generate candidates
-	suffixes := make([]string, 0, 2*7*2)
-	for _, sep := range []rune{'_', '-'} {
-		for _, ext := range []string{".zip", ".tar.gz", ".tgz", ".gzip", ".gz", ".tar.xz", ".xz", ".bz2", ""} {
-			suffix := fmt.Sprintf("%s%c%s%s", up.os, sep, arch, ext)
-			suffixes = append(suffixes, suffix)
-			if up.os == "windows" {
-				suffix = fmt.Sprintf("%s%c%s.exe%s", up.os, sep, arch, ext)
-				suffixes = append(suffixes, suffix)
-			}
-		}
-	}
-
 	var ver *semver.Version
 	var asset SourceAsset
 	var release SourceRelease
@@ -113,7 +100,7 @@ func (up *Updater) findReleaseAndAssetForArch(arch string, rels []SourceRelease,
 	// Find the latest version from the list of releases.
 	// Returned list from GitHub API is in the order of the date when created.
 	for _, rel := range rels {
-		if a, v, ok := up.findAssetFromRelease(rel, suffixes, targetVersion); ok {
+		if a, v, ok := up.findAssetFromRelease(rel, up.getSuffixes(arch), targetVersion); ok {
 			// Note: any version with suffix is less than any version without suffix.
 			// e.g. 0.0.1 > 0.0.1-beta
 			if release == nil || v.GreaterThan(ver) {
@@ -158,7 +145,6 @@ func (up *Updater) findAssetFromRelease(rel SourceRelease, suffixes []string, ta
 		return nil, nil, false
 	}
 	if indices[0] > 0 {
-		// log.Printf("Strip prefix '%s' from '%s'", verText[:indices[0]], verText)
 		verText = verText[indices[0]:]
 	}
 
@@ -201,4 +187,20 @@ func (up *Updater) findAssetFromRelease(rel SourceRelease, suffixes []string, ta
 
 	log.Printf("No suitable asset was found in release %s", rel.GetTagName())
 	return nil, nil, false
+}
+
+// getSuffixes returns all candidates to check against the assets
+func (up *Updater) getSuffixes(arch string) []string {
+	suffixes := make([]string, 0)
+	for _, sep := range []rune{'_', '-'} {
+		for _, ext := range []string{".zip", ".tar.gz", ".tgz", ".gzip", ".gz", ".tar.xz", ".xz", ".bz2", ""} {
+			suffix := fmt.Sprintf("%s%c%s%s", up.os, sep, arch, ext)
+			suffixes = append(suffixes, suffix)
+			if up.os == "windows" {
+				suffix = fmt.Sprintf("%s%c%s.exe%s", up.os, sep, arch, ext)
+				suffixes = append(suffixes, suffix)
+			}
+		}
+	}
+	return suffixes
 }

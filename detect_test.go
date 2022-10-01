@@ -784,6 +784,7 @@ func TestFindReleaseAndAsset(t *testing.T) {
 }
 
 func newMockUpdater(t *testing.T, config Config) *Updater {
+	t.Helper()
 	updater, err := NewUpdater(config)
 	require.NoError(t, err)
 	return updater
