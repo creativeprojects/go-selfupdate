@@ -41,6 +41,8 @@ func TestUpdateCommand(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skip tests in short mode.")
 	}
+	setupTestBinary()
+	defer teardownTestBinary()
 
 	for _, slug := range []string{
 		"rhysd-test/test-release-zip",
@@ -51,8 +53,6 @@ func TestUpdateCommand(t *testing.T) {
 		"rhysd-test/test-release-contain-version",
 	} {
 		t.Run(slug, func(t *testing.T) {
-			setupTestBinary()
-			defer teardownTestBinary()
 			prev := "1.2.2"
 			rel, err := UpdateCommand(context.Background(), "github-release-test", prev, ParseSlug(slug))
 			if err != nil {

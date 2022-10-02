@@ -30,10 +30,12 @@ func usage() {
 
 func main() {
 	var help, verbose bool
-	var cvsType string
+	var cvsType, forceOS, forceArch string
 	flag.BoolVar(&help, "h", false, "Show help")
 	flag.BoolVar(&verbose, "v", false, "Display debugging information")
 	flag.StringVar(&cvsType, "t", "auto", "Version control: \"github\", \"gitea\" or \"gitlab\"")
+	flag.StringVar(&forceOS, "o", "", "OS name to use (windows, darwin, linux, etc)")
+	flag.StringVar(&forceArch, "a", "", "CPU architecture to use (amd64, arm64, etc)")
 
 	flag.Usage = usage
 	flag.Parse()
@@ -55,9 +57,16 @@ func main() {
 		os.Exit(1)
 	}
 
-	updater, err := selfupdate.NewUpdater(selfupdate.Config{
+	cfg := selfupdate.Config{
 		Source: source,
-	})
+	}
+	if forceOS != "" {
+		cfg.OS = forceOS
+	}
+	if forceArch != "" {
+		cfg.Arch = forceArch
+	}
+	updater, err := selfupdate.NewUpdater(cfg)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -69,7 +78,7 @@ func main() {
 		os.Exit(1)
 	}
 	if !found {
-		fmt.Println("No release was found")
+		fmt.Println("No release found")
 		return
 	}
 	fmt.Printf("Latest version: %s\n", latest.Version())

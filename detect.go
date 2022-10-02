@@ -2,6 +2,7 @@ package selfupdate
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -25,6 +26,14 @@ func (up *Updater) DetectLatest(ctx context.Context, repository Repository) (rel
 // DetectVersion tries to get the given version from the source provider.
 // And version indicates the required version.
 func (up *Updater) DetectVersion(ctx context.Context, repository Repository, version string) (release *Release, found bool, err error) {
+	rel, err := up.source.LatestRelease(ctx, repository)
+	if err != nil && !errors.Is(err, ErrNotSupported) {
+		log.Printf("Cannot directly fetch latest release: %s", err)
+	}
+	if rel != nil {
+		log.Printf("Latest available release is %s\n", rel.GetTagName())
+	}
+
 	rels, err := up.source.ListReleases(ctx, repository)
 	if err != nil {
 		return nil, false, err
@@ -96,6 +105,8 @@ func (up *Updater) findReleaseAndAssetForArch(arch string, rels []SourceRelease,
 	var ver *semver.Version
 	var asset SourceAsset
 	var release SourceRelease
+
+	log.Printf("Searching for a possible candidate for os %q and arch %q", up.os, arch)
 
 	// Find the latest version from the list of releases.
 	// Returned list from GitHub API is in the order of the date when created.

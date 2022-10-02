@@ -72,12 +72,12 @@ func (s *GitHubSource) ListReleases(ctx context.Context, repository Repository) 
 	}
 	rels, res, err := s.api.Repositories.ListReleases(ctx, owner, repo, nil)
 	if err != nil {
-		log.Printf("API returned an error response: %s", err)
 		if res != nil && res.StatusCode == 404 {
 			// 404 means repository not found or release not found. It's not an error here.
-			log.Print("API returned 404. Repository or release not found")
+			log.Print("Repository or release not found")
 			return nil, nil
 		}
+		log.Printf("API returned an error response: %s", err)
 		return nil, err
 	}
 	releases := make([]SourceRelease, len(rels))
@@ -95,12 +95,12 @@ func (s *GitHubSource) LatestRelease(ctx context.Context, repository Repository)
 	}
 	rel, res, err := s.api.Repositories.GetLatestRelease(ctx, owner, repo)
 	if err != nil {
-		log.Printf("API returned an error response: %s", err)
 		if res != nil && res.StatusCode == 404 {
 			// 404 means repository not found or release not found. It's not an error here.
-			log.Print("API returned 404. Repository or release not found")
+			log.Print("Repository or release not found")
 			return nil, nil
 		}
+		log.Printf("API returned an error response: %s", err)
 		return nil, err
 	}
 	return NewGitHubRelease(rel), nil

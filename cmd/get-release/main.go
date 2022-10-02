@@ -55,7 +55,7 @@ func main() {
 		os.Exit(1)
 	}
 	if !found {
-		fmt.Fprintln(os.Stderr, "No release was found in", slug)
+		fmt.Fprintln(os.Stderr, "No release found in", slug)
 		os.Exit(1)
 	}
 

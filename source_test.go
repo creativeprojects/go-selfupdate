@@ -35,6 +35,9 @@ func (s *MockSource) LatestRelease(ctx context.Context, repository Repository) (
 	if _, _, err := repository.GetSlug(); err != nil {
 		return nil, err
 	}
+	if len(s.releases) == 0 {
+		return nil, nil
+	}
 	return s.releases[len(s.releases)-1], nil
 }
 

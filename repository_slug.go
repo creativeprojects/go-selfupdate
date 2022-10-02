@@ -51,6 +51,10 @@ func (r RepositorySlug) GetSlug() (string, string, error) {
 	return r.owner, r.repo, nil
 }
 
-func (r RepositorySlug) Get() interface{} {
-	return r.owner + "/" + r.repo
+func (r RepositorySlug) Get() (interface{}, error) {
+	_, _, err := r.GetSlug()
+	if err != nil {
+		return "", err
+	}
+	return r.owner + "/" + r.repo, nil
 }

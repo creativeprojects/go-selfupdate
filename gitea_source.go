@@ -47,7 +47,7 @@ func NewGiteaSource(config GiteaConfig) (*GiteaSource, error) {
 
 	client, err := gitea.NewClient(config.BaseURL, gitea.SetContext(ctx), gitea.SetToken(token))
 	if err != nil {
-		return nil, fmt.Errorf("Error connecting to gitea: %w", err)
+		return nil, fmt.Errorf("error connecting to gitea: %w", err)
 	}
 
 	return &GiteaSource{
@@ -65,12 +65,12 @@ func (s *GiteaSource) ListReleases(ctx context.Context, repository Repository) (
 
 	rels, res, err := s.api.ListReleases(owner, repo, gitea.ListReleasesOptions{})
 	if err != nil {
-		log.Printf("API returned an error response: %s", err)
 		if res != nil && res.StatusCode == 404 {
 			// 404 means repository not found or release not found. It's not an error here.
-			log.Print("API returned 404. Repository or release not found")
+			log.Print("Repository or release not found")
 			return nil, nil
 		}
+		log.Printf("API returned an error response: %s", err)
 		return nil, err
 	}
 	releases := make([]SourceRelease, len(rels))
@@ -82,22 +82,7 @@ func (s *GiteaSource) ListReleases(ctx context.Context, repository Repository) (
 
 // LatestRelease only returns the most recent release
 func (s *GiteaSource) LatestRelease(ctx context.Context, repository Repository) (SourceRelease, error) {
-	owner, repo, err := repository.GetSlug()
-	if err != nil {
-		return nil, err
-	}
-
-	rel, res, err := s.api.GetReleaseByTag(owner, repo, "latest") // not tested yet!
-	if err != nil {
-		log.Printf("API returned an error response: %s", err)
-		if res != nil && res.StatusCode == 404 {
-			// 404 means repository not found or release not found. It's not an error here.
-			log.Print("API returned 404. Repository or release not found")
-			return nil, nil
-		}
-		return nil, err
-	}
-	return NewGiteaRelease(rel), nil
+	return nil, ErrNotSupported
 }
 
 // DownloadReleaseAsset downloads an asset from its ID.

@@ -8,7 +8,11 @@ import (
 
 func TestRepositoryID(t *testing.T) {
 	id := NewRepositoryID(11)
-	assert.Equal(t, 11, id.Get())
-	_, _, err := id.GetSlug()
+
+	repo, err := id.Get()
+	assert.NoError(t, err)
+	assert.Equal(t, 11, repo)
+
+	_, _, err = id.GetSlug()
 	assert.Error(t, err)
 }

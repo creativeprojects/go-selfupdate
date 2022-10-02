@@ -48,8 +48,11 @@ func NewGitLabSource(config GitLabConfig) (*GitLabSource, error) {
 
 // ListReleases returns all available releases
 func (s *GitLabSource) ListReleases(ctx context.Context, repository Repository) ([]SourceRelease, error) {
-	slug := repository.Get()
-	log.Printf("load releases for %q", slug)
+	slug, err := repository.Get()
+	if err != nil {
+		return nil, err
+	}
+
 	rels, _, err := s.api.Releases.ListReleases(slug, nil, gitlab.WithContext(ctx))
 	if err != nil {
 		return nil, fmt.Errorf("list releases: %w", err)
@@ -63,20 +66,17 @@ func (s *GitLabSource) ListReleases(ctx context.Context, repository Repository) 
 
 // LatestRelease only returns the most recent release
 func (s *GitLabSource) LatestRelease(ctx context.Context, repository Repository) (SourceRelease, error) {
-	slug := repository.Get()
-	log.Printf("load latest release for %q", slug)
-	rel, _, err := s.api.Releases.GetRelease(slug, "latest", gitlab.WithContext(ctx)) // not tested yet!
-	if err != nil {
-		return nil, fmt.Errorf("list releases: %w", err)
-	}
-	return NewGitLabRelease(rel), nil
+	return nil, ErrNotSupported
 }
 
 // DownloadReleaseAsset downloads an asset from its ID.
 // It returns an io.ReadCloser: it is your responsibility to Close it.
 // Please note releaseID is not used by GitLabSource.
 func (s *GitLabSource) DownloadReleaseAsset(ctx context.Context, repository Repository, releaseID, id int64) (io.ReadCloser, error) {
-	// slug:=repository.Get()
+	// slug, err := repository.Get()
+	// if err != nil {
+	// 	return nil, err
+	// }
 	return nil, nil
 }
 
