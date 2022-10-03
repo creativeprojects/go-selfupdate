@@ -45,10 +45,9 @@ clean:
 		$(GOCLEAN)
 
 toc:
-	go get github.com/ekalinin/github-markdown-toc.go
-	go install github.com/ekalinin/github-markdown-toc.go
-	go mod tidy
-	cat ${README} | github-markdown-toc.go --hide-footer > ${TOC_PATH}
+	@echo "[*] $@"
+	$(GOINSTALL) github.com/ekalinin/github-markdown-toc.go/cmd/gh-md-toc@latest
+	cat ${README} | gh-md-toc --hide-footer > ${TOC_PATH}
 	sed -i ".1" "/${TOC_START}/,/${TOC_END}/{//!d;}" "${README}"
 	sed -i ".2" "/${TOC_START}/r ${TOC_PATH}" "${README}"
 	rm ${README}.1 ${README}.2 ${TOC_PATH}

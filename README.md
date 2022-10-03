@@ -1,4 +1,4 @@
-Self-Update library for GitHub/Gitea hosted applications in Go
+Self-Update library for Github, Gitea and Gitlab hosted applications in Go
 ==============================================================
 
 [![Godoc reference](https://godoc.org/github.com/creativeprojects/go-selfupdate?status.svg)](http://godoc.org/github.com/creativeprojects/go-selfupdate)
@@ -6,7 +6,7 @@ Self-Update library for GitHub/Gitea hosted applications in Go
 [![codecov](https://codecov.io/gh/creativeprojects/go-selfupdate/branch/main/graph/badge.svg?token=3FejM0fkw2)](https://codecov.io/gh/creativeprojects/go-selfupdate)
 
 <!--ts-->
-* [Self\-Update library for GitHub/Gitea hosted applications in Go](#self-update-library-for-githubgitea-hosted-applications-in-go)
+* [Self\-Update library for Github, Gitea and Gitlab hosted applications in Go](#self-update-library-for-github-gitea-and-gitlab-hosted-applications-in-go)
 * [Introduction](#introduction)
 * [Example](#example)
 * [Important note](#important-note)
@@ -47,7 +47,7 @@ This library started as a fork of https://github.com/rhysd/go-github-selfupdate.
 - able to detect different ARM CPU architectures (the original library wasn't working on my different versions of raspberry pi)
 - support for assets compressed with bzip2 (.bz2)
 - can use a single file containing the sha256 checksums for all the files (one per line)
-- separate the provider and the updater, so we can add more providers (GitHub, Gitea, Gitlab, etc.)
+- separate the provider and the updater, so we can add more providers (Github, Gitea, Gitlab, etc.)
 - return well defined wrapped errors that can be checked with `errors.Is(err error, target error)`
 
 # Example
@@ -56,9 +56,9 @@ Here's an example how to use the library for an application to update itself
 
 ```go
 func update(version string) error {
-	latest, found, err := selfupdate.DetectLatest("creativeprojects/resticprofile")
+	latest, found, err := selfupdate.DetectLatest(context.Background(), selfupdate.ParseSlug("creativeprojects/resticprofile"))
 	if err != nil {
-		return fmt.Errorf("error occurred while detecting version: %v", err)
+		return fmt.Errorf("error occurred while detecting version: %w", err)
 	}
 	if !found {
 		return fmt.Errorf("latest version for %s/%s could not be found from github repository", runtime.GOOS, runtime.GOARCH)
@@ -74,17 +74,12 @@ func update(version string) error {
 		return errors.New("could not locate executable path")
 	}
 	if err := selfupdate.UpdateTo(latest.AssetURL, latest.AssetName, exe); err != nil {
-		return fmt.Errorf("error occurred while updating binary: %v", err)
+		return fmt.Errorf("error occurred while updating binary: %w", err)
 	}
 	log.Printf("Successfully updated to version %s", latest.Version())
 	return nil
 }
 ```
-
-# Important note
-
-**The API can change anytime until it reaches version 1.0.**
-It is unlikely it will change drastically though, but it can.
 
 # Naming Rules of Released Binaries
 
@@ -234,7 +229,8 @@ updater, _ := NewUpdater(Config{Validator: &ChecksumValidator{UniqueFilename: "c
 This library can be easily extended by providing a new source and release implementation for any git provider
 Currently implemented are 
 - Github (default)
-- Gitea 
+- Gitea
+- Gitlab
 
 Check the *-custom examples in cmd to see how a custom source like the GiteaSource can be used
 
