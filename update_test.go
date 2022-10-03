@@ -425,6 +425,9 @@ func setupCurrentVersion(t *testing.T) string {
 	t.Helper()
 	tmpDir := t.TempDir()
 	filename := filepath.Join(tmpDir, "new_version")
+	if runtime.GOOS == "windows" {
+		filename += ".exe"
+	}
 
 	err := os.WriteFile(filename, []byte("old version"), 0o777)
 	require.NoError(t, err)
