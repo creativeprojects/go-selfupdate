@@ -6,7 +6,6 @@ import (
 	"fmt"
 	stdlog "log"
 	"os"
-	"runtime"
 	"strings"
 	"testing"
 
@@ -24,7 +23,6 @@ func skipRateLimitExceeded(t *testing.T, err error) {
 	}
 	if strings.Contains(err.Error(), "403 API rate limit") {
 		t.Skip("Test skipped because of GitHub API rate limit exceeded")
-		runtime.Goexit()
 	}
 }
 

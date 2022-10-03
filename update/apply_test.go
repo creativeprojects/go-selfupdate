@@ -8,7 +8,6 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"testing"
 )
@@ -26,7 +25,7 @@ func cleanup(path string) {
 
 // we write with a separate name for each test so that we can run them in parallel
 func writeOldFile(path string, t *testing.T) {
-	if err := ioutil.WriteFile(path, oldFile, 0777); err != nil {
+	if err := os.WriteFile(path, oldFile, 0777); err != nil {
 		t.Fatalf("Failed to write file for testing preparation: %v", err)
 	}
 }
@@ -36,7 +35,7 @@ func validateUpdate(path string, err error, t *testing.T) {
 		t.Fatalf("Failed to update: %v", err)
 	}
 
-	buf, err := ioutil.ReadFile(path)
+	buf, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatalf("Failed to read file post-update: %v", err)
 	}
@@ -300,7 +299,7 @@ func TestSignatureButNoPublicKey(t *testing.T) {
 		Signature:  signec(ecdsaPrivateKey, newFile, t),
 	})
 	if err == nil {
-		t.Fatalf("Allowed an update with a signautre verification when no public key was specified!")
+		t.Fatalf("Allowed an update with a signature verification when no public key was specified!")
 	}
 }
 
@@ -315,7 +314,7 @@ func TestPublicKeyButNoSignature(t *testing.T) {
 	}
 	err := Apply(bytes.NewReader(newFile), opts)
 	if err == nil {
-		t.Fatalf("Allowed an update with no signautre when a public key was specified!")
+		t.Fatalf("Allowed an update with no signature when a public key was specified!")
 	}
 }
 

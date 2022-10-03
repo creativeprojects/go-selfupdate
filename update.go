@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -23,7 +22,7 @@ func (up *Updater) UpdateTo(ctx context.Context, rel *Release, cmdPath string) e
 	}
 	defer src.Close()
 
-	data, err := ioutil.ReadAll(src)
+	data, err := io.ReadAll(src)
 	if err != nil {
 		return fmt.Errorf("failed to read asset: %w", err)
 	}
@@ -114,7 +113,7 @@ func (up *Updater) validate(rel *Release, data []byte) error {
 	}
 	defer validationSrc.Close()
 
-	validationData, err := ioutil.ReadAll(validationSrc)
+	validationData, err := io.ReadAll(validationSrc)
 	if err != nil {
 		return fmt.Errorf("failed reading validation data: %w", err)
 	}

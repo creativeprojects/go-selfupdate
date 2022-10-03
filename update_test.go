@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -226,7 +225,7 @@ func TestNoValidationFile(t *testing.T) {
 }
 
 func TestValidationWrongHash(t *testing.T) {
-	hashData, err := ioutil.ReadFile("testdata/SHA256SUM")
+	hashData, err := os.ReadFile("testdata/SHA256SUM")
 	require.NoError(t, err)
 
 	source := &MockSource{
@@ -244,7 +243,7 @@ func TestValidationWrongHash(t *testing.T) {
 		validator: &ChecksumValidator{},
 	}
 
-	data, err := ioutil.ReadFile("testdata/foo.tar.xz")
+	data, err := os.ReadFile("testdata/foo.tar.xz")
 	require.NoError(t, err)
 
 	err = updater.validate(release, data)
@@ -253,7 +252,7 @@ func TestValidationWrongHash(t *testing.T) {
 }
 
 func TestValidationReadError(t *testing.T) {
-	hashData, err := ioutil.ReadFile("testdata/SHA256SUM")
+	hashData, err := os.ReadFile("testdata/SHA256SUM")
 	require.NoError(t, err)
 
 	source := &MockSource{
@@ -272,7 +271,7 @@ func TestValidationReadError(t *testing.T) {
 		validator: &ChecksumValidator{},
 	}
 
-	data, err := ioutil.ReadFile("testdata/foo.tar.xz")
+	data, err := os.ReadFile("testdata/foo.tar.xz")
 	require.NoError(t, err)
 
 	err = updater.validate(release, data)
@@ -281,7 +280,7 @@ func TestValidationReadError(t *testing.T) {
 }
 
 func TestValidationSuccess(t *testing.T) {
-	hashData, err := ioutil.ReadFile("testdata/SHA256SUM")
+	hashData, err := os.ReadFile("testdata/SHA256SUM")
 	require.NoError(t, err)
 
 	source := &MockSource{
@@ -299,7 +298,7 @@ func TestValidationSuccess(t *testing.T) {
 		validator: &ChecksumValidator{},
 	}
 
-	data, err := ioutil.ReadFile("testdata/foo.tar.xz")
+	data, err := os.ReadFile("testdata/foo.tar.xz")
 	require.NoError(t, err)
 
 	err = updater.validate(release, data)
@@ -348,10 +347,10 @@ func TestUpdateToReadError(t *testing.T) {
 }
 
 func TestUpdateToWithWrongHash(t *testing.T) {
-	data, err := ioutil.ReadFile("testdata/foo.tar.xz")
+	data, err := os.ReadFile("testdata/foo.tar.xz")
 	require.NoError(t, err)
 
-	hashData, err := ioutil.ReadFile("testdata/SHA256SUM")
+	hashData, err := os.ReadFile("testdata/SHA256SUM")
 	require.NoError(t, err)
 
 	source := &MockSource{
@@ -377,10 +376,10 @@ func TestUpdateToWithWrongHash(t *testing.T) {
 }
 
 func TestUpdateToSuccess(t *testing.T) {
-	data, err := ioutil.ReadFile("testdata/foo.tar.xz")
+	data, err := os.ReadFile("testdata/foo.tar.xz")
 	require.NoError(t, err)
 
-	hashData, err := ioutil.ReadFile("testdata/SHA256SUM")
+	hashData, err := os.ReadFile("testdata/SHA256SUM")
 	require.NoError(t, err)
 
 	source := &MockSource{
