@@ -9,7 +9,6 @@ Self-Update library for Github, Gitea and Gitlab hosted applications in Go
 * [Self\-Update library for Github, Gitea and Gitlab hosted applications in Go](#self-update-library-for-github-gitea-and-gitlab-hosted-applications-in-go)
 * [Introduction](#introduction)
 * [Example](#example)
-* [Important note](#important-note)
 * [Naming Rules of Released Binaries](#naming-rules-of-released-binaries)
 * [Naming Rules of Versions (=Git Tags)](#naming-rules-of-versions-git-tags)
 * [Structure of Releases](#structure-of-releases)
@@ -55,6 +54,7 @@ This library started as a fork of https://github.com/rhysd/go-github-selfupdate.
 Here's an example how to use the library for an application to update itself
 
 ```go
+// keep this function here, this is the example from the README
 func update(version string) error {
 	latest, found, err := selfupdate.DetectLatest(context.Background(), selfupdate.ParseSlug("creativeprojects/resticprofile"))
 	if err != nil {
@@ -73,7 +73,7 @@ func update(version string) error {
 	if err != nil {
 		return errors.New("could not locate executable path")
 	}
-	if err := selfupdate.UpdateTo(latest.AssetURL, latest.AssetName, exe); err != nil {
+	if err := selfupdate.UpdateTo(context.Background(), latest.AssetURL, latest.AssetName, exe); err != nil {
 		return fmt.Errorf("error occurred while updating binary: %w", err)
 	}
 	log.Printf("Successfully updated to version %s", latest.Version())

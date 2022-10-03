@@ -183,14 +183,14 @@ func TestInvalidSlugForUpdate(t *testing.T) {
 }
 
 func TestInvalidAssetURL(t *testing.T) {
-	err := UpdateTo("https://github.com/creativeprojects/non-existing-repo/releases/download/v1.2.3/foo.zip", "foo.zip", "foo")
+	err := UpdateTo(context.Background(), "https://github.com/creativeprojects/non-existing-repo/releases/download/v1.2.3/foo.zip", "foo.zip", "foo")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to download a release file")
 }
 
 func TestBrokenAsset(t *testing.T) {
 	asset := "https://github.com/rhysd-test/test-incorrect-release/releases/download/invalid/broken-zip.zip"
-	err := UpdateTo(asset, "broken-zip.zip", "foo")
+	err := UpdateTo(context.Background(), asset, "broken-zip.zip", "foo")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to decompress zip file")
 }

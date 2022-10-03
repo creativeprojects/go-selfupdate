@@ -22,9 +22,9 @@ func DetectVersion(ctx context.Context, repository Repository, version string) (
 // This function is low-level API to update the binary. Because it does not use a source provider and downloads asset directly from the URL via HTTP,
 // this function is not available to update a release for private repositories.
 // cmdPath is a file path to command executable.
-func UpdateTo(assetURL, assetFileName, cmdPath string) error {
+func UpdateTo(ctx context.Context, assetURL, assetFileName, cmdPath string) error {
 	up := DefaultUpdater()
-	src, err := downloadReleaseAssetFromURL(context.Background(), assetURL)
+	src, err := downloadReleaseAssetFromURL(ctx, assetURL)
 	if err != nil {
 		return err
 	}
