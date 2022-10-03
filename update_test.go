@@ -6,127 +6,69 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
-	"strings"
 	"testing"
+	"time"
 
+	"github.com/Masterminds/semver/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func setupTestBinary() {
-	if err := exec.Command("go", "build", "./testdata/github-release-test/").Run(); err != nil {
-		panic(err)
-	}
-}
-
-func teardownTestBinary() {
-	bin := "github-release-test"
-	if runtime.GOOS == "windows" {
-		bin = "github-release-test.exe"
-	}
-	if err := os.Remove(bin); err != nil {
-		panic(err)
-	}
-}
-
 func TestUpdateCommandWithWrongVersion(t *testing.T) {
 	_, err := UpdateCommand(context.Background(), "path", "wrong version", ParseSlug("test/test"))
 	assert.Error(t, err)
+	assert.ErrorIs(t, err, semver.ErrInvalidSemVer)
 }
 
 func TestUpdateCommand(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skip tests in short mode.")
-	}
-	setupTestBinary()
-	defer teardownTestBinary()
+	current := "0.10.0"
+	new := "1.0.0"
+	source := mockSourceRepository(t)
+	updater, err := NewUpdater(Config{Source: source})
+	require.NoError(t, err)
 
-	for _, slug := range []string{
-		"rhysd-test/test-release-zip",
-		"rhysd-test/test-release-tar",
-		"rhysd-test/test-release-gzip",
-		"rhysd-test/test-release-tar-xz",
-		"rhysd-test/test-release-xz",
-		"rhysd-test/test-release-contain-version",
-	} {
-		t.Run(slug, func(t *testing.T) {
-			prev := "1.2.2"
-			rel, err := UpdateCommand(context.Background(), "github-release-test", prev, ParseSlug(slug))
-			if err != nil {
-				t.Fatal(err)
-			}
-			if !rel.Equal("1.2.3") {
-				t.Error("Version is not latest", rel.Version())
-			}
-			bytes, err := exec.Command(filepath.FromSlash("./github-release-test")).Output()
-			if err != nil {
-				t.Fatal("Failed to run test binary after update:", err)
-			}
-			out := string(bytes)
-			if out != "v1.2.3\n" {
-				t.Error("Output from test binary after update is unexpected:", out)
-			}
-		})
-	}
+	filename := setupCurrentVersion(t)
+
+	rel, err := updater.UpdateCommand(context.Background(), filename, current, ParseSlug("creativeprojects/new_version"))
+	require.NoError(t, err)
+	assert.Equal(t, new, rel.Version())
+
+	assertNewVersion(t, filename)
 }
 
 func TestUpdateViaSymlink(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skip tests in short mode.")
-	}
 	if runtime.GOOS == "windows" {
 		t.Skip("skipping because creating symlink on windows requires admin privilege")
 	}
 
-	setupTestBinary()
-	defer teardownTestBinary()
-	exePath := "github-release-test"
-	symPath := "github-release-test-sym"
-	if runtime.GOOS == "windows" {
-		exePath = "github-release-test.exe"
-		symPath = "github-release-test-sym.exe"
-	}
-	if err := os.Symlink(exePath, symPath); err != nil {
-		t.Fatal(err)
-	}
-	defer os.Remove(symPath)
+	current := "0.10.0"
+	new := "1.0.0"
+	source := mockSourceRepository(t)
+	updater, err := NewUpdater(Config{Source: source})
+	require.NoError(t, err)
 
-	prev := "1.2.2"
-	rel, err := UpdateCommand(context.Background(), symPath, prev, ParseSlug("rhysd-test/test-release-zip"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !rel.Equal("1.2.3") {
-		t.Error("Version is not latest", rel.Version())
-	}
+	exePath := setupCurrentVersion(t)
+	symPath := exePath + "-sym"
 
-	// Test not symbolic link, but actual physical executable
-	bytes, err := exec.Command(filepath.FromSlash("./github-release-test")).Output()
-	if err != nil {
-		t.Fatal("Failed to run test binary after update:", err)
-	}
-	out := string(bytes)
-	if out != "v1.2.3\n" {
-		t.Error("Output from test binary after update is unexpected:", out)
-	}
+	err = os.Symlink(exePath, symPath)
+	require.NoError(t, err)
+
+	rel, err := updater.UpdateCommand(context.Background(), symPath, current, ParseSlug("creativeprojects/new_version"))
+	require.NoError(t, err)
+	assert.Equal(t, new, rel.Version())
+
+	// check actual file (not symlink)
+	assertNewVersion(t, exePath)
 
 	s, err := os.Lstat(symPath)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	if s.Mode()&os.ModeSymlink == 0 {
 		t.Fatalf("%s is not a symlink.", symPath)
 	}
-	p, err := filepath.EvalSymlinks(symPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if p != exePath {
-		t.Fatal("Created symlink no longer points the executable:", p)
-	}
+	// check symlink
+	assertNewVersion(t, symPath)
 }
 
 func TestUpdateBrokenSymlinks(t *testing.T) {
@@ -134,105 +76,105 @@ func TestUpdateBrokenSymlinks(t *testing.T) {
 		t.Skip("skipping because creating symlink on windows requires admin privilege")
 	}
 
+	updater, err := NewUpdater(Config{Source: mockSourceRepository(t)})
+	require.NoError(t, err)
+
 	// unknown-xxx -> unknown-yyy -> {not existing}
 	xxx := "unknown-xxx"
 	yyy := "unknown-yyy"
-	if runtime.GOOS == "windows" {
-		xxx = "unknown-xxx.exe"
-		yyy = "unknown-yyy.exe"
-	}
-	if err := os.Symlink("not-existing", yyy); err != nil {
-		t.Fatal(err)
-	}
+
+	err = os.Symlink("not-existing", yyy)
+	require.NoError(t, err)
 	defer os.Remove(yyy)
-	if err := os.Symlink(yyy, xxx); err != nil {
-		t.Fatal(err)
-	}
+
+	err = os.Symlink(yyy, xxx)
+	require.NoError(t, err)
 	defer os.Remove(xxx)
 
-	v := "1.2.2"
-	for _, p := range []string{yyy, xxx} {
-		_, err := UpdateCommand(context.Background(), p, v, ParseSlug("owner/repo"))
-		if err == nil {
-			t.Fatal("Error should occur for unlinked symlink", p)
-		}
-		if !strings.Contains(err.Error(), "failed to resolve symlink") {
-			t.Fatal("Unexpected error for broken symlink", p, err)
-		}
+	for _, filename := range []string{yyy, xxx} {
+		_, err := updater.UpdateCommand(context.Background(), filename, "0.10.0", ParseSlug("owner/repo"))
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to resolve symlink")
 	}
 }
 
 func TestNotExistingCommandPath(t *testing.T) {
 	_, err := UpdateCommand(context.Background(), "not-existing-command-path", "1.2.2", ParseSlug("owner/repo"))
-	if err == nil {
-		t.Fatal("Not existing command path should cause an error")
-	}
-	if !strings.Contains(err.Error(), "file may not exist") {
-		t.Fatal("Unexpected error for not existing command path", err)
-	}
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "file may not exist")
 }
 
 func TestNoReleaseFoundForUpdate(t *testing.T) {
-	v := "1.0.0"
+	finalVersion := "1.0.0"
 	fake := filepath.FromSlash("./testdata/fake-executable")
-	rel, err := UpdateCommand(context.Background(), fake, v, ParseSlug("rhysd/misc"))
-	skipRateLimitExceeded(t, err)
-	if err != nil {
-		t.Fatal("No release should not make an error:", err)
-	}
-	if !rel.Equal("1.0.0") {
-		t.Error("No release should return the current version as the latest:", rel.Version())
-	}
-	if rel.URL != "" {
-		t.Error("Browse URL should be empty when no release found:", rel.URL)
-	}
-	if rel.AssetURL != "" {
-		t.Error("Asset URL should be empty when no release found:", rel.AssetURL)
-	}
-	if rel.ReleaseNotes != "" {
-		t.Error("Release notes should be empty when no release found:", rel.ReleaseNotes)
-	}
+	updater, err := NewUpdater(Config{Source: &MockSource{}})
+	require.NoError(t, err)
+
+	rel, err := updater.UpdateCommand(context.Background(), fake, finalVersion, ParseSlug("owner/repo"))
+	assert.NoError(t, err)
+	assert.Equal(t, finalVersion, rel.Version())
+	assert.Empty(t, rel.URL)
+	assert.Empty(t, rel.AssetURL)
+	assert.Empty(t, rel.ReleaseNotes)
 }
 
 func TestCurrentIsTheLatest(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skip tests in short mode.")
-	}
-	setupTestBinary()
-	defer teardownTestBinary()
+	filename := setupCurrentVersion(t)
 
-	v := "1.2.3"
-	rel, err := UpdateCommand(context.Background(), "github-release-test", v, ParseSlug("rhysd-test/test-release-zip"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !rel.Equal("1.2.3") {
-		t.Error("v1.2.3 should be the latest:", rel.Version())
-	}
-	if rel.URL == "" {
-		t.Error("Browse URL should not be empty when release found:", rel.URL)
-	}
-	if rel.AssetURL == "" {
-		t.Error("Asset URL should not be empty when release found:", rel.AssetURL)
-	}
-	if rel.ReleaseNotes == "" {
-		t.Error("Release notes should not be empty when release found:", rel.ReleaseNotes)
-	}
+	updater, err := NewUpdater(Config{Source: mockSourceRepository(t)})
+	require.NoError(t, err)
+
+	latest := "1.0.0"
+	rel, err := updater.UpdateCommand(context.Background(), filename, latest, ParseSlug("creativeprojects/new_version"))
+	assert.NoError(t, err)
+	assert.Equal(t, latest, rel.Version())
+	assert.NotEmpty(t, rel.URL)
+	assert.NotEmpty(t, rel.AssetURL)
+	assert.NotEmpty(t, rel.ReleaseNotes)
 }
 
 func TestBrokenBinaryUpdate(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skip tests in short mode.")
-	}
-
 	fake := filepath.FromSlash("./testdata/fake-executable")
-	_, err := UpdateCommand(context.Background(), fake, "1.2.2", ParseSlug("rhysd-test/test-incorrect-release"))
-	if err == nil {
-		t.Fatal("Error should occur for broken package")
-	}
-	if !strings.Contains(err.Error(), "failed to decompress tar.gz file") {
-		t.Fatal("Unexpected error:", err)
-	}
+
+	source := NewMockSource([]SourceRelease{
+		&GitHubRelease{
+			name:        "v2.0.0",
+			tagName:     "v2.0.0",
+			url:         "v2.0.0",
+			publishedAt: time.Date(2001, 1, 1, 0, 0, 0, 0, time.UTC),
+			assets: []SourceAsset{
+				&GitHubAsset{
+					id:   1,
+					name: "invalid_v2.0.0_linux_amd64.tar.gz",
+					url:  "invalid_v2.0.0_linux_amd64.tar.gz",
+					size: len("invalid content"),
+				},
+				&GitHubAsset{
+					id:   2,
+					name: "invalid_v2.0.0_darwin_amd64.tar.gz",
+					url:  "invalid_v2.0.0_darwin_amd64.tar.gz",
+					size: len("invalid content"),
+				},
+				&GitHubAsset{
+					id:   3,
+					name: "invalid_v2.0.0_windows_amd64.zip",
+					url:  "invalid_v2.0.0_windows_amd64.zip",
+					size: len("invalid content"),
+				},
+			},
+		},
+	}, map[int64][]byte{
+		1: []byte("invalid content"),
+		2: []byte("invalid content"),
+		3: []byte("invalid content"),
+	})
+
+	updater, err := NewUpdater(Config{Source: source})
+	require.NoError(t, err)
+
+	_, err = updater.UpdateCommand(context.Background(), fake, "1.2.2", ParseSlug("rhysd-test/test-incorrect-release"))
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to decompress")
 }
 
 func TestInvalidSlugForUpdate(t *testing.T) {
@@ -243,78 +185,29 @@ func TestInvalidSlugForUpdate(t *testing.T) {
 
 func TestInvalidAssetURL(t *testing.T) {
 	err := UpdateTo("https://github.com/creativeprojects/non-existing-repo/releases/download/v1.2.3/foo.zip", "foo.zip", "foo")
-	if err == nil {
-		t.Fatal("Error should occur for URL not found")
-	}
-	if !strings.Contains(err.Error(), "failed to download a release file") {
-		t.Fatal("Unexpected error:", err)
-	}
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to download a release file")
 }
 
 func TestBrokenAsset(t *testing.T) {
 	asset := "https://github.com/rhysd-test/test-incorrect-release/releases/download/invalid/broken-zip.zip"
 	err := UpdateTo(asset, "broken-zip.zip", "foo")
-	if err == nil {
-		t.Fatal("Error should occur for URL not found")
-	}
-	if !strings.Contains(err.Error(), "failed to decompress zip file") {
-		t.Fatal("Unexpected error:", err)
-	}
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to decompress zip file")
 }
 
 func TestBrokenGitHubEnterpriseURL(t *testing.T) {
 	source, _ := NewGitHubSource(GitHubConfig{APIToken: "my_token", EnterpriseBaseURL: "https://example.com"})
 	up, err := NewUpdater(Config{Source: source})
-	if err != nil {
-		t.Fatal(err)
-	}
+	assert.NoError(t, err)
+
 	err = up.UpdateTo(
 		context.Background(),
 		&Release{AssetURL: "https://example.com",
 			repository: NewRepositorySlug("test", "test")},
 		"foo")
-	if err == nil {
-		t.Fatal("Invalid GitHub Enterprise base URL should raise an error")
-	}
-	if !strings.Contains(err.Error(), "failed to call GitHub Releases API for getting the asset") {
-		t.Error("Unexpected error occurred:", err)
-	}
-}
-
-func TestUpdateFromGitHubPrivateRepo(t *testing.T) {
-	token := os.Getenv("GITHUB_PRIVATE_TOKEN")
-	if token == "" {
-		t.Skip("because GITHUB_PRIVATE_TOKEN is not set")
-	}
-
-	setupTestBinary()
-	defer teardownTestBinary()
-
-	source, _ := NewGitHubSource(GitHubConfig{APIToken: token})
-	up, err := NewUpdater(Config{Source: source})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	prev := "1.2.2"
-	rel, err := up.UpdateCommand(context.Background(), "github-release-test", prev, ParseSlug("rhysd/private-release-test"))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !rel.Equal("1.2.3") {
-		t.Error("Version is not latest", rel.Version())
-	}
-
-	bytes, err := exec.Command(filepath.FromSlash("./github-release-test")).Output()
-	if err != nil {
-		t.Fatal("Failed to run test binary after update:", err)
-	}
-
-	out := string(bytes)
-	if out != "v1.2.3\n" {
-		t.Error("Output from test binary after update is unexpected:", out)
-	}
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to call GitHub Releases API for getting the asset")
 }
 
 // ======================== Test validate with Mock ============================================
@@ -517,6 +410,7 @@ func TestUpdateToSuccess(t *testing.T) {
 
 // createEmptyFile creates an empty file with a unique name in the system temporary folder
 func createEmptyFile(t *testing.T, basename string) (string, error) {
+	t.Helper()
 	tempfile := filepath.Join(os.TempDir(), fmt.Sprintf("%s", basename))
 	t.Logf("use temporary file %q", tempfile)
 	file, err := os.OpenFile(tempfile, os.O_WRONLY|os.O_CREATE, 0777)
@@ -525,4 +419,22 @@ func createEmptyFile(t *testing.T, basename string) (string, error) {
 	}
 	file.Close()
 	return tempfile, nil
+}
+
+func setupCurrentVersion(t *testing.T) string {
+	t.Helper()
+	tmpDir := t.TempDir()
+	filename := filepath.Join(tmpDir, "new_version")
+
+	err := os.WriteFile(filename, []byte("old version"), 0o777)
+	require.NoError(t, err)
+
+	return filename
+}
+
+func assertNewVersion(t *testing.T, filename string) {
+	bytes, err := os.ReadFile(filename)
+	require.NoError(t, err)
+
+	assert.Equal(t, []byte("new version!\n"), bytes)
 }

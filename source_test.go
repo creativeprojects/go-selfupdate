@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 )
 
 // MockSource is a Source in memory used for unit tests
@@ -52,10 +51,10 @@ func (s *MockSource) DownloadReleaseAsset(ctx context.Context, repository Reposi
 	}
 	var buffer io.Reader = bytes.NewBuffer(content)
 	if s.readError {
-		// will return a read error after reading 4 caracters
+		// will return a read error after reading 4 characters
 		buffer = newErrorReader(buffer, 4)
 	}
-	return ioutil.NopCloser(buffer), nil
+	return io.NopCloser(buffer), nil
 }
 
 // Verify interface

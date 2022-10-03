@@ -4,19 +4,20 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 )
 
+// mockSourceRepository creates a new *MockSource pre-populated with different versions and assets
 func mockSourceRepository(t *testing.T) *MockSource {
 
-	gzData, err := ioutil.ReadFile("testdata/foo.tar.gz")
+	gzData, err := os.ReadFile("testdata/new_version.tar.gz")
 	require.NoError(t, err)
 
-	zipData, err := ioutil.ReadFile("testdata/foo.zip")
+	zipData, err := os.ReadFile("testdata/new_version.zip")
 	require.NoError(t, err)
 
 	releases := []SourceRelease{
