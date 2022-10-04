@@ -41,11 +41,14 @@ func (s *MockSource) LatestRelease(ctx context.Context, repository Repository) (
 }
 
 // DownloadReleaseAsset returns a file from its ID. repository parameter is not used.
-func (s *MockSource) DownloadReleaseAsset(ctx context.Context, repository Repository, releaseID, id int64) (io.ReadCloser, error) {
-	if _, _, err := repository.GetSlug(); err != nil {
+func (s *MockSource) DownloadReleaseAsset(ctx context.Context, rel *Release, assetID int64) (io.ReadCloser, error) {
+	if rel == nil {
+		return nil, ErrInvalidRelease
+	}
+	if _, _, err := rel.repository.GetSlug(); err != nil {
 		return nil, err
 	}
-	content, ok := s.files[id]
+	content, ok := s.files[assetID]
 	if !ok {
 		return nil, ErrAssetNotFound
 	}

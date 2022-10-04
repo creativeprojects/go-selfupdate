@@ -47,21 +47,22 @@ func (up *Updater) DetectVersion(ctx context.Context, repository Repository, ver
 	log.Printf("Successfully fetched release %s, name: %s, URL: %s, asset: %s", rel.GetTagName(), rel.GetName(), rel.GetURL(), asset.GetBrowserDownloadURL())
 
 	release = &Release{
-		version:           ver,
-		repository:        repository,
-		AssetURL:          asset.GetBrowserDownloadURL(),
-		AssetByteSize:     asset.GetSize(),
-		AssetID:           asset.GetID(),
-		AssetName:         asset.GetName(),
-		ValidationAssetID: -1,
-		URL:               rel.GetURL(),
-		ReleaseID:         rel.GetID(),
-		ReleaseNotes:      rel.GetReleaseNotes(),
-		Name:              rel.GetName(),
-		PublishedAt:       rel.GetPublishedAt(),
-		OS:                up.os,
-		Arch:              up.arch,
-		Arm:               up.arm,
+		version:            ver,
+		repository:         repository,
+		AssetURL:           asset.GetBrowserDownloadURL(),
+		AssetByteSize:      asset.GetSize(),
+		AssetID:            asset.GetID(),
+		AssetName:          asset.GetName(),
+		ValidationAssetID:  -1,
+		ValidationAssetURL: "",
+		URL:                rel.GetURL(),
+		ReleaseID:          rel.GetID(),
+		ReleaseNotes:       rel.GetReleaseNotes(),
+		Name:               rel.GetName(),
+		PublishedAt:        rel.GetPublishedAt(),
+		OS:                 up.os,
+		Arch:               up.arch,
+		Arm:                up.arm,
 	}
 
 	if up.validator != nil {
@@ -71,6 +72,7 @@ func (up *Updater) DetectVersion(ctx context.Context, repository Repository, ver
 			return nil, false, fmt.Errorf("%w: %q", ErrValidationAssetNotFound, validationName)
 		}
 		release.ValidationAssetID = validationAsset.GetID()
+		release.ValidationAssetURL = validationAsset.GetBrowserDownloadURL()
 	}
 
 	return release, true, nil
@@ -168,29 +170,32 @@ func (up *Updater) findAssetFromRelease(rel SourceRelease, suffixes []string, ta
 	}
 
 	for _, asset := range rel.GetAssets() {
+		// try names first
 		name := asset.GetName()
-		if len(up.filters) > 0 {
-			// if some filters are defined, match them: if any one matches, the asset is selected
-			matched := false
-			for _, filter := range up.filters {
-				if filter.MatchString(name) {
-					log.Printf("Selected filtered asset: %s", name)
-					matched = true
-					break
-				}
-				log.Printf("Skipping asset %q not matching filter %v\n", name, filter)
-			}
-			if !matched {
-				continue
-			}
-		}
-
 		// case insensitive search
 		name = strings.ToLower(name)
 
-		for _, s := range suffixes {
-			if strings.HasSuffix(name, s) { // require version, arch etc
-				// assuming a unique artifact will be a match (or first one will do)
+		if up.hasFilters() {
+			if up.assetMatchFilters(name) {
+				return asset, ver, true
+			}
+		} else {
+			if up.assetMatchSuffixes(name, suffixes) {
+				return asset, ver, true
+			}
+		}
+
+		// then try from filename (Gitlab can assign human names to release assets)
+		name = asset.GetBrowserDownloadURL()
+		// case insensitive search
+		name = strings.ToLower(name)
+
+		if up.hasFilters() {
+			if up.assetMatchFilters(name) {
+				return asset, ver, true
+			}
+		} else {
+			if up.assetMatchSuffixes(name, suffixes) {
 				return asset, ver, true
 			}
 		}
@@ -198,6 +203,34 @@ func (up *Updater) findAssetFromRelease(rel SourceRelease, suffixes []string, ta
 
 	log.Printf("No suitable asset was found in release %s", rel.GetTagName())
 	return nil, nil, false
+}
+
+func (up *Updater) hasFilters() bool {
+	return len(up.filters) > 0
+}
+
+func (up *Updater) assetMatchFilters(name string) bool {
+	if len(up.filters) > 0 {
+		// if some filters are defined, match them: if any one matches, the asset is selected
+		for _, filter := range up.filters {
+			if filter.MatchString(name) {
+				log.Printf("Selected filtered asset: %s", name)
+				return true
+			}
+			log.Printf("Skipping asset %q not matching filter %v\n", name, filter)
+		}
+	}
+	return false
+}
+
+func (up *Updater) assetMatchSuffixes(name string, suffixes []string) bool {
+	for _, suffix := range suffixes {
+		if strings.HasSuffix(name, suffix) { // require version, arch etc
+			// assuming a unique artifact will be a match (or first one will do)
+			return true
+		}
+	}
+	return false
 }
 
 // getSuffixes returns all candidates to check against the assets

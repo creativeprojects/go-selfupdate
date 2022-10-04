@@ -16,7 +16,10 @@ import (
 // UpdateTo downloads an executable from the source provider and replace current binary with the downloaded one.
 // It downloads a release asset via the source provider so this function is available for update releases on private repository.
 func (up *Updater) UpdateTo(ctx context.Context, rel *Release, cmdPath string) error {
-	src, err := up.source.DownloadReleaseAsset(ctx, rel.repository, rel.ReleaseID, rel.AssetID)
+	if rel == nil {
+		return ErrInvalidRelease
+	}
+	src, err := up.source.DownloadReleaseAsset(ctx, rel, rel.AssetID)
 	if err != nil {
 		return err
 	}
@@ -28,7 +31,7 @@ func (up *Updater) UpdateTo(ctx context.Context, rel *Release, cmdPath string) e
 	}
 
 	if up.validator != nil {
-		err = up.validate(rel, data)
+		err = up.validate(ctx, rel, data)
 		if err != nil {
 			return err
 		}
@@ -106,8 +109,11 @@ func (up *Updater) decompressAndUpdate(src io.Reader, assetName, assetURL, cmdPa
 
 // validate loads the validation file and passes it to the validator.
 // The validation is successful if no error was returned
-func (up *Updater) validate(rel *Release, data []byte) error {
-	validationSrc, err := up.source.DownloadReleaseAsset(context.TODO(), rel.repository, rel.ReleaseID, rel.ValidationAssetID)
+func (up *Updater) validate(ctx context.Context, rel *Release, data []byte) error {
+	if rel == nil {
+		return ErrInvalidRelease
+	}
+	validationSrc, err := up.source.DownloadReleaseAsset(ctx, rel, rel.ValidationAssetID)
 	if err != nil {
 		return err
 	}

@@ -220,7 +220,7 @@ func TestNoValidationFile(t *testing.T) {
 	updater := &Updater{
 		source: source,
 	}
-	err := updater.validate(release, []byte("some data"))
+	err := updater.validate(context.Background(), release, []byte("some data"))
 	assert.EqualError(t, err, ErrAssetNotFound.Error())
 }
 
@@ -246,7 +246,7 @@ func TestValidationWrongHash(t *testing.T) {
 	data, err := os.ReadFile("testdata/foo.tar.xz")
 	require.NoError(t, err)
 
-	err = updater.validate(release, data)
+	err = updater.validate(context.Background(), release, data)
 	require.Error(t, err)
 	assert.True(t, errors.Is(err, ErrChecksumValidationFailed), "Not the error we expected")
 }
@@ -274,7 +274,7 @@ func TestValidationReadError(t *testing.T) {
 	data, err := os.ReadFile("testdata/foo.tar.xz")
 	require.NoError(t, err)
 
-	err = updater.validate(release, data)
+	err = updater.validate(context.Background(), release, data)
 	require.Error(t, err)
 	assert.True(t, errors.Is(err, errTestRead))
 }
@@ -301,7 +301,7 @@ func TestValidationSuccess(t *testing.T) {
 	data, err := os.ReadFile("testdata/foo.tar.xz")
 	require.NoError(t, err)
 
-	err = updater.validate(release, data)
+	err = updater.validate(context.Background(), release, data)
 	require.NoError(t, err)
 }
 

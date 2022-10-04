@@ -9,6 +9,7 @@ var (
 	ErrIncorrectParameterOwner     = errors.New("incorrect parameter \"owner\"")
 	ErrIncorrectParameterRepo      = errors.New("incorrect parameter \"repo\"")
 	ErrInvalidID                   = errors.New("invalid repository ID, expected 'owner/name' but found number")
+	ErrInvalidRelease              = errors.New("invalid release (nil argument)")
 	ErrAssetNotFound               = errors.New("asset not found")
 	ErrValidationAssetNotFound     = errors.New("validation file not found")
 	ErrIncorrectChecksumFile       = errors.New("incorrect checksum file format")

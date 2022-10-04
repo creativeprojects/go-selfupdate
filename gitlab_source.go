@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 
 	"github.com/xanzy/go-gitlab"
@@ -19,7 +20,8 @@ type GitLabConfig struct {
 
 // GitLabSource is used to load release information from GitLab
 type GitLabSource struct {
-	api *gitlab.Client
+	api   *gitlab.Client
+	token string
 }
 
 // NewGitLabSource creates a new GitLabSource from a config object.
@@ -42,18 +44,19 @@ func NewGitLabSource(config GitLabConfig) (*GitLabSource, error) {
 		return nil, fmt.Errorf("cannot create GitLab client: %w", err)
 	}
 	return &GitLabSource{
-		api: client,
+		api:   client,
+		token: token,
 	}, nil
 }
 
 // ListReleases returns all available releases
 func (s *GitLabSource) ListReleases(ctx context.Context, repository Repository) ([]SourceRelease, error) {
-	slug, err := repository.Get()
+	pid, err := repository.Get()
 	if err != nil {
 		return nil, err
 	}
 
-	rels, _, err := s.api.Releases.ListReleases(slug, nil, gitlab.WithContext(ctx))
+	rels, _, err := s.api.Releases.ListReleases(pid, nil, gitlab.WithContext(ctx))
 	if err != nil {
 		return nil, fmt.Errorf("list releases: %w", err)
 	}
@@ -69,15 +72,40 @@ func (s *GitLabSource) LatestRelease(ctx context.Context, repository Repository)
 	return nil, ErrNotSupported
 }
 
-// DownloadReleaseAsset downloads an asset from its ID.
+// DownloadReleaseAsset downloads an asset from a release.
 // It returns an io.ReadCloser: it is your responsibility to Close it.
 // Please note releaseID is not used by GitLabSource.
-func (s *GitLabSource) DownloadReleaseAsset(ctx context.Context, repository Repository, releaseID, id int64) (io.ReadCloser, error) {
-	// slug, err := repository.Get()
-	// if err != nil {
-	// 	return nil, err
-	// }
-	return nil, nil
+func (s *GitLabSource) DownloadReleaseAsset(ctx context.Context, rel *Release, assetID int64) (io.ReadCloser, error) {
+	if rel == nil {
+		return nil, ErrInvalidRelease
+	}
+	var downloadUrl string
+	if rel.AssetID == assetID {
+		downloadUrl = rel.AssetURL
+	} else if rel.ValidationAssetID == assetID {
+		downloadUrl = rel.ValidationAssetURL
+	}
+	if downloadUrl == "" {
+		return nil, fmt.Errorf("asset ID %d: %w", assetID, ErrAssetNotFound)
+	}
+
+	log.Printf("downloading %q", downloadUrl)
+	client := http.DefaultClient
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, downloadUrl, http.NoBody)
+	if err != nil {
+		log.Print(err)
+		return nil, err
+	}
+
+	req.Header.Set("PRIVATE-TOKEN", "token "+s.token)
+	response, err := client.Do(req)
+
+	if err != nil {
+		log.Print(err)
+		return nil, err
+	}
+
+	return response.Body, nil
 }
 
 // Verify interface

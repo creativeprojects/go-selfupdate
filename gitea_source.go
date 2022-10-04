@@ -63,6 +63,7 @@ func (s *GiteaSource) ListReleases(ctx context.Context, repository Repository) (
 		return nil, err
 	}
 
+	s.api.SetContext(ctx)
 	rels, res, err := s.api.ListReleases(owner, repo, gitea.ListReleasesOptions{})
 	if err != nil {
 		if res != nil && res.StatusCode == 404 {
@@ -85,36 +86,38 @@ func (s *GiteaSource) LatestRelease(ctx context.Context, repository Repository) 
 	return nil, ErrNotSupported
 }
 
-// DownloadReleaseAsset downloads an asset from its ID.
-// It returns an io.ReadCloser: it is your responsability to Close it.
-func (s *GiteaSource) DownloadReleaseAsset(ctx context.Context, repository Repository, releaseID, id int64) (io.ReadCloser, error) {
-	owner, repo, err := repository.GetSlug()
+// DownloadReleaseAsset downloads an asset from a release.
+// It returns an io.ReadCloser: it is your responsibility to Close it.
+func (s *GiteaSource) DownloadReleaseAsset(ctx context.Context, rel *Release, assetID int64) (io.ReadCloser, error) {
+	if rel == nil {
+		return nil, ErrInvalidRelease
+	}
+	owner, repo, err := rel.repository.GetSlug()
 	if err != nil {
 		return nil, err
 	}
-	// create a new http client so the GitHub library can download the redirected file (if any)
-	// don't pass the "default" one as it could be the one it's already using
-	attachment, _, err := s.api.GetReleaseAttachment(owner, repo, releaseID, id)
+	s.api.SetContext(ctx)
+	attachment, _, err := s.api.GetReleaseAttachment(owner, repo, rel.ReleaseID, assetID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to call Gitea Releases API for getting the asset ID %d on repository '%s/%s': %w", id, owner, repo, err)
+		return nil, fmt.Errorf("failed to call Gitea Releases API for getting the asset ID %d on repository '%s/%s': %w", assetID, owner, repo, err)
 	}
 
-	client := &http.Client{}
-	req, err := http.NewRequest("GET", attachment.DownloadURL, nil)
+	client := http.DefaultClient
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, attachment.DownloadURL, http.NoBody)
 	if err != nil {
+		log.Print(err)
 		return nil, err
 	}
-	log.Print(err)
 
 	req.Header.Set("Authorization", "token "+s.token)
-	rc, err := client.Do(req)
-	log.Print(err)
+	response, err := client.Do(req)
 
 	if err != nil {
+		log.Print(err)
 		return nil, err
 	}
 
-	return rc.Body, nil
+	return response.Body, nil
 }
 
 // Verify interface

@@ -106,20 +106,21 @@ func (s *GitHubSource) LatestRelease(ctx context.Context, repository Repository)
 	return NewGitHubRelease(rel), nil
 }
 
-// DownloadReleaseAsset downloads an asset from its ID.
+// DownloadReleaseAsset downloads an asset from a release.
 // It returns an io.ReadCloser: it is your responsibility to Close it.
-// Please note releaseID is not used by GitHubSource.
-func (s *GitHubSource) DownloadReleaseAsset(ctx context.Context, repository Repository, releaseID, id int64) (io.ReadCloser, error) {
-	owner, repo, err := repository.GetSlug()
+func (s *GitHubSource) DownloadReleaseAsset(ctx context.Context, rel *Release, assetID int64) (io.ReadCloser, error) {
+	if rel == nil {
+		return nil, ErrInvalidRelease
+	}
+	owner, repo, err := rel.repository.GetSlug()
 	if err != nil {
 		return nil, err
 	}
 	// create a new http client so the GitHub library can download the redirected file (if any)
-	// don't pass the "default" one as it could be the one it's already using
-	client := &http.Client{}
-	rc, _, err := s.api.Repositories.DownloadReleaseAsset(ctx, owner, repo, id, client)
+	client := http.DefaultClient
+	rc, _, err := s.api.Repositories.DownloadReleaseAsset(ctx, owner, repo, assetID, client)
 	if err != nil {
-		return nil, fmt.Errorf("failed to call GitHub Releases API for getting the asset ID %d on repository '%s/%s': %w", id, owner, repo, err)
+		return nil, fmt.Errorf("failed to call GitHub Releases API for getting the asset ID %d on repository '%s/%s': %w", assetID, owner, repo, err)
 	}
 	return rc, nil
 }
