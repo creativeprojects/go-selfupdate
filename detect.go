@@ -2,7 +2,6 @@ package selfupdate
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -20,20 +19,30 @@ var reVersion = regexp.MustCompile(`\d+\.\d+\.\d+`)
 // So the asset can have a file extension for the corresponding compression format such as '.zip'.
 // On Windows, '.exe' also can be contained such as 'foo_windows_amd64.exe.zip'.
 func (up *Updater) DetectLatest(ctx context.Context, repository Repository) (release *Release, found bool, err error) {
-	return up.DetectVersion(ctx, repository, "")
+	if up.draft || up.prerelease || up.hasFilters() {
+		// draft or pre-release are not the latest
+		// filters are not necessarily matching the latest either
+		return up.DetectVersion(ctx, repository, "")
+	}
+
+	rel, err := up.source.LatestRelease(ctx, repository)
+	if err != nil {
+		log.Printf("Cannot directly fetch latest release: %s", err)
+		return up.DetectVersion(ctx, repository, "")
+	}
+
+	rel, asset, ver, found := up.findReleaseAndAsset([]SourceRelease{rel}, "")
+	if !found {
+		// try all versions after all
+		return up.DetectVersion(ctx, repository, "")
+	}
+
+	return up.validateReleaseAsset(repository, rel, asset, ver)
 }
 
 // DetectVersion tries to get the given version from the source provider.
 // And version indicates the required version.
 func (up *Updater) DetectVersion(ctx context.Context, repository Repository, version string) (release *Release, found bool, err error) {
-	rel, err := up.source.LatestRelease(ctx, repository)
-	if err != nil && !errors.Is(err, ErrNotSupported) {
-		log.Printf("Cannot directly fetch latest release: %s", err)
-	}
-	if rel != nil {
-		log.Printf("Latest available release is %s\n", rel.GetTagName())
-	}
-
 	rels, err := up.source.ListReleases(ctx, repository)
 	if err != nil {
 		return nil, false, err
@@ -44,7 +53,21 @@ func (up *Updater) DetectVersion(ctx context.Context, repository Repository, ver
 		return nil, false, nil
 	}
 
-	log.Printf("Successfully fetched release %s, name: %s, URL: %s, asset: %s", rel.GetTagName(), rel.GetName(), rel.GetURL(), asset.GetBrowserDownloadURL())
+	return up.validateReleaseAsset(repository, rel, asset, ver)
+}
+
+func (up *Updater) validateReleaseAsset(
+	repository Repository,
+	rel SourceRelease,
+	asset SourceAsset,
+	ver *semver.Version,
+) (release *Release, found bool, err error) {
+	log.Printf("Successfully fetched release %s, name: %s, URL: %s, asset: %s",
+		rel.GetTagName(),
+		rel.GetName(),
+		rel.GetURL(),
+		asset.GetBrowserDownloadURL(),
+	)
 
 	release = &Release{
 		version:            ver,

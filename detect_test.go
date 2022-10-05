@@ -152,40 +152,24 @@ func TestDetectReleasesForVariousArchives(t *testing.T) {
 		t.Run(tc.slug, func(t *testing.T) {
 			r, ok, err := DetectLatest(context.Background(), ParseSlug(tc.slug))
 			skipRateLimitExceeded(t, err)
-			if err != nil {
-				t.Fatal("Fetch failed:", err)
-			}
-			if !ok {
-				t.Fatal(tc.slug, "not found")
-			}
-			if r == nil {
-				t.Fatal("Release not detected")
-			}
-			if !r.Equal("1.2.3") {
-				t.Error("")
-			}
+
+			assert.NoError(t, err, "fetch failed")
+			assert.True(t, ok, "not found")
+			assert.NotNil(t, r, "release not detected")
+			assert.Truef(t, r.Equal("1.2.3"), "incorrect release: expected 1.2.3 but got %v", r.Version())
+
 			url := fmt.Sprintf("https://github.com/%s/releases/tag/%s1.2.3", tc.slug, tc.prefix)
-			if r.URL != url {
-				t.Error("URL is not correct. Want", url, "but got", r.URL)
-			}
-			if r.ReleaseNotes == "" {
-				t.Error("Release note is unexpectedly empty")
-			}
+			assert.Equal(t, url, r.URL)
+			assert.NotEmpty(t, r.ReleaseNotes, "Release note is unexpectedly empty")
+
 			if !strings.HasPrefix(r.AssetURL, fmt.Sprintf("https://github.com/%s/releases/download/%s1.2.3/", tc.slug, tc.prefix)) {
 				t.Error("Unexpected asset URL:", r.AssetURL)
 			}
-			if r.Name == "" {
-				t.Error("Release name is unexpectedly empty")
-			}
-			if r.AssetByteSize == 0 {
-				t.Error("Asset's size is unexpectedly zero")
-			}
-			if r.AssetID == 0 {
-				t.Error("Asset's ID is unexpectedly zero")
-			}
-			if r.PublishedAt.IsZero() {
-				t.Error("Release time is unexpectedly zero")
-			}
+
+			assert.NotEmpty(t, r.Name, "Release name is unexpectedly empty")
+			assert.NotEmpty(t, r.AssetByteSize, "Asset's size is unexpectedly zero")
+			assert.NotEmpty(t, r.AssetID, "Asset's ID is unexpectedly zero")
+			assert.NotZero(t, r.PublishedAt)
 		})
 	}
 }

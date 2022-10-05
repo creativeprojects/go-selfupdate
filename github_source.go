@@ -89,21 +89,23 @@ func (s *GitHubSource) ListReleases(ctx context.Context, repository Repository) 
 
 // LatestRelease only returns the most recent release
 func (s *GitHubSource) LatestRelease(ctx context.Context, repository Repository) (SourceRelease, error) {
-	owner, repo, err := repository.GetSlug()
-	if err != nil {
-		return nil, err
-	}
-	rel, res, err := s.api.Repositories.GetLatestRelease(ctx, owner, repo)
-	if err != nil {
-		if res != nil && res.StatusCode == 404 {
-			// 404 means repository not found or release not found. It's not an error here.
-			log.Print("Repository or release not found")
-			return nil, nil
-		}
-		log.Printf("API returned an error response: %s", err)
-		return nil, err
-	}
-	return NewGitHubRelease(rel), nil
+	return nil, ErrNotSupported
+	// LatestRelease would not return the highest version, but simply the latest in GitHub
+	// owner, repo, err := repository.GetSlug()
+	// if err != nil {
+	// 	return nil, err
+	// }
+	// rel, res, err := s.api.Repositories.GetLatestRelease(ctx, owner, repo)
+	// if err != nil {
+	// 	if res != nil && res.StatusCode == 404 {
+	// 		// 404 means repository not found or release not found. It's not an error here.
+	// 		log.Print("Repository or release not found")
+	// 		return nil, nil
+	// 	}
+	// 	log.Printf("API returned an error response: %s", err)
+	// 	return nil, err
+	// }
+	// return NewGitHubRelease(rel), nil
 }
 
 // DownloadReleaseAsset downloads an asset from a release.
