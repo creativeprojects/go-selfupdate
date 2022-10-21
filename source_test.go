@@ -29,17 +29,6 @@ func (s *MockSource) ListReleases(ctx context.Context, repository Repository) ([
 	return s.releases, nil
 }
 
-// LatestRelease only returns the most recent release
-func (s *MockSource) LatestRelease(ctx context.Context, repository Repository) (SourceRelease, error) {
-	if _, _, err := repository.GetSlug(); err != nil {
-		return nil, err
-	}
-	if len(s.releases) == 0 {
-		return nil, nil
-	}
-	return s.releases[len(s.releases)-1], nil
-}
-
 // DownloadReleaseAsset returns a file from its ID. repository parameter is not used.
 func (s *MockSource) DownloadReleaseAsset(ctx context.Context, rel *Release, assetID int64) (io.ReadCloser, error) {
 	if rel == nil {

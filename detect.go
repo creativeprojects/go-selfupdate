@@ -19,25 +19,7 @@ var reVersion = regexp.MustCompile(`\d+\.\d+\.\d+`)
 // So the asset can have a file extension for the corresponding compression format such as '.zip'.
 // On Windows, '.exe' also can be contained such as 'foo_windows_amd64.exe.zip'.
 func (up *Updater) DetectLatest(ctx context.Context, repository Repository) (release *Release, found bool, err error) {
-	if up.draft || up.prerelease || up.hasFilters() {
-		// draft or pre-release are not the latest
-		// filters are not necessarily matching the latest either
-		return up.DetectVersion(ctx, repository, "")
-	}
-
-	rel, err := up.source.LatestRelease(ctx, repository)
-	if err != nil {
-		log.Printf("Cannot directly fetch latest release: %s", err)
-		return up.DetectVersion(ctx, repository, "")
-	}
-
-	rel, asset, ver, found := up.findReleaseAndAsset([]SourceRelease{rel}, "")
-	if !found {
-		// try all versions after all
-		return up.DetectVersion(ctx, repository, "")
-	}
-
-	return up.validateReleaseAsset(repository, rel, asset, ver)
+	return up.DetectVersion(ctx, repository, "")
 }
 
 // DetectVersion tries to get the given version from the source provider.

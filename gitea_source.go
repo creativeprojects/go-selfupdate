@@ -81,11 +81,6 @@ func (s *GiteaSource) ListReleases(ctx context.Context, repository Repository) (
 	return releases, nil
 }
 
-// LatestRelease only returns the most recent release
-func (s *GiteaSource) LatestRelease(ctx context.Context, repository Repository) (SourceRelease, error) {
-	return nil, ErrNotSupported
-}
-
 // DownloadReleaseAsset downloads an asset from a release.
 // It returns an io.ReadCloser: it is your responsibility to Close it.
 func (s *GiteaSource) DownloadReleaseAsset(ctx context.Context, rel *Release, assetID int64) (io.ReadCloser, error) {

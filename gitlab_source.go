@@ -67,11 +67,6 @@ func (s *GitLabSource) ListReleases(ctx context.Context, repository Repository) 
 	return releases, nil
 }
 
-// LatestRelease only returns the most recent release
-func (s *GitLabSource) LatestRelease(ctx context.Context, repository Repository) (SourceRelease, error) {
-	return nil, ErrNotSupported
-}
-
 // DownloadReleaseAsset downloads an asset from a release.
 // It returns an io.ReadCloser: it is your responsibility to Close it.
 // Please note releaseID is not used by GitLabSource.
@@ -97,7 +92,9 @@ func (s *GitLabSource) DownloadReleaseAsset(ctx context.Context, rel *Release, a
 		return nil, err
 	}
 
-	req.Header.Set("PRIVATE-TOKEN", "token "+s.token)
+	if s.token != "" {
+		req.Header.Set("PRIVATE-TOKEN", s.token)
+	}
 	response, err := client.Do(req)
 
 	if err != nil {

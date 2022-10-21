@@ -31,14 +31,6 @@ func TestGiteaTokenIsNotSet(t *testing.T) {
 	}
 }
 
-func TestGiteaLatestReleaseNotSupported(t *testing.T) {
-	source, err := NewGiteaSource(GiteaConfig{BaseURL: "https://git.lbsfilm.at"})
-	require.NoError(t, err)
-
-	_, err = source.LatestRelease(context.Background(), ParseSlug("creativeprojects/resticprofile"))
-	assert.ErrorIs(t, err, ErrNotSupported)
-}
-
 func TestGiteaListReleasesContextCancelled(t *testing.T) {
 	source, err := NewGiteaSource(GiteaConfig{BaseURL: "https://git.lbsfilm.at"})
 	require.NoError(t, err)

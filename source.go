@@ -9,7 +9,6 @@ import (
 // Source interface to load the releases from (GitHubSource for example)
 type Source interface {
 	ListReleases(ctx context.Context, repository Repository) ([]SourceRelease, error)
-	LatestRelease(ctx context.Context, repository Repository) (SourceRelease, error)
 	DownloadReleaseAsset(ctx context.Context, rel *Release, assetID int64) (io.ReadCloser, error)
 }
 

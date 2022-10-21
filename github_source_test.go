@@ -45,18 +45,6 @@ func TestGitHubEnterpriseClientValidURL(t *testing.T) {
 	}
 }
 
-// LatestRelease is unsupported for now
-// func TestGitHubLatestReleaseContextCancelled(t *testing.T) {
-// 	source, err := NewGitHubSource(GitHubConfig{})
-// 	require.NoError(t, err)
-
-// 	ctx, cancelFn := context.WithCancel(context.Background())
-// 	cancelFn()
-
-// 	_, err = source.LatestRelease(ctx, ParseSlug("creativeprojects/resticprofile"))
-// 	assert.ErrorIs(t, err, context.Canceled)
-// }
-
 func TestGitHubListReleasesContextCancelled(t *testing.T) {
 	source, err := NewGitHubSource(GitHubConfig{})
 	require.NoError(t, err)

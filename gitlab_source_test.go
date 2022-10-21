@@ -45,14 +45,6 @@ func TestGitLabEnterpriseClientValidURL(t *testing.T) {
 	}
 }
 
-func TestGitLabLatestReleaseContextCancelled(t *testing.T) {
-	source, err := NewGitLabSource(GitLabConfig{})
-	require.NoError(t, err)
-
-	_, err = source.LatestRelease(context.Background(), ParseSlug("creativeprojects/resticprofile"))
-	assert.ErrorIs(t, err, ErrNotSupported)
-}
-
 func TestGitLabListReleasesContextCancelled(t *testing.T) {
 	source, err := NewGitLabSource(GitLabConfig{})
 	require.NoError(t, err)

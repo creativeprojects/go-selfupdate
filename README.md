@@ -234,6 +234,23 @@ Currently implemented are
 
 Check the *-custom examples in cmd to see how a custom source like the GiteaSource can be used
 
+# GitLab
+
+Support for GitLab is experimental.
+
+To be able to download assets from a private instance of GitLab, you have to publish your files to the [Generic Package Registry](https://docs.gitlab.com/ee/user/packages/package_registry/index.html).
+
+If you're using goreleaser, you just need to add this option:
+
+```yaml
+# .goreleaser.yml
+gitlab_urls:
+  use_package_registry: true
+
+```
+
+See [goreleaser documentation](https://goreleaser.com/scm/gitlab/#generic-package-registry) for more information.
+
 # Copyright
 
 This work is heavily based on:
