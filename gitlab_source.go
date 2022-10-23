@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
+	"strings"
 
 	"github.com/xanzy/go-gitlab"
 )
@@ -20,8 +22,9 @@ type GitLabConfig struct {
 
 // GitLabSource is used to load release information from GitLab
 type GitLabSource struct {
-	api   *gitlab.Client
-	token string
+	api     *gitlab.Client
+	token   string
+	baseURL string
 }
 
 // NewGitLabSource creates a new GitLabSource from a config object.
@@ -44,8 +47,9 @@ func NewGitLabSource(config GitLabConfig) (*GitLabSource, error) {
 		return nil, fmt.Errorf("cannot create GitLab client: %w", err)
 	}
 	return &GitLabSource{
-		api:   client,
-		token: token,
+		api:     client,
+		token:   token,
+		baseURL: config.BaseURL,
 	}, nil
 }
 
@@ -93,7 +97,14 @@ func (s *GitLabSource) DownloadReleaseAsset(ctx context.Context, rel *Release, a
 	}
 
 	if s.token != "" {
-		req.Header.Set("PRIVATE-TOKEN", s.token)
+		// verify request is from same domain not to leak tokens
+		ok, err := sameDomain(s.baseURL, downloadUrl)
+		if err != nil {
+			return nil, err
+		}
+		if ok {
+			req.Header.Set("PRIVATE-TOKEN", s.token)
+		}
 	}
 	response, err := client.Do(req)
 
@@ -103,6 +114,19 @@ func (s *GitLabSource) DownloadReleaseAsset(ctx context.Context, rel *Release, a
 	}
 
 	return response.Body, nil
+}
+
+// sameDomain returns true if other is in the same domain as origin
+func sameDomain(origin, other string) (bool, error) {
+	originURL, err := url.Parse(origin)
+	if err != nil {
+		return false, err
+	}
+	otherURL, err := url.Parse(other)
+	if err != nil {
+		return false, err
+	}
+	return originURL.Hostname() != "" && strings.HasSuffix(otherURL.Hostname(), originURL.Hostname()), nil
 }
 
 // Verify interface
