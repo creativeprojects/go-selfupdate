@@ -41,7 +41,7 @@ jobs:
         if [[ "${GITHUB_TOKEN}" != "" ]]; then
           go test -v -race -coverprofile=coverage.txt . ./update
         else
-          go test -v -race -short . ./update
+          go test -v -race -short -coverprofile=coverage.txt . ./update
         fi
 
     - name: Code coverage with codecov
