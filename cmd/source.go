@@ -1,56 +1,99 @@
 package cmd
 
 import (
+	"fmt"
 	"net/url"
 	"strings"
 
 	"github.com/creativeprojects/go-selfupdate"
 )
 
-func GetSource(cvsType, repo string) (selfupdate.Source, string, error) {
-	if !strings.HasPrefix(repo, "http") {
-		source, err := getSourceFromName(cvsType)
-		if err != nil {
-			return nil, repo, err
+// SplitDomainSlug tries to make sense of the repository string
+// and returns a domain name (if present) and a slug.
+//
+// Example of valid entries:
+//
+//   - "owner/name"
+//   - "github.com/owner/name"
+//   - "http://github.com/owner/name"
+func SplitDomainSlug(repo string) (domain, slug string, err error) {
+	// simple case first => only a slug
+	parts := strings.Split(repo, "/")
+	if len(parts) == 2 {
+		if parts[0] == "" || parts[1] == "" {
+			return "", "", fmt.Errorf("invalid slug or URL %q", repo)
 		}
-		return source, repo, nil
+		return "", repo, nil
 	}
+	// trim trailing /
+	repo = strings.TrimSuffix(repo, "/")
+
+	if !strings.HasPrefix(repo, "http") && !strings.Contains(repo, "://") && !strings.HasPrefix(repo, "/") {
+		// add missing scheme
+		repo = "https://" + repo
+	}
+
 	repoURL, err := url.Parse(repo)
 	if err != nil {
-		return nil, repo, err
+		return "", "", err
 	}
-	slug := strings.TrimPrefix(repoURL.Path, "/")
 
-	source, err := getSourceFromURL(repoURL)
-	if err != nil {
-		return nil, slug, err
+	// make sure hostname looks like a real domain name
+	if !strings.Contains(repoURL.Hostname(), ".") {
+		return "", "", fmt.Errorf("invalid domain name %q", repoURL.Hostname())
 	}
-	return source, slug, nil
+	domain = repoURL.Scheme + "://" + repoURL.Host
+	slug = strings.TrimPrefix(repoURL.Path, "/")
+
+	if slug == "" {
+		return "", "", fmt.Errorf("invalid URL %q", repo)
+	}
+	return domain, slug, nil
 }
 
-func getSourceFromName(name string) (selfupdate.Source, error) {
+func GetSource(cvsType, domain string) (selfupdate.Source, error) {
+	if cvsType != "auto" && cvsType != "" {
+		source, err := getSourceFromName(cvsType, domain)
+		if err != nil {
+			return nil, err
+		}
+		return source, nil
+	}
+
+	source, err := getSourceFromURL(domain)
+	if err != nil {
+		return nil, err
+	}
+	return source, nil
+}
+
+func getSourceFromName(name, domain string) (selfupdate.Source, error) {
 	switch name {
 	case "gitea":
-		return selfupdate.NewGiteaSource(selfupdate.GiteaConfig{BaseURL: "https://gitea.com/"})
+		return selfupdate.NewGiteaSource(selfupdate.GiteaConfig{BaseURL: domain})
 
 	case "gitlab":
-		return selfupdate.NewGitLabSource(selfupdate.GitLabConfig{})
+		return selfupdate.NewGitLabSource(selfupdate.GitLabConfig{BaseURL: domain})
 
 	default:
-		return selfupdate.NewGitHubSource(selfupdate.GitHubConfig{})
+		return newGitHubSource(domain)
 	}
 }
 
-func getSourceFromURL(repoURL *url.URL) (selfupdate.Source, error) {
-	if strings.Contains(repoURL.Hostname(), "gitea") {
-		return selfupdate.NewGiteaSource(selfupdate.GiteaConfig{BaseURL: baseURL(repoURL)})
+func getSourceFromURL(domain string) (selfupdate.Source, error) {
+	if strings.Contains(domain, "gitea") {
+		return selfupdate.NewGiteaSource(selfupdate.GiteaConfig{BaseURL: domain})
 	}
-	if strings.Contains(repoURL.Hostname(), "gitlab") {
-		return selfupdate.NewGitLabSource(selfupdate.GitLabConfig{BaseURL: baseURL(repoURL)})
+	if strings.Contains(domain, "gitlab") {
+		return selfupdate.NewGitLabSource(selfupdate.GitLabConfig{BaseURL: domain})
 	}
-	return selfupdate.NewGitHubSource(selfupdate.GitHubConfig{EnterpriseBaseURL: baseURL(repoURL)})
+	return newGitHubSource(domain)
 }
 
-func baseURL(base *url.URL) string {
-	return base.Scheme + "://" + base.Host
+func newGitHubSource(domain string) (*selfupdate.GitHubSource, error) {
+	config := selfupdate.GitHubConfig{}
+	if domain != "" && !strings.HasSuffix(domain, "://github.com") {
+		config.EnterpriseBaseURL = domain
+	}
+	return selfupdate.NewGitHubSource(config)
 }

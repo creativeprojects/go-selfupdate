@@ -51,7 +51,17 @@ func main() {
 
 	repo := flag.Arg(0)
 
-	source, repo, err := cmd.GetSource(cvsType, repo)
+	domain, slug, err := cmd.SplitDomainSlug(repo)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	if verbose {
+		fmt.Printf("slug %q on domain %q\n", slug, domain)
+	}
+
+	source, err := cmd.GetSource(cvsType, domain)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -72,7 +82,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	latest, found, err := updater.DetectLatest(context.Background(), selfupdate.ParseSlug(repo))
+	latest, found, err := updater.DetectLatest(context.Background(), selfupdate.ParseSlug(slug))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

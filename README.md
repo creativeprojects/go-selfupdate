@@ -54,7 +54,6 @@ This library started as a fork of https://github.com/rhysd/go-github-selfupdate.
 Here's an example how to use the library for an application to update itself
 
 ```go
-// keep this function here, this is the example from the README
 func update(version string) error {
 	latest, found, err := selfupdate.DetectLatest(context.Background(), selfupdate.ParseSlug("creativeprojects/resticprofile"))
 	if err != nil {
@@ -80,6 +79,72 @@ func update(version string) error {
 	return nil
 }
 ```
+
+# Upgrade from v0+ to v1
+
+Version v1+ has a **stable** API. It is slightly different from the API of versions 0+.
+
+## Repository
+
+Some functions needed a couple `owner`/`repo` and some other a single string called `slug`. These have been replaced by a `Repository`.
+
+Two constructors are available:
+
+### ParseSlug
+
+Parses a *slug* string like `owner/repository_name`
+
+```go
+func ParseSlug(slug string) RepositorySlug
+```
+
+### NewRepositorySlug
+
+Creates a repository from both owner and repo strings
+
+```go
+func NewRepositorySlug(owner, repo string) RepositorySlug
+```
+
+### NewRepositoryID (GitLab only)
+
+GitLab can also refer to a repository via its internal ID. This constructor can be used with a numeric repository ID.
+
+```go
+func NewRepositoryID(id int) RepositoryID
+```
+
+### Context
+
+All methods are now accepting a `context` as their first parameter. You can use it to cancel a long running operation.
+
+## Package functions
+
+| v0 | v1 |
+|----|----|
+| UpdateTo(assetURL, assetFileName, cmdPath string) error | UpdateTo(ctx context.Context, assetURL, assetFileName, cmdPath string) error |
+| DetectLatest(slug string) (*Release, bool, error) | DetectLatest(ctx context.Context, repository Repository) (*Release, bool, error) |
+| DetectVersion(slug string, version string) (*Release, bool, error) | DetectVersion(ctx context.Context, repository Repository, version string) (*Release, bool, error) |
+| UpdateCommand(cmdPath string, current string, slug string) (*Release, error) | UpdateCommand(ctx context.Context, cmdPath string, current string, repository Repository) (*Release, error) |
+| UpdateSelf(current string, slug string) (*Release, error) | UpdateSelf(ctx context.Context, current string, repository Repository) (*Release, error) |
+
+## Methods on Source interface
+
+| v0 | v1 |
+|----|----|
+| ListReleases(owner, repo string) ([]SourceRelease, error) | ListReleases(ctx context.Context, repository Repository) ([]SourceRelease, error) |
+| DownloadReleaseAsset(owner, repo string, releaseID, id int64) (io.ReadCloser, error) | DownloadReleaseAsset(ctx context.Context, rel *Release, assetID int64) (io.ReadCloser, error) |
+
+## Methods on Updater struct
+
+| v0 | v1 |
+|----|----|
+| DetectLatest(slug string) (release *Release, found bool, err error) | DetectLatest(ctx context.Context, repository Repository) (release *Release, found bool, err error) |
+| DetectVersion(slug string, version string) (release *Release, found bool, err error) | DetectVersion(ctx context.Context, repository Repository, version string) (release *Release, found bool, err error) |
+| UpdateCommand(cmdPath string, current string, slug string) (*Release, error) | UpdateCommand(ctx context.Context, cmdPath string, current string, repository Repository) (*Release, error) |
+| UpdateSelf(current string, slug string) (*Release, error) | UpdateSelf(ctx context.Context, current string, repository Repository) (*Release, error) |
+| UpdateTo(rel *Release, cmdPath string) error | UpdateTo(ctx context.Context, rel *Release, cmdPath string) error |
+
 
 # Naming Rules of Released Binaries
 
@@ -224,15 +289,13 @@ Tools like [goreleaser][] produce a single checksum file for all your assets. A 
 updater, _ := NewUpdater(Config{Validator: &ChecksumValidator{UniqueFilename: "checksums.txt"}})
 ```
 
-# Using other providers than Github
+# Other providers than Github
 
 This library can be easily extended by providing a new source and release implementation for any git provider
 Currently implemented are 
 - Github (default)
 - Gitea
 - Gitlab
-
-Check the *-custom examples in cmd to see how a custom source like the GiteaSource can be used
 
 # GitLab
 
@@ -250,6 +313,44 @@ gitlab_urls:
 ```
 
 See [goreleaser documentation](https://goreleaser.com/scm/gitlab/#generic-package-registry) for more information.
+
+## Example:
+
+```go
+func update() {
+	source, err := selfupdate.NewGitLabSource(selfupdate.GitLabConfig{
+		BaseURL: "https://private.instance.on.gitlab.com/",
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	updater, err := selfupdate.NewUpdater(selfupdate.Config{
+		Source:    source,
+		Validator: &selfupdate.ChecksumValidator{UniqueFilename: "checksums.txt"}, // checksum from goreleaser
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	release, found, err := updater.DetectLatest(context.Background(), selfupdate.NewRepositorySlug("owner", "cli-tool"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	if !found {
+		log.Print("Release not found")
+		return
+	}
+	fmt.Printf("found release %s\n", release.Version())
+
+	exe, err := os.Executable()
+	if err != nil {
+		return errors.New("could not locate executable path")
+	}
+	err = updater.UpdateTo(context.Background(), release, exe)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+```
 
 # Copyright
 

@@ -8,7 +8,7 @@ $ go get -u github.com/creativeprojects/go-selfupdate/cmd/get-release
 
 ## Usage
 
-Usage is quite similar to `go get`. But `{package}` must be hosted on GitHub. So it needs to start with `github.com/`.
+Usage is quite similar to `go get`.
 
 ```
 $ get-release {package}

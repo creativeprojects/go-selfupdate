@@ -5,9 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"os"
-	"strings"
 
 	"github.com/xanzy/go-gitlab"
 )
@@ -73,7 +71,6 @@ func (s *GitLabSource) ListReleases(ctx context.Context, repository Repository) 
 
 // DownloadReleaseAsset downloads an asset from a release.
 // It returns an io.ReadCloser: it is your responsibility to Close it.
-// Please note releaseID is not used by GitLabSource.
 func (s *GitLabSource) DownloadReleaseAsset(ctx context.Context, rel *Release, assetID int64) (io.ReadCloser, error) {
 	if rel == nil {
 		return nil, ErrInvalidRelease
@@ -97,8 +94,8 @@ func (s *GitLabSource) DownloadReleaseAsset(ctx context.Context, rel *Release, a
 	}
 
 	if s.token != "" {
-		// verify request is from same domain not to leak tokens
-		ok, err := sameDomain(s.baseURL, downloadUrl)
+		// verify request is from same domain not to leak token
+		ok, err := canUseTokenForDomain(s.baseURL, downloadUrl)
 		if err != nil {
 			return nil, err
 		}
@@ -114,19 +111,6 @@ func (s *GitLabSource) DownloadReleaseAsset(ctx context.Context, rel *Release, a
 	}
 
 	return response.Body, nil
-}
-
-// sameDomain returns true if other is in the same domain as origin
-func sameDomain(origin, other string) (bool, error) {
-	originURL, err := url.Parse(origin)
-	if err != nil {
-		return false, err
-	}
-	otherURL, err := url.Parse(other)
-	if err != nil {
-		return false, err
-	}
-	return originURL.Hostname() != "" && strings.HasSuffix(otherURL.Hostname(), originURL.Hostname()), nil
 }
 
 // Verify interface

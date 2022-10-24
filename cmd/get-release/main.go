@@ -36,7 +36,19 @@ func main() {
 		selfupdate.SetLogger(log.New(os.Stdout, "", 0))
 	}
 
-	source, slug, err := cmd.GetSource(cvsType, flag.Arg(0))
+	repo := flag.Arg(0)
+
+	domain, slug, err := cmd.SplitDomainSlug(repo)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	if verbose {
+		fmt.Printf("slug %q on domain %q\n", slug, domain)
+	}
+
+	source, err := cmd.GetSource(cvsType, domain)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

@@ -22,8 +22,9 @@ type GiteaConfig struct {
 
 // GiteaSource is used to load release information from Gitea
 type GiteaSource struct {
-	api   *gitea.Client
-	token string
+	api     *gitea.Client
+	token   string
+	baseURL string
 }
 
 // NewGiteaSource creates a new NewGiteaSource from a config object.
@@ -51,8 +52,9 @@ func NewGiteaSource(config GiteaConfig) (*GiteaSource, error) {
 	}
 
 	return &GiteaSource{
-		api:   client,
-		token: token,
+		api:     client,
+		token:   token,
+		baseURL: config.BaseURL,
 	}, nil
 }
 
@@ -104,7 +106,16 @@ func (s *GiteaSource) DownloadReleaseAsset(ctx context.Context, rel *Release, as
 		return nil, err
 	}
 
-	req.Header.Set("Authorization", "token "+s.token)
+	if s.token != "" {
+		// verify request is from same domain not to leak token
+		ok, err := canUseTokenForDomain(s.baseURL, attachment.DownloadURL)
+		if err != nil {
+			return nil, err
+		}
+		if ok {
+			req.Header.Set("Authorization", "token "+s.token)
+		}
+	}
 	response, err := client.Do(req)
 
 	if err != nil {
