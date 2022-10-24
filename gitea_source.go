@@ -14,17 +14,17 @@ import (
 type GiteaConfig struct {
 	// APIToken represents Gitea API token. If it's not empty, it will be used for authentication for the API
 	APIToken string
-	// BaseURL is a base URL of your gitea instance
+	// BaseURL is a base URL of your gitea instance. This parameter has NO default value.
 	BaseURL string
-	// Context used by the http client (default to context.Background)
+	// Deprecated: Context option is no longer used
 	Context context.Context
 }
 
 // GiteaSource is used to load release information from Gitea
 type GiteaSource struct {
-	api   *gitea.Client
-	ctx   context.Context
-	token string
+	api     *gitea.Client
+	token   string
+	baseURL string
 }
 
 // NewGiteaSource creates a new NewGiteaSource from a config object.
@@ -48,31 +48,32 @@ func NewGiteaSource(config GiteaConfig) (*GiteaSource, error) {
 
 	client, err := gitea.NewClient(config.BaseURL, gitea.SetContext(ctx), gitea.SetToken(token))
 	if err != nil {
-		return nil, fmt.Errorf("Error connecting to gitea: %w", err)
+		return nil, fmt.Errorf("error connecting to gitea: %w", err)
 	}
 
 	return &GiteaSource{
-		api:   client,
-		ctx:   ctx,
-		token: token,
+		api:     client,
+		token:   token,
+		baseURL: config.BaseURL,
 	}, nil
 }
 
 // ListReleases returns all available releases
-func (s *GiteaSource) ListReleases(owner, repo string) ([]SourceRelease, error) {
-	err := checkOwnerRepoParameters(owner, repo)
+func (s *GiteaSource) ListReleases(ctx context.Context, repository Repository) ([]SourceRelease, error) {
+	owner, repo, err := repository.GetSlug()
 	if err != nil {
 		return nil, err
 	}
 
+	s.api.SetContext(ctx)
 	rels, res, err := s.api.ListReleases(owner, repo, gitea.ListReleasesOptions{})
 	if err != nil {
-		log.Printf("API returned an error response: %s", err)
 		if res != nil && res.StatusCode == 404 {
 			// 404 means repository not found or release not found. It's not an error here.
-			log.Print("API returned 404. Repository or release not found")
+			log.Print("Repository or release not found")
 			return nil, nil
 		}
+		log.Printf("API returned an error response: %s", err)
 		return nil, err
 	}
 	releases := make([]SourceRelease, len(rels))
@@ -82,36 +83,47 @@ func (s *GiteaSource) ListReleases(owner, repo string) ([]SourceRelease, error) 
 	return releases, nil
 }
 
-// DownloadReleaseAsset downloads an asset from its ID.
-// It returns an io.ReadCloser: it is your responsability to Close it.
-func (s *GiteaSource) DownloadReleaseAsset(owner, repo string, releaseID, id int64) (io.ReadCloser, error) {
-	err := checkOwnerRepoParameters(owner, repo)
+// DownloadReleaseAsset downloads an asset from a release.
+// It returns an io.ReadCloser: it is your responsibility to Close it.
+func (s *GiteaSource) DownloadReleaseAsset(ctx context.Context, rel *Release, assetID int64) (io.ReadCloser, error) {
+	if rel == nil {
+		return nil, ErrInvalidRelease
+	}
+	owner, repo, err := rel.repository.GetSlug()
 	if err != nil {
 		return nil, err
 	}
-	// create a new http client so the GitHub library can download the redirected file (if any)
-	// don't pass the "default" one as it could be the one it's already using
-	attachment, _, err := s.api.GetReleaseAttachment(owner, repo, releaseID, id)
+	s.api.SetContext(ctx)
+	attachment, _, err := s.api.GetReleaseAttachment(owner, repo, rel.ReleaseID, assetID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to call Gitea Releases API for getting the asset ID %d on repository '%s/%s': %w", id, owner, repo, err)
+		return nil, fmt.Errorf("failed to call Gitea Releases API for getting the asset ID %d on repository '%s/%s': %w", assetID, owner, repo, err)
 	}
 
-	client := &http.Client{}
-	req, err := http.NewRequest("GET", attachment.DownloadURL, nil)
+	client := http.DefaultClient
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, attachment.DownloadURL, http.NoBody)
 	if err != nil {
-		return nil, err
-	}
-	log.Print(err)
-
-	req.Header.Set("Authorization", "token "+s.token)
-	rc, err := client.Do(req)
-	log.Print(err)
-
-	if err != nil {
+		log.Print(err)
 		return nil, err
 	}
 
-	return rc.Body, nil
+	if s.token != "" {
+		// verify request is from same domain not to leak token
+		ok, err := canUseTokenForDomain(s.baseURL, attachment.DownloadURL)
+		if err != nil {
+			return nil, err
+		}
+		if ok {
+			req.Header.Set("Authorization", "token "+s.token)
+		}
+	}
+	response, err := client.Do(req)
+
+	if err != nil {
+		log.Print(err)
+		return nil, err
+	}
+
+	return response.Body, nil
 }
 
 // Verify interface

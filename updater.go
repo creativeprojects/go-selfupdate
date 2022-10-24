@@ -73,7 +73,7 @@ func DefaultUpdater() *Updater {
 	if defaultUpdater != nil {
 		return defaultUpdater
 	}
-	// an error can only be returned when using GitHub Entreprise URLs
+	// an error can only be returned when using GitHub Enterprise URLs
 	// so we're safe here :)
 	source, _ := NewGitHubSource(GitHubConfig{})
 	defaultUpdater = &Updater{

@@ -1,31 +1,48 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
 	"os"
-	"regexp"
-	"strings"
 
 	"github.com/creativeprojects/go-selfupdate"
+	"github.com/creativeprojects/go-selfupdate/cmd"
+)
+
+const (
+	usageBloc = `
+Usage: detect-latest-release [flags] {repository}
+
+  {repository} can be:
+    - URL to a repository
+    - "owner/repository_name" couple separated by a "/"
+    - numeric ID for Gitlab only
+
+`
 )
 
 func usage() {
-	fmt.Fprint(os.Stderr, "Usage: detect-latest-release {repo}\n\n  {repo} must be URL to GitHub repository or in 'owner/name' format.\n\n")
+	fmt.Fprint(os.Stderr, usageBloc, "Flags:\n")
 	flag.PrintDefaults()
 }
 
 func main() {
-	var verbose bool
+	var help, verbose bool
+	var cvsType, forceOS, forceArch string
+	flag.BoolVar(&help, "h", false, "Show help")
 	flag.BoolVar(&verbose, "v", false, "Display debugging information")
+	flag.StringVar(&cvsType, "t", "auto", "Version control: \"github\", \"gitea\" or \"gitlab\"")
+	flag.StringVar(&forceOS, "o", "", "OS name to use (windows, darwin, linux, etc)")
+	flag.StringVar(&forceArch, "a", "", "CPU architecture to use (amd64, arm64, etc)")
 
 	flag.Usage = usage
 	flag.Parse()
 
-	if flag.NArg() != 1 {
+	if help || flag.NArg() != 1 {
 		usage()
-		os.Exit(1)
+		return
 	}
 
 	if verbose {
@@ -33,29 +50,49 @@ func main() {
 	}
 
 	repo := flag.Arg(0)
-	repo = strings.TrimPrefix(repo, "https://")
-	repo = strings.TrimPrefix(repo, "github.com/")
 
-	matched, err := regexp.MatchString("[^/]+/[^/]+", repo)
+	domain, slug, err := cmd.SplitDomainSlug(repo)
 	if err != nil {
-		panic(err)
-	}
-	if !matched {
-		usage()
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
-	latest, found, err := selfupdate.DetectLatest(repo)
+	if verbose {
+		fmt.Printf("slug %q on domain %q\n", slug, domain)
+	}
+
+	source, err := cmd.GetSource(cvsType, domain)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	cfg := selfupdate.Config{
+		Source: source,
+	}
+	if forceOS != "" {
+		cfg.OS = forceOS
+	}
+	if forceArch != "" {
+		cfg.Arch = forceArch
+	}
+	updater, err := selfupdate.NewUpdater(cfg)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	latest, found, err := updater.DetectLatest(context.Background(), selfupdate.ParseSlug(slug))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 	if !found {
-		fmt.Println("No release was found")
+		fmt.Println("No release found")
 		return
 	}
 	fmt.Printf("Latest version: %s\n", latest.Version())
-	fmt.Printf("Download URL: %s\n", latest.AssetURL)
-	fmt.Printf("Release URL: %s\n", latest.URL)
+	fmt.Printf("Download URL:   %q\n", latest.AssetURL)
+	fmt.Printf("Release URL:    %q\n", latest.URL)
 	fmt.Printf("Release Notes:\n%s\n", latest.ReleaseNotes)
 }

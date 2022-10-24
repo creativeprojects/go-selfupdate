@@ -2,8 +2,7 @@ package selfupdate
 
 import (
 	"bytes"
-	"errors"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -20,7 +19,7 @@ func TestCompressionNotRequired(t *testing.T) {
 	r, err := DecompressCommand(want, "https://github.com/foo/bar/releases/download/v1.2.3/foo", "foo", runtime.GOOS, runtime.GOOS)
 	require.NoError(t, err)
 
-	have, err := ioutil.ReadAll(r)
+	have, err := io.ReadAll(r)
 	require.NoError(t, err)
 	assert.Equal(t, buf, have)
 }
@@ -36,7 +35,7 @@ func getArchiveFileExt(file string) string {
 }
 
 func TestDecompress(t *testing.T) {
-	for _, n := range []string{
+	for _, testCase := range []string{
 		"testdata/foo.zip",
 		"testdata/single-file.zip",
 		"testdata/single-file.gz",
@@ -47,28 +46,25 @@ func TestDecompress(t *testing.T) {
 		"testdata/single-file.xz",
 		"testdata/single-file.bz2",
 	} {
-		t.Run(n, func(t *testing.T) {
-			f, err := os.Open(n)
+		t.Run(testCase, func(t *testing.T) {
+			f, err := os.Open(testCase)
 			require.NoError(t, err)
 
-			ext := getArchiveFileExt(n)
+			ext := getArchiveFileExt(testCase)
 			url := "https://github.com/foo/bar/releases/download/v1.2.3/bar" + ext
 			r, err := DecompressCommand(f, url, "bar", runtime.GOOS, runtime.GOOS)
 			require.NoError(t, err)
 
-			bytes, err := ioutil.ReadAll(r)
+			content, err := io.ReadAll(r)
 			require.NoError(t, err)
 
-			s := string(bytes)
-			if s != "this is test\n" {
-				t.Fatal("Decompressing zip failed into unexpected content", s)
-			}
+			assert.Equal(t, "this is test\n", string(content), "Decompressing zip failed into unexpected content")
 		})
 	}
 }
 
 func TestDecompressInvalidArchive(t *testing.T) {
-	for _, a := range []struct {
+	for _, testCase := range []struct {
 		name string
 		msg  string
 	}{
@@ -80,22 +76,21 @@ func TestDecompressInvalidArchive(t *testing.T) {
 		{"testdata/invalid-tar.tar.xz", "failed to decompress tar file"},
 		{"testdata/invalid-xz.tar.xz", "failed to decompress tar.xz file"},
 	} {
-		f, err := os.Open(a.name)
+		f, err := os.Open(testCase.name)
 		require.NoError(t, err)
 
-		ext := getArchiveFileExt(a.name)
+		ext := getArchiveFileExt(testCase.name)
 		url := "https://github.com/foo/bar/releases/download/v1.2.3/bar" + ext
 		_, err = DecompressCommand(f, url, "bar", runtime.GOOS, runtime.GOOS)
-		require.Error(t, err)
-		assert.True(t, errors.Is(err, ErrCannotDecompressFile))
-		if !strings.Contains(err.Error(), a.msg) {
+		assert.ErrorIs(t, err, ErrCannotDecompressFile)
+		if !strings.Contains(err.Error(), testCase.msg) {
 			t.Fatal("Unexpected error:", err)
 		}
 	}
 }
 
 func TestTargetNotFound(t *testing.T) {
-	for _, tc := range []struct {
+	for _, testCase := range []struct {
 		name string
 		msg  string
 	}{
@@ -105,18 +100,14 @@ func TestTargetNotFound(t *testing.T) {
 		{"testdata/empty.tar.gz", "not found"},
 		{"testdata/bar-not-found.tar.gz", "not found"},
 	} {
-		t.Run(tc.name, func(t *testing.T) {
-			f, err := os.Open(tc.name)
+		t.Run(testCase.name, func(t *testing.T) {
+			f, err := os.Open(testCase.name)
 			require.NoError(t, err)
 
-			ext := getArchiveFileExt(tc.name)
+			ext := getArchiveFileExt(testCase.name)
 			url := "https://github.com/foo/bar/releases/download/v1.2.3/bar" + ext
 			_, err = DecompressCommand(f, url, "bar", runtime.GOOS, runtime.GOOS)
-			require.Error(t, err)
-			assert.True(t, errors.Is(err, ErrExecutableNotFoundInArchive))
-			if !strings.Contains(err.Error(), tc.msg) {
-				t.Fatal("Unexpected error:", err)
-			}
+			assert.ErrorIs(t, err, ErrExecutableNotFoundInArchive)
 		})
 	}
 }
@@ -160,10 +151,10 @@ func TestErrorFromReader(t *testing.T) {
 			reader, err := DecompressCommand(&bogusReader{}, "foo."+extension, "foo."+extension, runtime.GOOS, runtime.GOARCH)
 			if err != nil {
 				t.Log(err)
-				assert.True(t, errors.Is(err, ErrCannotDecompressFile))
+				assert.ErrorIs(t, err, ErrCannotDecompressFile)
 			} else {
 				// bz2 does not return an error straight away: it only fails when you start reading from the output reader
-				_, err = ioutil.ReadAll(reader)
+				_, err = io.ReadAll(reader)
 				t.Log(err)
 				assert.Error(t, err)
 			}

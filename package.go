@@ -7,24 +7,24 @@ import (
 	"net/http"
 )
 
-// DetectLatest detects the latest release of the slug (owner/repo).
-// This function is a shortcut version of updater.DetectLatest.
-func DetectLatest(slug string) (*Release, bool, error) {
-	return DefaultUpdater().DetectLatest(slug)
+// DetectLatest detects the latest release from the repository.
+// This function is a shortcut version of updater.DetectLatest with the DefaultUpdater.
+func DetectLatest(ctx context.Context, repository Repository) (*Release, bool, error) {
+	return DefaultUpdater().DetectLatest(ctx, repository)
 }
 
-// DetectVersion detects the given release of the slug (owner/repo) from its version.
-func DetectVersion(slug string, version string) (*Release, bool, error) {
-	return DefaultUpdater().DetectVersion(slug, version)
+// DetectVersion detects the given release from the repository.
+func DetectVersion(ctx context.Context, repository Repository, version string) (*Release, bool, error) {
+	return DefaultUpdater().DetectVersion(ctx, repository, version)
 }
 
 // UpdateTo downloads an executable from assetURL and replaces the current binary with the downloaded one.
 // This function is low-level API to update the binary. Because it does not use a source provider and downloads asset directly from the URL via HTTP,
 // this function is not available to update a release for private repositories.
 // cmdPath is a file path to command executable.
-func UpdateTo(assetURL, assetFileName, cmdPath string) error {
+func UpdateTo(ctx context.Context, assetURL, assetFileName, cmdPath string) error {
 	up := DefaultUpdater()
-	src, err := downloadReleaseAssetFromURL(context.Background(), assetURL)
+	src, err := downloadReleaseAssetFromURL(ctx, assetURL)
 	if err != nil {
 		return err
 	}
@@ -34,14 +34,14 @@ func UpdateTo(assetURL, assetFileName, cmdPath string) error {
 
 // UpdateCommand updates a given command binary to the latest version.
 // This function is a shortcut version of updater.UpdateCommand using a DefaultUpdater()
-func UpdateCommand(cmdPath string, current string, slug string) (*Release, error) {
-	return DefaultUpdater().UpdateCommand(cmdPath, current, slug)
+func UpdateCommand(ctx context.Context, cmdPath string, current string, repository Repository) (*Release, error) {
+	return DefaultUpdater().UpdateCommand(ctx, cmdPath, current, repository)
 }
 
 // UpdateSelf updates the running executable itself to the latest version.
 // This function is a shortcut version of updater.UpdateSelf using a DefaultUpdater()
-func UpdateSelf(current string, slug string) (*Release, error) {
-	return DefaultUpdater().UpdateSelf(current, slug)
+func UpdateSelf(ctx context.Context, current string, repository Repository) (*Release, error) {
+	return DefaultUpdater().UpdateSelf(ctx, current, repository)
 }
 
 func downloadReleaseAssetFromURL(ctx context.Context, url string) (rc io.ReadCloser, err error) {

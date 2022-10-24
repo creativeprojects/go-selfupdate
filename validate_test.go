@@ -4,7 +4,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/x509"
 	"encoding/pem"
-	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -42,7 +42,7 @@ func TestValidatorAssetNames(t *testing.T) {
 
 func TestSHAValidatorEmptyFile(t *testing.T) {
 	validator := &SHAValidator{}
-	data, err := ioutil.ReadFile("testdata/foo.zip")
+	data, err := os.ReadFile("testdata/foo.zip")
 	require.NoError(t, err)
 	err = validator.Validate("foo.zip", data, nil)
 	assert.EqualError(t, err, ErrIncorrectChecksumFile.Error())
@@ -50,7 +50,7 @@ func TestSHAValidatorEmptyFile(t *testing.T) {
 
 func TestSHAValidatorInvalidFile(t *testing.T) {
 	validator := &SHAValidator{}
-	data, err := ioutil.ReadFile("testdata/foo.zip")
+	data, err := os.ReadFile("testdata/foo.zip")
 	require.NoError(t, err)
 	err = validator.Validate("foo.zip", data, []byte("blahblahblah\n"))
 	assert.EqualError(t, err, ErrIncorrectChecksumFile.Error())
@@ -58,10 +58,10 @@ func TestSHAValidatorInvalidFile(t *testing.T) {
 
 func TestSHAValidator(t *testing.T) {
 	validator := &SHAValidator{}
-	data, err := ioutil.ReadFile("testdata/foo.zip")
+	data, err := os.ReadFile("testdata/foo.zip")
 	require.NoError(t, err)
 
-	hashData, err := ioutil.ReadFile("testdata/foo.zip.sha256")
+	hashData, err := os.ReadFile("testdata/foo.zip.sha256")
 	require.NoError(t, err)
 
 	err = validator.Validate("foo.zip", data, hashData)
@@ -70,10 +70,10 @@ func TestSHAValidator(t *testing.T) {
 
 func TestSHAValidatorFail(t *testing.T) {
 	validator := &SHAValidator{}
-	data, err := ioutil.ReadFile("testdata/foo.zip")
+	data, err := os.ReadFile("testdata/foo.zip")
 	require.NoError(t, err)
 
-	hashData, err := ioutil.ReadFile("testdata/foo.zip.sha256")
+	hashData, err := os.ReadFile("testdata/foo.zip.sha256")
 	require.NoError(t, err)
 
 	hashData[0] = '0'
@@ -87,10 +87,10 @@ func TestECDSAValidatorNoPublicKey(t *testing.T) {
 	validator := &ECDSAValidator{
 		PublicKey: nil,
 	}
-	data, err := ioutil.ReadFile("testdata/foo.zip")
+	data, err := os.ReadFile("testdata/foo.zip")
 	require.NoError(t, err)
 
-	signatureData, err := ioutil.ReadFile("testdata/foo.zip.sig")
+	signatureData, err := os.ReadFile("testdata/foo.zip.sig")
 	require.NoError(t, err)
 
 	err = validator.Validate("foo.zip", data, signatureData)
@@ -101,7 +101,7 @@ func TestECDSAValidatorEmptySignature(t *testing.T) {
 	validator := &ECDSAValidator{
 		PublicKey: getTestPublicKey(t),
 	}
-	data, err := ioutil.ReadFile("testdata/foo.zip")
+	data, err := os.ReadFile("testdata/foo.zip")
 	require.NoError(t, err)
 
 	err = validator.Validate("foo.zip", data, nil)
@@ -112,10 +112,10 @@ func TestECDSAValidator(t *testing.T) {
 	validator := &ECDSAValidator{
 		PublicKey: getTestPublicKey(t),
 	}
-	data, err := ioutil.ReadFile("testdata/foo.zip")
+	data, err := os.ReadFile("testdata/foo.zip")
 	require.NoError(t, err)
 
-	signatureData, err := ioutil.ReadFile("testdata/foo.zip.sig")
+	signatureData, err := os.ReadFile("testdata/foo.zip.sig")
 	require.NoError(t, err)
 
 	err = validator.Validate("foo.zip", data, signatureData)
@@ -126,10 +126,10 @@ func TestECDSAValidatorFail(t *testing.T) {
 	validator := &ECDSAValidator{
 		PublicKey: getTestPublicKey(t),
 	}
-	data, err := ioutil.ReadFile("testdata/foo.tar.xz")
+	data, err := os.ReadFile("testdata/foo.tar.xz")
 	require.NoError(t, err)
 
-	signatureData, err := ioutil.ReadFile("testdata/foo.zip.sig")
+	signatureData, err := os.ReadFile("testdata/foo.zip.sig")
 	require.NoError(t, err)
 
 	err = validator.Validate("foo.tar.xz", data, signatureData)
@@ -137,7 +137,7 @@ func TestECDSAValidatorFail(t *testing.T) {
 }
 
 func getTestPublicKey(t *testing.T) *ecdsa.PublicKey {
-	pemData, err := ioutil.ReadFile("testdata/Test.crt")
+	pemData, err := os.ReadFile("testdata/Test.crt")
 	require.NoError(t, err)
 
 	block, _ := pem.Decode(pemData)
@@ -158,7 +158,7 @@ func getTestPublicKey(t *testing.T) *ecdsa.PublicKey {
 // ======= ChecksumValidator ====================================================
 
 func TestChecksumValidatorEmptyFile(t *testing.T) {
-	data, err := ioutil.ReadFile("testdata/foo.zip")
+	data, err := os.ReadFile("testdata/foo.zip")
 	require.NoError(t, err)
 
 	validator := &ChecksumValidator{}
@@ -167,7 +167,7 @@ func TestChecksumValidatorEmptyFile(t *testing.T) {
 }
 
 func TestChecksumValidatorInvalidChecksumFile(t *testing.T) {
-	data, err := ioutil.ReadFile("testdata/foo.zip")
+	data, err := os.ReadFile("testdata/foo.zip")
 	require.NoError(t, err)
 
 	validator := &ChecksumValidator{}
@@ -176,10 +176,10 @@ func TestChecksumValidatorInvalidChecksumFile(t *testing.T) {
 }
 
 func TestChecksumValidatorWithUniqueLine(t *testing.T) {
-	data, err := ioutil.ReadFile("testdata/foo.zip")
+	data, err := os.ReadFile("testdata/foo.zip")
 	require.NoError(t, err)
 
-	hashData, err := ioutil.ReadFile("testdata/foo.zip.sha256")
+	hashData, err := os.ReadFile("testdata/foo.zip.sha256")
 	require.NoError(t, err)
 
 	validator := &ChecksumValidator{}
@@ -188,10 +188,10 @@ func TestChecksumValidatorWithUniqueLine(t *testing.T) {
 }
 
 func TestChecksumValidatorWillFailWithWrongHash(t *testing.T) {
-	data, err := ioutil.ReadFile("testdata/foo.tar.xz")
+	data, err := os.ReadFile("testdata/foo.tar.xz")
 	require.NoError(t, err)
 
-	hashData, err := ioutil.ReadFile("testdata/foo.zip.sha256")
+	hashData, err := os.ReadFile("testdata/foo.zip.sha256")
 	require.NoError(t, err)
 
 	validator := &ChecksumValidator{}
@@ -200,10 +200,10 @@ func TestChecksumValidatorWillFailWithWrongHash(t *testing.T) {
 }
 
 func TestChecksumNotFound(t *testing.T) {
-	data, err := ioutil.ReadFile("testdata/bar-not-found.zip")
+	data, err := os.ReadFile("testdata/bar-not-found.zip")
 	require.NoError(t, err)
 
-	hashData, err := ioutil.ReadFile("testdata/SHA256SUM")
+	hashData, err := os.ReadFile("testdata/SHA256SUM")
 	require.NoError(t, err)
 
 	validator := &ChecksumValidator{}
@@ -212,10 +212,10 @@ func TestChecksumNotFound(t *testing.T) {
 }
 
 func TestChecksumValidatorSuccess(t *testing.T) {
-	data, err := ioutil.ReadFile("testdata/foo.tar.xz")
+	data, err := os.ReadFile("testdata/foo.tar.xz")
 	require.NoError(t, err)
 
-	hashData, err := ioutil.ReadFile("testdata/SHA256SUM")
+	hashData, err := os.ReadFile("testdata/SHA256SUM")
 	require.NoError(t, err)
 
 	validator := &ChecksumValidator{"SHA256SUM"}

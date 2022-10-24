@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"go/build"
@@ -13,46 +14,60 @@ import (
 	"strings"
 
 	"github.com/creativeprojects/go-selfupdate"
+	"github.com/creativeprojects/go-selfupdate/cmd"
 )
 
 func main() {
 	var help, verbose bool
-	var checksum string
+	var cvsType string
 	flag.BoolVar(&help, "h", false, "Show help")
 	flag.BoolVar(&verbose, "v", false, "Display debugging information")
-	flag.StringVar(&checksum, "checksum", "", "Use this checksum file to validate the binary")
+	flag.StringVar(&cvsType, "t", "auto", "Version control: \"github\", \"gitea\" or \"gitlab\"")
 
 	flag.Usage = usage
 	flag.Parse()
 
-	if help || flag.NArg() != 1 || !strings.HasPrefix(flag.Arg(0), "github.com/") {
+	if help || flag.NArg() != 1 {
 		usage()
-		os.Exit(1)
+		return
 	}
 
 	if verbose {
 		selfupdate.SetLogger(log.New(os.Stdout, "", 0))
 	}
 
-	slug, ok := parseSlug(flag.Arg(0))
-	if !ok {
-		usage()
+	repo := flag.Arg(0)
+
+	domain, slug, err := cmd.SplitDomainSlug(repo)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
-	updater := selfupdate.DefaultUpdater()
-	if checksum != "" {
-		updater, _ = selfupdate.NewUpdater(selfupdate.Config{
-			Validator: &selfupdate.ChecksumValidator{UniqueFilename: checksum},
-		})
+	if verbose {
+		fmt.Printf("slug %q on domain %q\n", slug, domain)
 	}
-	latest, found, err := updater.DetectLatest(slug)
+
+	source, err := cmd.GetSource(cvsType, domain)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+
+	updater, err := selfupdate.NewUpdater(selfupdate.Config{
+		Source: source,
+	})
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
+	latest, found, err := updater.DetectLatest(context.Background(), selfupdate.ParseSlug(slug))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Error while detecting the latest version:", err)
 		os.Exit(1)
 	}
 	if !found {
-		fmt.Fprintln(os.Stderr, "No release was found in", slug)
+		fmt.Fprintln(os.Stderr, "No release found in", slug)
 		os.Exit(1)
 	}
 
@@ -65,7 +80,7 @@ func main() {
 			os.Exit(1)
 		}
 	} else {
-		if err := updater.UpdateTo(latest, cmdPath); err != nil {
+		if err := updater.UpdateTo(context.Background(), latest, cmdPath); err != nil {
 			fmt.Fprintf(os.Stderr, "Error while replacing the binary with %s: %s\n", latest.AssetURL, err)
 			os.Exit(1)
 		}
@@ -79,42 +94,22 @@ Release Notes:
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, `Usage: go-get-release [flags] {package}
+	fmt.Fprintln(os.Stderr, `
+Usage: get-release [flags] {package}
 
-  go-get-release is like "go get", but it downloads the latest release from
-  GitHub. {package} must start with "github.com/".
+  get-release is like "go get github.com/owner/repo@latest".
+  {package} is using the same format: "github.com/owner/repo".
 
 Flags:`)
 	flag.PrintDefaults()
 }
 
 func getCommand(pkg string) string {
+	if strings.HasSuffix(pkg, "/") {
+		pkg = strings.TrimSuffix(pkg, "/")
+	}
 	_, cmd := filepath.Split(pkg)
-	if cmd == "" {
-		// When pkg path is ending with path separator, we need to split it out.
-		// i.e. github.com/creativeprojects/foo/cmd/bar/
-		_, cmd = filepath.Split(cmd)
-	}
 	return cmd
-}
-
-func parseSlug(pkg string) (string, bool) {
-	pkg = pkg[len("github.com/"):]
-	first := false
-	for i, r := range pkg {
-		if r == '/' {
-			if !first {
-				first = true
-			} else {
-				return pkg[:i], true
-			}
-		}
-	}
-	if first {
-		// When 'github.com/foo/bar' is specified, reaching here.
-		return pkg, true
-	}
-	return "", false
 }
 
 func installFrom(url, cmd, path string) error {

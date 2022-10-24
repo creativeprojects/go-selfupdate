@@ -6,9 +6,9 @@ import (
 	"bytes"
 	"compress/bzip2"
 	"compress/gzip"
+	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"path/filepath"
 	"strings"
 
@@ -38,8 +38,8 @@ var (
 // '.tar.gz', '.tar.xz', '.tgz', '.gz', '.bz2' and '.xz' are supported.
 //
 // These wrapped errors can be returned:
-//  - ErrCannotDecompressFile
-//  - ErrExecutableNotFoundInArchive
+//   - ErrCannotDecompressFile
+//   - ErrExecutableNotFoundInArchive
 func DecompressCommand(src io.Reader, url, cmd, os, arch string) (io.Reader, error) {
 	for _, fileType := range fileTypes {
 		if strings.HasSuffix(url, fileType.ext) {
@@ -55,7 +55,7 @@ func unzip(src io.Reader, cmd, os, arch string) (io.Reader, error) {
 
 	// Zip format requires its file size for Decompressing.
 	// So we need to read the HTTP response into a buffer at first.
-	buf, err := ioutil.ReadAll(src)
+	buf, err := io.ReadAll(src)
 	if err != nil {
 		return nil, fmt.Errorf("%w zip file: %v", ErrCannotDecompressFile, err)
 	}
@@ -161,7 +161,7 @@ func unarchiveTar(src io.Reader, cmd, os, arch string) (io.Reader, error) {
 	t := tar.NewReader(src)
 	for {
 		h, err := t.Next()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {

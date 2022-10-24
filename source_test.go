@@ -2,8 +2,8 @@ package selfupdate
 
 import (
 	"bytes"
+	"context"
 	"io"
-	"io/ioutil"
 )
 
 // MockSource is a Source in memory used for unit tests
@@ -21,31 +21,32 @@ func NewMockSource(releases []SourceRelease, files map[int64][]byte) *MockSource
 	}
 }
 
-// ListReleases returns a list of releases. Owner and repo parameters are not used.
-func (s *MockSource) ListReleases(owner, repo string) ([]SourceRelease, error) {
-	err := checkOwnerRepoParameters(owner, repo)
-	if err != nil {
+// ListReleases returns a list of releases. repository parameter is not used.
+func (s *MockSource) ListReleases(ctx context.Context, repository Repository) ([]SourceRelease, error) {
+	if _, _, err := repository.GetSlug(); err != nil {
 		return nil, err
 	}
 	return s.releases, nil
 }
 
-// DownloadReleaseAsset returns a file from its ID. Owner and repo parameters are not used.
-func (s *MockSource) DownloadReleaseAsset(owner, repo string, releaseID, id int64) (io.ReadCloser, error) {
-	err := checkOwnerRepoParameters(owner, repo)
-	if err != nil {
+// DownloadReleaseAsset returns a file from its ID. repository parameter is not used.
+func (s *MockSource) DownloadReleaseAsset(ctx context.Context, rel *Release, assetID int64) (io.ReadCloser, error) {
+	if rel == nil {
+		return nil, ErrInvalidRelease
+	}
+	if _, _, err := rel.repository.GetSlug(); err != nil {
 		return nil, err
 	}
-	content, ok := s.files[id]
+	content, ok := s.files[assetID]
 	if !ok {
 		return nil, ErrAssetNotFound
 	}
 	var buffer io.Reader = bytes.NewBuffer(content)
 	if s.readError {
-		// will return a read error after reading 4 caracters
+		// will return a read error after reading 4 characters
 		buffer = newErrorReader(buffer, 4)
 	}
-	return ioutil.NopCloser(buffer), nil
+	return io.NopCloser(buffer), nil
 }
 
 // Verify interface

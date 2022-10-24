@@ -11,14 +11,15 @@ const (
 
 // generateAdditionalArch we can use depending on the type of CPU
 func generateAdditionalArch(arch string, goarm uint8) []string {
-	additionalArch := make([]string, 0, maxARM-minARM)
 	if arch == "arm" && goarm >= minARM && goarm <= maxARM {
+		additionalArch := make([]string, 0, maxARM-minARM)
 		for v := goarm; v >= minARM; v-- {
 			additionalArch = append(additionalArch, fmt.Sprintf("armv%d", v))
 		}
+		return additionalArch
 	}
 	if arch == "amd64" {
-		additionalArch = append(additionalArch, "x86_64")
+		return []string{"x86_64"}
 	}
-	return additionalArch
+	return []string{}
 }

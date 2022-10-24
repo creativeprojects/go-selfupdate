@@ -1,16 +1,20 @@
 package selfupdate
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	stdlog "log"
 	"os"
-	"runtime"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+)
+
+var (
+	testGithubRepository = NewRepositorySlug("creativeprojects", "resticprofile")
 )
 
 func skipRateLimitExceeded(t *testing.T, err error) {
@@ -19,7 +23,6 @@ func skipRateLimitExceeded(t *testing.T, err error) {
 	}
 	if strings.Contains(err.Error(), "403 API rate limit") {
 		t.Skip("Test skipped because of GitHub API rate limit exceeded")
-		runtime.Goexit()
 	}
 }
 
@@ -38,7 +41,7 @@ func TestDetectReleaseWithVersionPrefix(t *testing.T) {
 			continue
 		}
 		t.Run(testItem.name, func(t *testing.T) {
-			r, ok, err := testItem.updater.DetectLatest("creativeprojects/resticprofile")
+			r, ok, err := testItem.updater.DetectLatest(context.Background(), testGithubRepository)
 			skipRateLimitExceeded(t, err)
 			require.NoError(t, err)
 			assert.True(t, ok, "Failed to detect latest")
@@ -76,7 +79,7 @@ func TestDetectVersionExisting(t *testing.T) {
 			continue
 		}
 		t.Run(testItem.name, func(t *testing.T) {
-			r, ok, err := testItem.updater.DetectVersion("creativeprojects/resticprofile", testVersion)
+			r, ok, err := testItem.updater.DetectVersion(context.Background(), testGithubRepository, testVersion)
 			skipRateLimitExceeded(t, err)
 			require.NoError(t, err)
 			assert.Truef(t, ok, "Failed to detect %s", testVersion)
@@ -103,7 +106,7 @@ func TestDetectVersionExistingWithNoValidationFile(t *testing.T) {
 			continue
 		}
 		t.Run(testItem.name, func(t *testing.T) {
-			_, _, err := testItem.updater.DetectVersion("creativeprojects/resticprofile", testVersion)
+			_, _, err := testItem.updater.DetectVersion(context.Background(), testGithubRepository, testVersion)
 			skipRateLimitExceeded(t, err)
 			require.Error(t, err)
 			assert.True(t, errors.Is(err, ErrValidationAssetNotFound))
@@ -126,7 +129,7 @@ func TestDetectVersionNotExisting(t *testing.T) {
 			continue
 		}
 		t.Run(testItem.name, func(t *testing.T) {
-			r, ok, err := testItem.updater.DetectVersion("creativeprojects/resticprofile", "foobar")
+			r, ok, err := testItem.updater.DetectVersion(context.Background(), testGithubRepository, "foobar")
 			skipRateLimitExceeded(t, err)
 			require.NoError(t, err)
 			assert.False(t, ok, "Failed to correctly detect foobar")
@@ -147,42 +150,26 @@ func TestDetectReleasesForVariousArchives(t *testing.T) {
 		{"rhysd-test/test-release-tar-xz", "release-"},
 	} {
 		t.Run(tc.slug, func(t *testing.T) {
-			r, ok, err := DetectLatest(tc.slug)
+			r, ok, err := DetectLatest(context.Background(), ParseSlug(tc.slug))
 			skipRateLimitExceeded(t, err)
-			if err != nil {
-				t.Fatal("Fetch failed:", err)
-			}
-			if !ok {
-				t.Fatal(tc.slug, "not found")
-			}
-			if r == nil {
-				t.Fatal("Release not detected")
-			}
-			if !r.Equal("1.2.3") {
-				t.Error("")
-			}
+
+			assert.NoError(t, err, "fetch failed")
+			assert.True(t, ok, "not found")
+			assert.NotNil(t, r, "release not detected")
+			assert.Truef(t, r.Equal("1.2.3"), "incorrect release: expected 1.2.3 but got %v", r.Version())
+
 			url := fmt.Sprintf("https://github.com/%s/releases/tag/%s1.2.3", tc.slug, tc.prefix)
-			if r.URL != url {
-				t.Error("URL is not correct. Want", url, "but got", r.URL)
-			}
-			if r.ReleaseNotes == "" {
-				t.Error("Release note is unexpectedly empty")
-			}
+			assert.Equal(t, url, r.URL)
+			assert.NotEmpty(t, r.ReleaseNotes, "Release note is unexpectedly empty")
+
 			if !strings.HasPrefix(r.AssetURL, fmt.Sprintf("https://github.com/%s/releases/download/%s1.2.3/", tc.slug, tc.prefix)) {
 				t.Error("Unexpected asset URL:", r.AssetURL)
 			}
-			if r.Name == "" {
-				t.Error("Release name is unexpectedly empty")
-			}
-			if r.AssetByteSize == 0 {
-				t.Error("Asset's size is unexpectedly zero")
-			}
-			if r.AssetID == 0 {
-				t.Error("Asset's ID is unexpectedly zero")
-			}
-			if r.PublishedAt.IsZero() {
-				t.Error("Release time is unexpectedly zero")
-			}
+
+			assert.NotEmpty(t, r.Name, "Release name is unexpectedly empty")
+			assert.NotEmpty(t, r.AssetByteSize, "Asset's size is unexpectedly zero")
+			assert.NotEmpty(t, r.AssetID, "Asset's ID is unexpectedly zero")
+			assert.NotZero(t, r.PublishedAt)
 		})
 	}
 }
@@ -216,26 +203,11 @@ func TestDetectReleaseButNoAsset(t *testing.T) {
 			continue
 		}
 		t.Run(testItem.name, func(t *testing.T) {
-			_, ok, err := testItem.updater.DetectLatest("rhysd/clever-f.vim")
+			_, ok, err := testItem.updater.DetectLatest(context.Background(), ParseSlug("rhysd/clever-f.vim"))
 			skipRateLimitExceeded(t, err)
 			require.NoError(t, err)
 			assert.False(t, ok, "When no asset found, result should be marked as 'not found'")
 		})
-	}
-}
-
-func TestInvalidSlug(t *testing.T) {
-	up := DefaultUpdater()
-
-	for _, slug := range []string{
-		"foo",
-		"/",
-		"foo/",
-		"/bar",
-		"foo/bar/piyo",
-	} {
-		_, _, err := up.DetectLatest(slug)
-		assert.EqualError(t, err, ErrInvalidSlug.Error())
 	}
 }
 
@@ -254,7 +226,7 @@ func TestNonExistingRepo(t *testing.T) {
 			continue
 		}
 		t.Run(testItem.name, func(t *testing.T) {
-			_, ok, err := testItem.updater.DetectLatest("rhysd/non-existing-repo")
+			_, ok, err := testItem.updater.DetectLatest(context.Background(), ParseSlug("rhysd/non-existing-repo"))
 			skipRateLimitExceeded(t, err)
 			require.NoError(t, err)
 			assert.False(t, ok, "Release for non-existing repo should not be found")
@@ -277,7 +249,7 @@ func TestNoReleaseFound(t *testing.T) {
 			continue
 		}
 		t.Run(testItem.name, func(t *testing.T) {
-			_, ok, err := testItem.updater.DetectLatest("rhysd/misc")
+			_, ok, err := testItem.updater.DetectLatest(context.Background(), ParseSlug("rhysd/misc"))
 			skipRateLimitExceeded(t, err)
 			require.NoError(t, err)
 			assert.False(t, ok, "Repo having no release should not be found")
@@ -794,6 +766,7 @@ func TestFindReleaseAndAsset(t *testing.T) {
 }
 
 func newMockUpdater(t *testing.T, config Config) *Updater {
+	t.Helper()
 	updater, err := NewUpdater(config)
 	require.NoError(t, err)
 	return updater

@@ -21,14 +21,13 @@ type GitHubConfig struct {
 	// EnterpriseUploadURL is a URL to upload stuffs to GitHub Enterprise instance. This is often the same as an API base URL.
 	// So if this field is not set and EnterpriseBaseURL is set, EnterpriseBaseURL is also set to this field.
 	EnterpriseUploadURL string
-	// Context used by the http client (default to context.Background)
+	// Deprecated: Context option is no longer used
 	Context context.Context
 }
 
 // GitHubSource is used to load release information from GitHub
 type GitHubSource struct {
 	api *github.Client
-	ctx context.Context
 }
 
 // NewGitHubSource creates a new GitHubSource from a config object.
@@ -42,18 +41,13 @@ func NewGitHubSource(config GitHubConfig) (*GitHubSource, error) {
 		// try the environment variable
 		token = os.Getenv("GITHUB_TOKEN")
 	}
-	ctx := config.Context
-	if ctx == nil {
-		ctx = context.Background()
-	}
-	hc := newHTTPClient(ctx, token)
+	hc := newHTTPClient(token)
 
 	if config.EnterpriseBaseURL == "" {
 		// public (or private) repository on standard GitHub offering
 		client := github.NewClient(hc)
 		return &GitHubSource{
 			api: client,
-			ctx: ctx,
 		}, nil
 	}
 
@@ -63,28 +57,27 @@ func NewGitHubSource(config GitHubConfig) (*GitHubSource, error) {
 	}
 	client, err := github.NewEnterpriseClient(config.EnterpriseBaseURL, u, hc)
 	if err != nil {
-		return nil, fmt.Errorf("cannot parse GitHub entreprise URL: %w", err)
+		return nil, fmt.Errorf("cannot parse GitHub enterprise URL: %w", err)
 	}
 	return &GitHubSource{
 		api: client,
-		ctx: ctx,
 	}, nil
 }
 
 // ListReleases returns all available releases
-func (s *GitHubSource) ListReleases(owner, repo string) ([]SourceRelease, error) {
-	err := checkOwnerRepoParameters(owner, repo)
+func (s *GitHubSource) ListReleases(ctx context.Context, repository Repository) ([]SourceRelease, error) {
+	owner, repo, err := repository.GetSlug()
 	if err != nil {
 		return nil, err
 	}
-	rels, res, err := s.api.Repositories.ListReleases(s.ctx, owner, repo, nil)
+	rels, res, err := s.api.Repositories.ListReleases(ctx, owner, repo, nil)
 	if err != nil {
-		log.Printf("API returned an error response: %s", err)
 		if res != nil && res.StatusCode == 404 {
 			// 404 means repository not found or release not found. It's not an error here.
-			log.Print("API returned 404. Repository or release not found")
+			log.Print("Repository or release not found")
 			return nil, nil
 		}
+		log.Printf("API returned an error response: %s", err)
 		return nil, err
 	}
 	releases := make([]SourceRelease, len(rels))
@@ -94,30 +87,31 @@ func (s *GitHubSource) ListReleases(owner, repo string) ([]SourceRelease, error)
 	return releases, nil
 }
 
-// DownloadReleaseAsset downloads an asset from its ID.
-// It returns an io.ReadCloser: it is your responsability to Close it.
-// Please note releaseID is not used by GitHubSource.
-func (s *GitHubSource) DownloadReleaseAsset(owner, repo string, releaseID, id int64) (io.ReadCloser, error) {
-	err := checkOwnerRepoParameters(owner, repo)
+// DownloadReleaseAsset downloads an asset from a release.
+// It returns an io.ReadCloser: it is your responsibility to Close it.
+func (s *GitHubSource) DownloadReleaseAsset(ctx context.Context, rel *Release, assetID int64) (io.ReadCloser, error) {
+	if rel == nil {
+		return nil, ErrInvalidRelease
+	}
+	owner, repo, err := rel.repository.GetSlug()
 	if err != nil {
 		return nil, err
 	}
 	// create a new http client so the GitHub library can download the redirected file (if any)
-	// don't pass the "default" one as it could be the one it's already using
-	client := &http.Client{}
-	rc, _, err := s.api.Repositories.DownloadReleaseAsset(s.ctx, owner, repo, id, client)
+	client := http.DefaultClient
+	rc, _, err := s.api.Repositories.DownloadReleaseAsset(ctx, owner, repo, assetID, client)
 	if err != nil {
-		return nil, fmt.Errorf("failed to call GitHub Releases API for getting the asset ID %d on repository '%s/%s': %w", id, owner, repo, err)
+		return nil, fmt.Errorf("failed to call GitHub Releases API for getting the asset ID %d on repository '%s/%s': %w", assetID, owner, repo, err)
 	}
 	return rc, nil
 }
 
-func newHTTPClient(ctx context.Context, token string) *http.Client {
+func newHTTPClient(token string) *http.Client {
 	if token == "" {
-		return &http.Client{}
+		return http.DefaultClient
 	}
 	src := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})
-	return oauth2.NewClient(ctx, src)
+	return oauth2.NewClient(context.Background(), src)
 }
 
 // Verify interface

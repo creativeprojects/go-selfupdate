@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 )
@@ -73,7 +72,7 @@ func Apply(update io.Reader, opts Options) error {
 	}
 
 	var newBytes []byte
-	if newBytes, err = ioutil.ReadAll(update); err != nil {
+	if newBytes, err = io.ReadAll(update); err != nil {
 		return err
 	}
 
@@ -209,31 +208,6 @@ type Options struct {
 	// Store the old executable file at this path after a successful update.
 	// The empty string means the old executable file will be removed after the update.
 	OldSavePath string
-}
-
-// CheckPermissions determines whether the process has the correct permissions to
-// perform the requested update. If the update can proceed, it returns nil, otherwise
-// it returns the error that would occur if an update were attempted.
-func (o *Options) CheckPermissions() error {
-	// get the directory the file exists in
-	path, err := o.getPath()
-	if err != nil {
-		return err
-	}
-
-	fileDir := filepath.Dir(path)
-	fileName := filepath.Base(path)
-
-	// attempt to open a file in the file's directory
-	newPath := filepath.Join(fileDir, fmt.Sprintf(".%s.new", fileName))
-	fp, err := openFile(newPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, o.TargetMode)
-	if err != nil {
-		return err
-	}
-	fp.Close()
-
-	_ = os.Remove(newPath)
-	return nil
 }
 
 // SetPublicKeyPEM is a convenience method to set the PublicKey property

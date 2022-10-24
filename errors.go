@@ -4,9 +4,12 @@ import "errors"
 
 // Possible errors returned
 var (
+	ErrNotSupported                = errors.New("operation not supported")
 	ErrInvalidSlug                 = errors.New("invalid slug format, expected 'owner/name'")
 	ErrIncorrectParameterOwner     = errors.New("incorrect parameter \"owner\"")
 	ErrIncorrectParameterRepo      = errors.New("incorrect parameter \"repo\"")
+	ErrInvalidID                   = errors.New("invalid repository ID, expected 'owner/name' but found number")
+	ErrInvalidRelease              = errors.New("invalid release (nil argument)")
 	ErrAssetNotFound               = errors.New("asset not found")
 	ErrValidationAssetNotFound     = errors.New("validation file not found")
 	ErrIncorrectChecksumFile       = errors.New("incorrect checksum file format")

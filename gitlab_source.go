@@ -1,9 +1,10 @@
 package selfupdate
 
 import (
+	"context"
 	"fmt"
 	"io"
-	"net/url"
+	"net/http"
 	"os"
 
 	"github.com/xanzy/go-gitlab"
@@ -13,13 +14,15 @@ import (
 type GitLabConfig struct {
 	// APIToken represents GitLab API token. If it's not empty, it will be used for authentication for the API
 	APIToken string
-	// BaseURL is a base URL of your GitLab instance
+	// BaseURL is a base URL of your private GitLab instance
 	BaseURL string
 }
 
 // GitLabSource is used to load release information from GitLab
 type GitLabSource struct {
-	api *gitlab.Client
+	api     *gitlab.Client
+	token   string
+	baseURL string
 }
 
 // NewGitLabSource creates a new GitLabSource from a config object.
@@ -42,17 +45,20 @@ func NewGitLabSource(config GitLabConfig) (*GitLabSource, error) {
 		return nil, fmt.Errorf("cannot create GitLab client: %w", err)
 	}
 	return &GitLabSource{
-		api: client,
+		api:     client,
+		token:   token,
+		baseURL: config.BaseURL,
 	}, nil
 }
 
 // ListReleases returns all available releases
-func (s *GitLabSource) ListReleases(owner, repo string) ([]SourceRelease, error) {
-	err := checkOwnerRepoParameters(owner, repo)
+func (s *GitLabSource) ListReleases(ctx context.Context, repository Repository) ([]SourceRelease, error) {
+	pid, err := repository.Get()
 	if err != nil {
 		return nil, err
 	}
-	rels, _, err := s.api.Releases.ListReleases(url.PathEscape(owner+"/"+repo), nil)
+
+	rels, _, err := s.api.Releases.ListReleases(pid, nil, gitlab.WithContext(ctx))
 	if err != nil {
 		return nil, fmt.Errorf("list releases: %w", err)
 	}
@@ -63,15 +69,48 @@ func (s *GitLabSource) ListReleases(owner, repo string) ([]SourceRelease, error)
 	return releases, nil
 }
 
-// DownloadReleaseAsset downloads an asset from its ID.
-// It returns an io.ReadCloser: it is your responsability to Close it.
-// Please note releaseID is not used by GitLabSource.
-func (s *GitLabSource) DownloadReleaseAsset(owner, repo string, releaseID, id int64) (io.ReadCloser, error) {
-	err := checkOwnerRepoParameters(owner, repo)
+// DownloadReleaseAsset downloads an asset from a release.
+// It returns an io.ReadCloser: it is your responsibility to Close it.
+func (s *GitLabSource) DownloadReleaseAsset(ctx context.Context, rel *Release, assetID int64) (io.ReadCloser, error) {
+	if rel == nil {
+		return nil, ErrInvalidRelease
+	}
+	var downloadUrl string
+	if rel.AssetID == assetID {
+		downloadUrl = rel.AssetURL
+	} else if rel.ValidationAssetID == assetID {
+		downloadUrl = rel.ValidationAssetURL
+	}
+	if downloadUrl == "" {
+		return nil, fmt.Errorf("asset ID %d: %w", assetID, ErrAssetNotFound)
+	}
+
+	log.Printf("downloading %q", downloadUrl)
+	client := http.DefaultClient
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, downloadUrl, http.NoBody)
 	if err != nil {
+		log.Print(err)
 		return nil, err
 	}
-	return nil, nil
+
+	if s.token != "" {
+		// verify request is from same domain not to leak token
+		ok, err := canUseTokenForDomain(s.baseURL, downloadUrl)
+		if err != nil {
+			return nil, err
+		}
+		if ok {
+			req.Header.Set("PRIVATE-TOKEN", s.token)
+		}
+	}
+	response, err := client.Do(req)
+
+	if err != nil {
+		log.Print(err)
+		return nil, err
+	}
+
+	return response.Body, nil
 }
 
 // Verify interface

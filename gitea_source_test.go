@@ -1,8 +1,12 @@
 package selfupdate
 
 import (
+	"context"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGiteaTokenEnv(t *testing.T) {
@@ -12,21 +16,47 @@ func TestGiteaTokenEnv(t *testing.T) {
 	}
 
 	if _, err := NewGiteaSource(GiteaConfig{BaseURL: "https://git.lbsfilm.at"}); err != nil {
-		t.Error("Failed to initialize GitHub source with empty config")
+		t.Error("Failed to initialize Gitea source with URL")
 	}
-	if _, err := NewGitHubSource(GitHubConfig{APIToken: token}); err != nil {
-		t.Error("Failed to initialize GitHub source with API token config")
+	if _, err := NewGiteaSource(GiteaConfig{APIToken: token}); err != nil {
+		t.Error("Failed to initialize Gitea source with API token config")
 	}
 }
 
 func TestGiteaTokenIsNotSet(t *testing.T) {
-	token := os.Getenv("GITHUB_TOKEN")
-	if token != "" {
-		defer os.Setenv("GITHUB_TOKEN", token)
-	}
-	os.Setenv("GITHUB_TOKEN", "")
+	t.Setenv("GITHUB_TOKEN", "")
 
 	if _, err := NewGiteaSource(GiteaConfig{BaseURL: "https://git.lbsfilm.at"}); err != nil {
-		t.Error("Failed to initialize GitHub source with empty config")
+		t.Error("Failed to initialize Gitea source with URL")
 	}
+}
+
+func TestGiteaListReleasesContextCancelled(t *testing.T) {
+	source, err := NewGiteaSource(GiteaConfig{BaseURL: "https://git.lbsfilm.at"})
+	require.NoError(t, err)
+
+	ctx, cancelFn := context.WithCancel(context.Background())
+	cancelFn()
+
+	_, err = source.ListReleases(ctx, ParseSlug("creativeprojects/resticprofile"))
+	assert.ErrorIs(t, err, context.Canceled)
+}
+
+func TestGiteaDownloadReleaseAssetContextCancelled(t *testing.T) {
+	source, err := NewGiteaSource(GiteaConfig{BaseURL: "https://git.lbsfilm.at"})
+	require.NoError(t, err)
+
+	ctx, cancelFn := context.WithCancel(context.Background())
+	cancelFn()
+
+	_, err = source.DownloadReleaseAsset(ctx, &Release{repository: ParseSlug("creativeprojects/resticprofile")}, 11)
+	assert.ErrorIs(t, err, context.Canceled)
+}
+
+func TestGiteaDownloadReleaseAssetWithNilRelease(t *testing.T) {
+	source, err := NewGiteaSource(GiteaConfig{BaseURL: "https://git.lbsfilm.at"})
+	require.NoError(t, err)
+
+	_, err = source.DownloadReleaseAsset(context.Background(), nil, 11)
+	assert.ErrorIs(t, err, ErrInvalidRelease)
 }

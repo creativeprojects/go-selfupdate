@@ -18,8 +18,10 @@ type Release struct {
 	ReleaseID int64
 	// AssetName is the filename of the asset
 	AssetName string
-	// ValidationAssetID is the ID of additional validaton asset on the source platform
+	// ValidationAssetID is the ID of additional validation asset on the source platform
 	ValidationAssetID int64
+	// ValidationAssetURL is the URL of additional validation asset on the source platform
+	ValidationAssetURL string
 	// URL is a URL to release page for browsing
 	URL string
 	// ReleaseNotes is a release notes of the release
@@ -35,9 +37,8 @@ type Release struct {
 	// Arm 32bits version (if any). Valid values are 0 (unknown), 5, 6 or 7
 	Arm uint8
 	// version is the parsed *semver.Version
-	version   *semver.Version
-	repoOwner string
-	repoName  string
+	version    *semver.Version
+	repository Repository
 }
 
 // Version is the version string of the release
