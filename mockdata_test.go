@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"golang.org/x/crypto/openpgp"
 )
 
 // mockSourceRepository creates a new *MockSource pre-populated with different versions and assets
@@ -234,4 +235,38 @@ func mockSourceRepository(t *testing.T) *MockSource {
 	}
 
 	return NewMockSource(releases, files)
+}
+
+// mockPGPSourceRepository creates a variant of  mockSourceRepository where "checksums.txt" is signed with PGP
+func mockPGPSourceRepository(t *testing.T) (source *MockSource, PGPKeyRing []byte) {
+
+	source = mockSourceRepository(t)
+
+	var err error
+
+	var entity *openpgp.Entity
+	PGPKeyRing, entity = getTestPGPKeyRing(t)
+
+	for i, release := range source.releases {
+		rel := release.(*GitHubRelease)
+
+		id := int64(i*10 + 101)
+		signatureId := id + 1
+		shaSums := source.files[id]
+
+		// Create SHA256SUMS.asc (by signing SHA256SUMS)
+		signature := &bytes.Buffer{}
+		err = openpgp.ArmoredDetachSign(signature, entity, bytes.NewReader(shaSums), nil)
+		require.NoError(t, err)
+
+		rel.assets = append(rel.assets, &GitHubAsset{
+			id:   signatureId,
+			name: "checksums.txt.asc",
+		})
+		source.files[signatureId] = signature.Bytes()
+
+		t.Logf("file id %d contains PGP signature:\n%s\n", signatureId, string(source.files[signatureId]))
+	}
+
+	return
 }

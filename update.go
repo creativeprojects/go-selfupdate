@@ -19,15 +19,10 @@ func (up *Updater) UpdateTo(ctx context.Context, rel *Release, cmdPath string) e
 	if rel == nil {
 		return ErrInvalidRelease
 	}
-	src, err := up.source.DownloadReleaseAsset(ctx, rel, rel.AssetID)
-	if err != nil {
-		return err
-	}
-	defer src.Close()
 
-	data, err := io.ReadAll(src)
+	data, err := up.download(ctx, rel, rel.AssetID)
 	if err != nil {
-		return fmt.Errorf("failed to read asset: %w", err)
+		return fmt.Errorf("failed to read asset %q: %w", rel.AssetName, err)
 	}
 
 	if up.validator != nil {
@@ -113,19 +108,43 @@ func (up *Updater) validate(ctx context.Context, rel *Release, data []byte) erro
 	if rel == nil {
 		return ErrInvalidRelease
 	}
-	validationSrc, err := up.source.DownloadReleaseAsset(ctx, rel, rel.ValidationAssetID)
-	if err != nil {
-		return err
-	}
-	defer validationSrc.Close()
 
-	validationData, err := io.ReadAll(validationSrc)
-	if err != nil {
-		return fmt.Errorf("failed reading validation data: %w", err)
+	// compatibility with setting rel.ValidationAssetID directly
+	if len(rel.ValidationChain) == 0 {
+		rel.ValidationChain = append(rel.ValidationChain, struct {
+			ValidationAssetID                       int64
+			ValidationAssetName, ValidationAssetURL string
+		}{
+			ValidationAssetID:   rel.ValidationAssetID,
+			ValidationAssetName: "",
+			ValidationAssetURL:  rel.ValidationAssetURL,
+		})
 	}
 
-	if err := up.validator.Validate(rel.AssetName, data, validationData); err != nil {
-		return fmt.Errorf("failed validating asset content: %w", err)
+	validationName := rel.AssetName
+
+	for _, va := range rel.ValidationChain {
+		validationData, err := up.download(ctx, rel, va.ValidationAssetID)
+		if err != nil {
+			return fmt.Errorf("failed reading validation data %q: %w", va.ValidationAssetName, err)
+		}
+
+		if err = up.validator.Validate(validationName, data, validationData); err != nil {
+			return fmt.Errorf("failed validating asset content %q: %w", validationName, err)
+		}
+
+		// Select what next to validate
+		validationName = va.ValidationAssetName
+		data = validationData
 	}
 	return nil
+}
+
+func (up *Updater) download(ctx context.Context, rel *Release, assetId int64) (data []byte, err error) {
+	var reader io.ReadCloser
+	if reader, err = up.source.DownloadReleaseAsset(ctx, rel, assetId); err == nil {
+		defer func() { _ = reader.Close() }()
+		data, err = io.ReadAll(reader)
+	}
+	return
 }

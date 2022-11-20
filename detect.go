@@ -73,14 +73,47 @@ func (up *Updater) validateReleaseAsset(
 	if up.validator != nil {
 		validationName := up.validator.GetValidationAssetName(asset.GetName())
 		validationAsset, ok := findValidationAsset(rel, validationName)
-		if !ok {
-			return nil, false, fmt.Errorf("%w: %q", ErrValidationAssetNotFound, validationName)
+		if ok {
+			release.ValidationAssetID = validationAsset.GetID()
+			release.ValidationAssetURL = validationAsset.GetBrowserDownloadURL()
+		} else {
+			err = fmt.Errorf("%w: %q", ErrValidationAssetNotFound, validationName)
 		}
-		release.ValidationAssetID = validationAsset.GetID()
-		release.ValidationAssetURL = validationAsset.GetBrowserDownloadURL()
+
+		for err == nil {
+			release.ValidationChain = append(release.ValidationChain, struct {
+				ValidationAssetID                       int64
+				ValidationAssetName, ValidationAssetURL string
+			}{
+				ValidationAssetID:   validationAsset.GetID(),
+				ValidationAssetName: validationAsset.GetName(),
+				ValidationAssetURL:  validationAsset.GetBrowserDownloadURL(),
+			})
+
+			if len(release.ValidationChain) > 20 {
+				err = fmt.Errorf("failed adding validation step %q: recursive validation nesting depth exceeded", validationAsset.GetName())
+				break
+			}
+
+			if rv, ok := up.validator.(RecursiveValidator); ok && rv.MustContinueValidation(validationAsset.GetName()) {
+				validationName = up.validator.GetValidationAssetName(validationAsset.GetName())
+				if validationName != validationAsset.GetName() {
+					validationAsset, ok = findValidationAsset(rel, validationName)
+					if !ok {
+						err = fmt.Errorf("%w: %q", ErrValidationAssetNotFound, validationName)
+					}
+					continue
+				}
+			}
+
+			break
+		}
 	}
 
-	return release, true, nil
+	if found = err == nil; !found {
+		release = nil
+	}
+	return
 }
 
 // findValidationAsset returns the source asset used for validation

@@ -765,6 +765,49 @@ func TestFindReleaseAndAsset(t *testing.T) {
 	}
 }
 
+func TestBuildMultistepValidationChain(t *testing.T) {
+	testVersion := "v0.10.0"
+	source, keyRing := mockPGPSourceRepository(t)
+	checksumValidator := &ChecksumValidator{UniqueFilename: "checksums.txt"}
+
+	t.Run("ValidConfig", func(t *testing.T) {
+		updater, _ := NewUpdater(Config{
+			Source:    source,
+			Validator: NewChecksumWithPGPValidator("checksums.txt", keyRing),
+		})
+
+		release, found, err := updater.DetectVersion(context.Background(), testGithubRepository, testVersion)
+		assert.True(t, found)
+		assert.NoError(t, err)
+		assert.Equal(t, 2, len(release.ValidationChain))
+		assert.Equal(t, "checksums.txt", release.ValidationChain[0].ValidationAssetName)
+		assert.Equal(t, "checksums.txt.asc", release.ValidationChain[1].ValidationAssetName)
+	})
+
+	t.Run("LoopConfig", func(t *testing.T) {
+		updater, _ := NewUpdater(Config{
+			Source: source,
+			Validator: new(PatternValidator).
+				Add("*", checksumValidator),
+		})
+
+		_, _, err := updater.DetectVersion(context.Background(), testGithubRepository, testVersion)
+		assert.NoError(t, err)
+	})
+
+	t.Run("InvalidLoopConfig", func(t *testing.T) {
+		updater, _ := NewUpdater(Config{
+			Source: source,
+			Validator: new(PatternValidator).
+				Add("*.*z*", checksumValidator).
+				Add("*", new(SHAValidator)),
+		})
+
+		_, _, err := updater.DetectVersion(context.Background(), testGithubRepository, testVersion)
+		assert.EqualError(t, err, "validation file not found: \"checksums.txt.sha256\"")
+	})
+}
+
 func newMockUpdater(t *testing.T, config Config) *Updater {
 	t.Helper()
 	updater, err := NewUpdater(config)

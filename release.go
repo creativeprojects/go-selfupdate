@@ -22,6 +22,15 @@ type Release struct {
 	ValidationAssetID int64
 	// ValidationAssetURL is the URL of additional validation asset on the source platform
 	ValidationAssetURL string
+	// ValidationChain is the list of validation assets being used (first record is ValidationAssetID).
+	ValidationChain []struct {
+		// ValidationAssetID is the ID of additional validation asset on the source platform
+		ValidationAssetID int64
+		// ValidationAssetURL is the filename of additional validation asset on the source platform
+		ValidationAssetName string
+		// ValidationAssetURL is the URL of additional validation asset on the source platform
+		ValidationAssetURL string
+	}
 	// URL is a URL to release page for browsing
 	URL string
 	// ReleaseNotes is a release notes of the release
