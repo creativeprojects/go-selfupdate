@@ -254,6 +254,7 @@ func (v *ECDSAValidator) Validate(filename string, input, signature []byte) erro
 	h := sha256.New()
 	h.Write(input)
 
+	log.Printf("Verifying ECDSA signature on %q", filename)
 	var rs struct {
 		R *big.Int
 		S *big.Int
@@ -301,6 +302,7 @@ func (g *PGPValidator) Validate(filename string, release, signature []byte) (err
 	if g.KeyRing == nil {
 		return ErrPGPKeyRingNotSet
 	}
+	log.Printf("Verifying PGP signature on %q", filename)
 
 	data, sig := bytes.NewReader(release), bytes.NewReader(signature)
 	if g.Binary {
