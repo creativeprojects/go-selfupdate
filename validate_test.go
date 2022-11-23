@@ -80,7 +80,7 @@ func TestPatternValidator(t *testing.T) {
 	})
 
 	t.Run("Skip", func(t *testing.T) {
-		validator := new(PatternValidator).AddSkip("*.skipped")
+		validator := new(PatternValidator).SkipValidation("*.skipped")
 
 		assert.False(t, validator.MustContinueValidation("foo.skipped"))
 		assert.NoError(t, validator.Validate("foo.skipped", nil, nil))

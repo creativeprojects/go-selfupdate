@@ -44,7 +44,7 @@ type RecursiveValidator interface {
 // validation assets (e.g. SHA256SUMS file checks assets and SHA256SUMS.asc
 // checks the SHA256SUMS file).
 // Depending on the used validators, a validation loop might be created,
-// causing validation errors. In order to prevent this, AddSkip can be used
+// causing validation errors. In order to prevent this, use SkipValidation
 // for validation assets that should not be checked (e.g. signature files).
 // Note that glob pattern are matched in the order of addition. Add general
 // patterns like "*" at last.
@@ -55,7 +55,7 @@ type RecursiveValidator interface {
 //		// "SHA256SUMS" file is checked by PGP signature (from "SHA256SUMS.asc")
 //		Add("SHA256SUMS", new(PGPValidator).WithArmoredKeyRing(key)).
 //		// "SHA256SUMS.asc" file is not checked (is the signature for "SHA256SUMS")
-//		AddSkip("*.asc").
+//		SkipValidation("*.asc").
 //		// All other files are checked by the "SHA256SUMS" file
 //		Add("*", &ChecksumValidator{UniqueFilename:"SHA256SUMS"})
 type PatternValidator struct {
@@ -78,11 +78,15 @@ func (m *PatternValidator) Add(glob string, validator Validator) *PatternValidat
 	return m
 }
 
-// AddSkip skips validation for the given glob pattern.
-// Note that glob pattern are executed in order of addition.
-// Validation cannot be skipped when a previous validation pattern matches.
-func (m *PatternValidator) AddSkip(glob string) *PatternValidator {
-	return m.Add(glob, nil)
+// SkipValidation skips validation for the given glob pattern.
+func (m *PatternValidator) SkipValidation(glob string) *PatternValidator {
+	_ = m.Add(glob, nil)
+	// move skip rule to the beginning of the list to ensure it is matched
+	// before the validation rules
+	if size := len(m.validators); size > 0 {
+		m.validators = append(m.validators[size-1:], m.validators[0:size-1]...)
+	}
+	return m
 }
 
 func (m *PatternValidator) findValidator(filename string) (Validator, error) {
@@ -327,8 +331,8 @@ func (g *PGPValidator) GetValidationAssetName(releaseFilename string) string {
 func NewChecksumWithECDSAValidator(checksumsFilename string, pemECDSACertificate []byte) Validator {
 	return new(PatternValidator).
 		Add(checksumsFilename, new(ECDSAValidator).WithPublicKey(pemECDSACertificate)).
-		AddSkip("*.sig").
-		Add("*", &ChecksumValidator{UniqueFilename: checksumsFilename})
+		Add("*", &ChecksumValidator{UniqueFilename: checksumsFilename}).
+		SkipValidation("*.sig")
 }
 
 // NewChecksumWithPGPValidator returns a validator that checks assets with a checksums file
@@ -336,8 +340,8 @@ func NewChecksumWithECDSAValidator(checksumsFilename string, pemECDSACertificate
 func NewChecksumWithPGPValidator(checksumsFilename string, armoredPGPKeyRing []byte) Validator {
 	return new(PatternValidator).
 		Add(checksumsFilename, new(PGPValidator).WithArmoredKeyRing(armoredPGPKeyRing)).
-		AddSkip("*.asc").
-		Add("*", &ChecksumValidator{UniqueFilename: checksumsFilename})
+		Add("*", &ChecksumValidator{UniqueFilename: checksumsFilename}).
+		SkipValidation("*.asc")
 }
 
 //=====================================================================================================================
