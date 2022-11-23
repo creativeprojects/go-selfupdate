@@ -16,7 +16,7 @@ func TestSplitDomainSlug(t *testing.T) {
 		{"owner/name", "", "owner/name", true},
 		{"owner/name/", "", "", false},
 		{"/owner/name", "", "", false},
-		{"github.com/owner/name", "http://github.com", "owner/name", true},
+		{"github.com/owner/name", "https://github.com", "owner/name", true},
 		{"http://github.com/owner/name", "http://github.com", "owner/name", true},
 		{"http://github.com", "", "", false},
 		{"http://github.com/", "", "", false},

@@ -221,7 +221,8 @@ func TestNoValidationFile(t *testing.T) {
 		source: source,
 	}
 	err := updater.validate(context.Background(), release, []byte("some data"))
-	assert.EqualError(t, err, ErrAssetNotFound.Error())
+	assert.EqualError(t, err, fmt.Sprintf("failed reading validation data \"\": %s", ErrAssetNotFound.Error()))
+	assert.ErrorIs(t, err, ErrAssetNotFound)
 }
 
 func TestValidationWrongHash(t *testing.T) {
@@ -315,7 +316,8 @@ func TestUpdateToInvalidOwner(t *testing.T) {
 		AssetID:    123,
 	}
 	err := updater.UpdateTo(context.Background(), release, "")
-	assert.EqualError(t, err, ErrIncorrectParameterOwner.Error())
+	assert.EqualError(t, err, fmt.Sprintf("failed to read asset \"\": %s", ErrIncorrectParameterOwner.Error()))
+	assert.ErrorIs(t, err, ErrIncorrectParameterOwner)
 }
 
 func TestUpdateToInvalidRepo(t *testing.T) {
@@ -326,7 +328,8 @@ func TestUpdateToInvalidRepo(t *testing.T) {
 		AssetID:    123,
 	}
 	err := updater.UpdateTo(context.Background(), release, "")
-	assert.EqualError(t, err, ErrIncorrectParameterRepo.Error())
+	assert.EqualError(t, err, fmt.Sprintf("failed to read asset \"\": %s", ErrIncorrectParameterRepo.Error()))
+	assert.ErrorIs(t, err, ErrIncorrectParameterRepo)
 }
 
 func TestUpdateToReadError(t *testing.T) {
@@ -399,25 +402,65 @@ func TestUpdateToSuccess(t *testing.T) {
 		validator: &ChecksumValidator{},
 	}
 
-	tempfile, err := createEmptyFile(t, "foo")
-	require.NoError(t, err)
-	defer os.Remove(tempfile)
+	tempfile := createEmptyFile(t, "foo")
 
 	err = updater.UpdateTo(context.Background(), release, tempfile)
 	require.NoError(t, err)
 }
 
+func TestUpdateToWithMultistepValidationChain(t *testing.T) {
+	testVersion := "v0.10.0"
+	source, keyRing := mockPGPSourceRepository(t)
+	updater, _ := NewUpdater(Config{
+		Source:    source,
+		Validator: NewChecksumWithPGPValidator("checksums.txt", keyRing),
+	})
+
+	tempFile := createEmptyFile(t, "new_version")
+
+	getRelease := func(t *testing.T) *Release {
+		release, found, err := updater.DetectVersion(context.Background(), testGithubRepository, testVersion)
+		require.NotNil(t, release)
+		require.NoError(t, err)
+		require.True(t, found)
+		require.Equal(t, 2, len(release.ValidationChain))
+		return release
+	}
+
+	t.Run("Succeeds", func(t *testing.T) {
+		release := getRelease(t)
+		err := updater.UpdateTo(context.Background(), release, tempFile)
+		assert.NoError(t, err)
+	})
+
+	t.Run("ValidationFailInStep1", func(t *testing.T) {
+		release := getRelease(t)
+		release.ValidationChain[0].ValidationAssetID = 1
+
+		err := updater.UpdateTo(context.Background(), release, tempFile)
+		assert.EqualError(t, err, fmt.Sprintf("failed validating asset content %q: incorrect checksum file format", release.AssetName))
+	})
+
+	t.Run("ValidationFailInStep2", func(t *testing.T) {
+		release := getRelease(t)
+		release.ValidationChain[1].ValidationAssetID = 1
+
+		err := updater.UpdateTo(context.Background(), release, tempFile)
+		assert.EqualError(t, err, "failed validating asset content \"checksums.txt\": invalid PGP signature")
+	})
+}
+
 // createEmptyFile creates an empty file with a unique name in the system temporary folder
-func createEmptyFile(t *testing.T, basename string) (string, error) {
+func createEmptyFile(t *testing.T, filename string) string {
 	t.Helper()
-	tempfile := filepath.Join(os.TempDir(), fmt.Sprintf("%s", basename))
+	tempfile := filepath.Join(t.TempDir(), filename)
 	t.Logf("use temporary file %q", tempfile)
 	file, err := os.OpenFile(tempfile, os.O_WRONLY|os.O_CREATE, 0777)
-	if err != nil {
-		return "", err
+	if err == nil {
+		err = file.Close()
 	}
-	file.Close()
-	return tempfile, nil
+	require.NoError(t, err)
+	return tempfile
 }
 
 func setupCurrentVersion(t *testing.T) string {
