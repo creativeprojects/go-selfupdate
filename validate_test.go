@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"crypto/ecdsa"
 	"crypto/x509"
+	"encoding/hex"
 	"encoding/pem"
+	"fmt"
 	"golang.org/x/crypto/openpgp"
 	"golang.org/x/crypto/openpgp/armor"
 	"os"
@@ -150,7 +152,7 @@ func TestSHAValidatorFail(t *testing.T) {
 
 	hashData[0] = '0'
 	err = validator.Validate("foo.zip", data, hashData)
-	assert.EqualError(t, err, ErrChecksumValidationFailed.Error())
+	assert.ErrorIs(t, err, ErrChecksumValidationFailed)
 }
 
 // ======= ECDSAValidator ====================================================
@@ -373,7 +375,7 @@ func TestChecksumValidatorWillFailWithWrongHash(t *testing.T) {
 
 	validator := &ChecksumValidator{}
 	err = validator.Validate("foo.zip", data, hashData)
-	assert.EqualError(t, err, ErrChecksumValidationFailed.Error())
+	assert.ErrorIs(t, err, ErrChecksumValidationFailed)
 }
 
 func TestChecksumNotFound(t *testing.T) {
@@ -401,6 +403,36 @@ func TestChecksumValidatorSuccess(t *testing.T) {
 }
 
 // ======= Utilities =========================================================
+
+func TestHexStringEquals(t *testing.T) {
+	tests := []struct {
+		equal bool
+		size  int
+		a, b  string
+		err   error
+	}{
+		{true, 0, "", "", nil},
+		{true, 1, "b1", "b1", nil},
+		{true, 1, "b1", "B1", nil},
+		{true, 2, "b1AA", "B1aa", nil},
+		{false, 1, "", "", nil},
+		{false, 0, "b1", "b1", nil},
+		{false, 0, "b", "b", nil},
+		{false, 1, "b", "b", nil},
+		{false, 1, "b2", "b1", nil},
+		{false, 2, "b1", "b1", nil},
+		{false, 2, "b1AA", "aab1", nil},
+		{false, 3, "b1", "b1", nil},
+		{false, 2, "aaXX", "aaXX", hex.InvalidByteError('X')},
+	}
+	for i, test := range tests {
+		t.Run(fmt.Sprintf("%d", i), func(t *testing.T) {
+			equal, err := hexStringEquals(test.size, test.a, test.b)
+			assert.Equal(t, test.equal, equal)
+			assert.ErrorIs(t, err, test.err)
+		})
+	}
+}
 
 func TestNewChecksumWithECDSAValidator(t *testing.T) {
 	pemData, err := os.ReadFile("testdata/Test.crt")

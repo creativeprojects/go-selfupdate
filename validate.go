@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/asn1"
+	"encoding/hex"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -150,10 +151,16 @@ func (v *SHAValidator) Validate(filename string, release, asset []byte) error {
 	if len(asset) < sha256.BlockSize {
 		return ErrIncorrectChecksumFile
 	}
+
 	hash := fmt.Sprintf("%s", asset[:sha256.BlockSize])
 	calculatedHash := fmt.Sprintf("%x", sha256.Sum256(release))
-	if calculatedHash != hash {
-		return ErrChecksumValidationFailed
+
+	if equal, err := hexStringEquals(sha256.Size, calculatedHash, hash); !equal {
+		if err == nil {
+			return fmt.Errorf("expected %q, found %q: %w", hash, calculatedHash, ErrChecksumValidationFailed)
+		} else {
+			return fmt.Errorf("%s: %w", err.Error(), ErrChecksumValidationFailed)
+		}
 	}
 	return nil
 }
@@ -179,11 +186,7 @@ func (v *ChecksumValidator) Validate(filename string, release, asset []byte) err
 	if err != nil {
 		return err
 	}
-	calculatedHash := fmt.Sprintf("%x", sha256.Sum256(release))
-	if calculatedHash != hash {
-		return ErrChecksumValidationFailed
-	}
-	return nil
+	return new(SHAValidator).Validate(filename, release, []byte(hash))
 }
 
 func findChecksum(filename string, content []byte) (string, error) {
@@ -327,6 +330,19 @@ func (g *PGPValidator) GetValidationAssetName(releaseFilename string) string {
 }
 
 //=====================================================================================================================
+
+func hexStringEquals(size int, a, b string) (equal bool, err error) {
+	size *= 2
+	if len(a) == size && len(b) == size {
+		var bytesA, bytesB []byte
+		if bytesA, err = hex.DecodeString(a); err == nil {
+			if bytesB, err = hex.DecodeString(b); err == nil {
+				equal = bytes.Equal(bytesA, bytesB)
+			}
+		}
+	}
+	return
+}
 
 // NewChecksumWithECDSAValidator returns a validator that checks assets with a checksums file
 // (e.g. SHA256SUMS) and the checksums file with an ECDSA signature (e.g. SHA256SUMS.sig).
