@@ -50,6 +50,7 @@ the source provider and replaces itself.
 Two source providers are available:
 - GitHub
 - Gitea
+- Gitlab
 
 This library started as a fork of https://github.com/rhysd/go-github-selfupdate. A few things have changed from the original implementation:
 - don't expose an external semver.Version type, but provide the same functionality through the API: LessThan, Equal and GreaterThan
@@ -310,7 +311,7 @@ Currently implemented are
 
 # GitLab
 
-Support for GitLab is experimental.
+Support for GitLab landed in version 1.0.0.
 
 To be able to download assets from a private instance of GitLab, you have to publish your files to the [Generic Package Registry](https://docs.gitlab.com/ee/user/packages/package_registry/index.html).
 
