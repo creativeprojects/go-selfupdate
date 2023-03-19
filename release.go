@@ -45,6 +45,8 @@ type Release struct {
 	Arch string
 	// Arm 32bits version (if any). Valid values are 0 (unknown), 5, 6 or 7
 	Arm uint8
+	// Prerelease is set to true for alpha, beta or release candidates
+	Prerelease bool
 	// version is the parsed *semver.Version
 	version    *semver.Version
 	repository Repository

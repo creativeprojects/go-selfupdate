@@ -65,6 +65,7 @@ func (up *Updater) validateReleaseAsset(
 		ReleaseNotes:       rel.GetReleaseNotes(),
 		Name:               rel.GetName(),
 		PublishedAt:        rel.GetPublishedAt(),
+		Prerelease:         rel.GetPrerelease(),
 		OS:                 up.os,
 		Arch:               up.arch,
 		Arm:                up.arm,
