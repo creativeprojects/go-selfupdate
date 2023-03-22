@@ -6,6 +6,7 @@ import (
 	"fmt"
 	stdlog "log"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -134,6 +135,31 @@ func TestDetectVersionNotExisting(t *testing.T) {
 			require.NoError(t, err)
 			assert.False(t, ok, "Failed to correctly detect foobar")
 			assert.Nil(t, r, "Release not detected but got a returned value for it")
+		})
+	}
+}
+
+func TestDetectPrerelease(t *testing.T) {
+	testFixtures := []struct {
+		prerelease bool
+		version    string
+	}{
+		{false, "1.0.0"},
+		{true, "2.0.0-beta"},
+	}
+	for _, testFixture := range testFixtures {
+		t.Run(strconv.FormatBool(testFixture.prerelease), func(t *testing.T) {
+			updater := newMockUpdater(t, Config{
+				Source:     mockSourceRepository(t),
+				Prerelease: testFixture.prerelease,
+			})
+			r, ok, err := updater.DetectLatest(context.Background(), RepositorySlug{owner: "owner", repo: "repo"})
+			assert.NotNil(t, r)
+			assert.True(t, ok)
+			assert.NoError(t, err)
+
+			assert.Equal(t, testFixture.prerelease, r.Prerelease)
+			assert.Equal(t, testFixture.version, r.Version())
 		})
 	}
 }
