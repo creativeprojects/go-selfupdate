@@ -29,7 +29,7 @@ func UpdateTo(ctx context.Context, assetURL, assetFileName, cmdPath string) erro
 		return err
 	}
 	defer src.Close()
-	return up.decompressAndUpdate(src, assetURL, assetFileName, cmdPath)
+	return up.decompressAndUpdate(src, assetFileName, assetURL, cmdPath)
 }
 
 // UpdateCommand updates a given command binary to the latest version.
