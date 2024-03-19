@@ -176,7 +176,11 @@ func TestDetectReleasesForVariousArchives(t *testing.T) {
 		{"rhysd-test/test-release-tar-xz", "release-"},
 	} {
 		t.Run(tc.slug, func(t *testing.T) {
-			r, ok, err := DetectLatest(context.Background(), ParseSlug(tc.slug))
+			source, err := NewGitHubSource(GitHubConfig{})
+			require.NoError(t, err, "failed to create source")
+			updater, err := NewUpdater(Config{Source: source, Arch: "amd64"})
+			require.NoError(t, err, "failed to create updater")
+			r, ok, err := updater.DetectLatest(context.Background(), ParseSlug(tc.slug))
 			skipRateLimitExceeded(t, err)
 
 			assert.NoError(t, err, "fetch failed")
