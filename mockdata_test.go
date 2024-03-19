@@ -48,6 +48,12 @@ func mockSourceRepository(t *testing.T) *MockSource {
 					url:  "resticprofile_0.1.0_windows_amd64.zip",
 					size: len(zipData),
 				},
+				&GitHubAsset{
+					id:   31,
+					name: "resticprofile_0.1.0_darwin_arm64.tar.gz",
+					url:  "resticprofile_0.1.0_darwin_arm64.tar.gz",
+					size: len(gzData),
+				},
 			},
 		},
 		&GitHubRelease{
@@ -75,6 +81,12 @@ func mockSourceRepository(t *testing.T) *MockSource {
 					name: "resticprofile_0.10.0_windows_amd64.zip",
 					url:  "resticprofile_0.10.0_windows_amd64.zip",
 					size: len(zipData),
+				},
+				&GitHubAsset{
+					id:   32,
+					name: "resticprofile_0.10.0_darwin_arm64.tar.gz",
+					url:  "resticprofile_0.10.0_darwin_arm64.tar.gz",
+					size: len(gzData),
 				},
 			},
 		},
@@ -104,6 +116,12 @@ func mockSourceRepository(t *testing.T) *MockSource {
 					url:  "resticprofile_1.0.0-rc_windows_amd64.zip",
 					size: len(zipData),
 				},
+				&GitHubAsset{
+					id:   33,
+					name: "resticprofile_1.0.0-rc_darwin_arm64.tar.gz",
+					url:  "resticprofile_1.0.0-rc_darwin_arm64.tar.gz",
+					size: len(gzData),
+				},
 			},
 		},
 		&GitHubRelease{
@@ -131,6 +149,12 @@ func mockSourceRepository(t *testing.T) *MockSource {
 					name: "resticprofile_1.0.0_windows_amd64.zip",
 					url:  "resticprofile_1.0.0_windows_amd64.zip",
 					size: len(zipData),
+				},
+				&GitHubAsset{
+					id:   34,
+					name: "resticprofile_1.0.0_darwin_arm64.tar.gz",
+					url:  "resticprofile_1.0.0_darwin_arm64.tar.gz",
+					size: len(gzData),
 				},
 			},
 		},
@@ -160,6 +184,12 @@ func mockSourceRepository(t *testing.T) *MockSource {
 					url:  "resticprofile_2.0.0-beta_windows_amd64.zip",
 					size: len(zipData),
 				},
+				&GitHubAsset{
+					id:   35,
+					name: "resticprofile_2.0.0-beta_darwin_arm64.tar.gz",
+					url:  "resticprofile_2.0.0-beta_darwin_arm64.tar.gz",
+					size: len(gzData),
+				},
 			},
 		},
 		&GitHubRelease{
@@ -188,6 +218,12 @@ func mockSourceRepository(t *testing.T) *MockSource {
 					url:  "resticprofile_2.0.0_windows_amd64.zip",
 					size: len(zipData),
 				},
+				&GitHubAsset{
+					id:   36,
+					name: "resticprofile_2.0.0_darwin_arm64.tar.gz",
+					url:  "resticprofile_2.0.0_darwin_arm64.tar.gz",
+					size: len(gzData),
+				},
 			},
 		},
 	}
@@ -211,6 +247,12 @@ func mockSourceRepository(t *testing.T) *MockSource {
 		24: gzData,
 		25: gzData,
 		26: zipData,
+		31: gzData,
+		32: gzData,
+		33: gzData,
+		34: gzData,
+		35: gzData,
+		36: gzData,
 	}
 
 	// generates checksum files automatically

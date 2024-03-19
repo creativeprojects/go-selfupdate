@@ -156,6 +156,12 @@ func TestBrokenBinaryUpdate(t *testing.T) {
 				},
 				&GitHubAsset{
 					id:   3,
+					name: "invalid_v2.0.0_darwin_arm64.tar.gz",
+					url:  "invalid_v2.0.0_darwin_arm64.tar.gz",
+					size: len("invalid content"),
+				},
+				&GitHubAsset{
+					id:   4,
 					name: "invalid_v2.0.0_windows_amd64.zip",
 					url:  "invalid_v2.0.0_windows_amd64.zip",
 					size: len("invalid content"),
@@ -166,6 +172,7 @@ func TestBrokenBinaryUpdate(t *testing.T) {
 		1: []byte("invalid content"),
 		2: []byte("invalid content"),
 		3: []byte("invalid content"),
+		4: []byte("invalid content"),
 	})
 
 	updater, err := NewUpdater(Config{Source: source})

@@ -46,7 +46,7 @@ func TestDetectReleaseWithVersionPrefix(t *testing.T) {
 			skipRateLimitExceeded(t, err)
 			require.NoError(t, err)
 			assert.True(t, ok, "Failed to detect latest")
-			assert.NotNil(t, r, "No release returned")
+			require.NotNil(t, r, "No release returned")
 			if r.LessThan("0.10.0") {
 				t.Error("Incorrect version:", r.Version())
 			}
@@ -84,7 +84,7 @@ func TestDetectVersionExisting(t *testing.T) {
 			skipRateLimitExceeded(t, err)
 			require.NoError(t, err)
 			assert.Truef(t, ok, "Failed to detect %s", testVersion)
-			assert.NotNil(t, r, "No release returned")
+			require.NotNil(t, r, "No release returned")
 			assert.Greater(t, r.ValidationAssetID, int64(-1))
 		})
 	}
@@ -154,7 +154,7 @@ func TestDetectPrerelease(t *testing.T) {
 				Prerelease: testFixture.prerelease,
 			})
 			r, ok, err := updater.DetectLatest(context.Background(), RepositorySlug{owner: "owner", repo: "repo"})
-			assert.NotNil(t, r)
+			require.NotNil(t, r)
 			assert.True(t, ok)
 			assert.NoError(t, err)
 
@@ -181,7 +181,7 @@ func TestDetectReleasesForVariousArchives(t *testing.T) {
 
 			assert.NoError(t, err, "fetch failed")
 			assert.True(t, ok, "not found")
-			assert.NotNil(t, r, "release not detected")
+			require.NotNil(t, r, "release not detected")
 			assert.Truef(t, r.Equal("1.2.3"), "incorrect release: expected 1.2.3 but got %v", r.Version())
 
 			url := fmt.Sprintf("https://github.com/%s/releases/tag/%s1.2.3", tc.slug, tc.prefix)
@@ -803,7 +803,7 @@ func TestBuildMultistepValidationChain(t *testing.T) {
 		})
 
 		release, found, err := updater.DetectVersion(context.Background(), testGithubRepository, testVersion)
-		assert.True(t, found)
+		require.True(t, found)
 		assert.NoError(t, err)
 		assert.Equal(t, 2, len(release.ValidationChain))
 		assert.Equal(t, "checksums.txt", release.ValidationChain[0].ValidationAssetName)
