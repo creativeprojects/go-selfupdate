@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/ulikunitz/xz"
@@ -29,6 +30,8 @@ var (
 		{".xz", unxz},
 		{".bz2", unbz2},
 	}
+	// pattern copied from bottom of the page: https://semver.org/
+	semverPattern = `(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?`
 )
 
 // DecompressCommand decompresses the given source. Archive and compression format is
@@ -138,23 +141,17 @@ func unbz2(src io.Reader, cmd, os, arch string) (io.Reader, error) {
 }
 
 func matchExecutableName(cmd, os, arch, target string) bool {
-	if cmd == target || cmd+".exe" == target {
-		return true
-	}
-
-	// When the contained executable name is full name (e.g. foo_darwin_amd64),
-	// it is also regarded as a target executable file.
-	for _, delimiter := range []rune{'_', '-'} {
-		c := fmt.Sprintf("%s%c%s%c%s", cmd, delimiter, os, delimiter, arch)
-		if os == "windows" {
-			c += ".exe"
-		}
-		if c == target {
-			return true
-		}
-	}
-
-	return false
+	cmd = strings.TrimSuffix(cmd, ".exe")
+	pattern := regexp.MustCompile(
+		fmt.Sprintf(
+			`^%s([_-]%s)?([_-]%s[_-]%s)?(\.exe)?$`,
+			regexp.QuoteMeta(cmd),
+			semverPattern,
+			regexp.QuoteMeta(os),
+			regexp.QuoteMeta(arch),
+		),
+	)
+	return pattern.MatchString(target)
 }
 
 func unarchiveTar(src io.Reader, cmd, os, arch string) (io.Reader, error) {

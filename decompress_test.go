@@ -120,17 +120,44 @@ func TestMatchExecutableName(t *testing.T) {
 		target string
 		found  bool
 	}{
+		// valid
 		{"gostuff", "linux", "amd64", "gostuff", true},
+		{"gostuff", "linux", "amd64", "gostuff_0.16.0", true},
+		{"gostuff", "linux", "amd64", "gostuff-0.16.0", true},
 		{"gostuff", "linux", "amd64", "gostuff_linux_amd64", true},
+		{"gostuff", "linux", "amd64", "gostuff-linux-amd64", true},
+		{"gostuff", "linux", "amd64", "gostuff_0.16.0_linux_amd64", true},
+		{"gostuff", "linux", "amd64", "gostuff-0.16.0-linux-amd64", true},
+		// invalid
 		{"gostuff", "linux", "amd64", "gostuff_darwin_amd64", false},
+		{"gostuff", "linux", "amd64", "gostuff0.16.0", false},
+		{"gostuff", "linux", "amd64", "gostuff_0.16.0_amd64", false},
+		{"gostuff", "linux", "amd64", "gostuff_0.16.0_linux", false},
+		// windows valid
 		{"gostuff", "windows", "amd64", "gostuff.exe", true},
+		{"gostuff", "windows", "amd64", "gostuff_0.16.0.exe", true},
+		{"gostuff", "windows", "amd64", "gostuff-0.16.0.exe", true},
 		{"gostuff", "windows", "amd64", "gostuff_windows_amd64.exe", true},
+		{"gostuff", "windows", "amd64", "gostuff-windows-amd64.exe", true},
+		{"gostuff", "windows", "amd64", "gostuff_0.16.0_windows_amd64.exe", true},
+		{"gostuff", "windows", "amd64", "gostuff-0.16.0-windows-amd64.exe", true},
+		// windows invalid
+		{"gostuff", "windows", "amd64", "gostuff_darwin_amd64.exe", false},
+		{"gostuff", "windows", "amd64", "gostuff0.16.0.exe", false},
+		{"gostuff", "windows", "amd64", "gostuff_0.16.0_amd64.exe", false},
+		{"gostuff", "windows", "amd64", "gostuff_0.16.0_windows.exe", false},
 	}
 
 	for _, testItem := range testData {
 		t.Run(testItem.target, func(t *testing.T) {
 			assert.Equal(t, testItem.found, matchExecutableName(testItem.cmd, testItem.os, testItem.arch, testItem.target))
 		})
+		// also try with .exe already in cmd for windows
+		if testItem.os == "windows" {
+			t.Run(testItem.target, func(t *testing.T) {
+				assert.Equal(t, testItem.found, matchExecutableName(testItem.cmd+".exe", testItem.os, testItem.arch, testItem.target))
+			})
+		}
 	}
 }
 
