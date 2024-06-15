@@ -1,8 +1,0 @@
-{
-    "cSpell.words": [
-        "gitea"
-    ],
-    "yaml.schemas": {
-        "https://json.schemastore.org/github-workflow.json": "file:///Users/gouarfig/go/src/github.com/creativeprojects/go-selfupdate/.github/workflows/build.yml"
-    }
-}
