@@ -5,3 +5,4 @@
 /go-get-release
 /coverage.out
 /cmd/restic
+/.vscode/
