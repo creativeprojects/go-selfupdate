@@ -26,6 +26,7 @@ Self-Update library for Github, Gitea and Gitlab hosted applications in Go
   * [SHA256](#sha256)
   * [ECDSA](#ecdsa)
   * [Using a single checksum file for all your assets](#using-a-single-checksum-file-for-all-your-assets)
+* [macOS universal binaries](#macos-universal-binaries)
 * [Other providers than Github](#other-providers-than-github)
 * [GitLab](#gitlab)
   * [Example:](#example-1)
@@ -43,9 +44,9 @@ the source provider and replaces itself.
 - Retrieve the proper binary for the OS and arch where the binary is running
 - Update the binary with rollback support on failure
 - Tested on Linux, macOS and Windows
-- Support for different versions of ARM architectures
+- Support for different versions of ARM architecture
 - Support macOS universal binaries
-- Many archive and compression formats are supported (zip, tar, gzip, xzip, bzip2)
+- Many archive and compression formats are supported (zip, tar, gzip, xz, bzip2)
 - Support private repositories
 - Support hash, signature validation
 
@@ -302,6 +303,18 @@ Tools like [goreleaser][] produce a single checksum file for all your assets. A 
 ```go
 updater, _ := NewUpdater(Config{Validator: &ChecksumValidator{UniqueFilename: "checksums.txt"}})
 ```
+
+# macOS universal binaries
+
+You can ask the updater to choose a macOS universal binary as a fallback if the native architecture wasn't found.
+
+You need to provide the architecture name for the universal binary in the `Config` struct:
+
+```go
+updater, _ := NewUpdater(Config{UniversalArch: "all"})
+```
+
+Default is empty, which means no fallback.
 
 # Other providers than Github
 
