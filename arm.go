@@ -2,16 +2,7 @@ package selfupdate
 
 import (
 	"debug/buildinfo"
-	"os"
 )
-
-var goarm uint8
-
-//nolint:gochecknoinits
-func init() {
-	// avoid using runtime.goarm directly
-	goarm = getGOARM(os.Args[0])
-}
 
 func getGOARM(goBinary string) uint8 {
 	build, err := buildinfo.ReadFile(goBinary)

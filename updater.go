@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"regexp"
 	"runtime"
+
+	"github.com/creativeprojects/go-selfupdate/internal"
 )
 
 // Updater is responsible for managing the context of self-update.
@@ -27,6 +29,7 @@ func NewUpdater(config Config) (*Updater, error) {
 	source := config.Source
 	if source == nil {
 		// default source is GitHub
+		// an error can only be returned when using GitHub Enterprise URLs
 		source, _ = NewGitHubSource(GitHubConfig{})
 	}
 
@@ -40,16 +43,17 @@ func NewUpdater(config Config) (*Updater, error) {
 	}
 
 	os := config.OS
-	arch := config.Arch
 	if os == "" {
 		os = runtime.GOOS
 	}
+	arch := config.Arch
 	if arch == "" {
 		arch = runtime.GOARCH
 	}
 	arm := config.Arm
-	if arm == 0 && goarm > 0 {
-		arm = goarm
+	if arm == 0 {
+		exe, _ := internal.GetExecutablePath()
+		arm = getGOARM(exe)
 	}
 
 	return &Updater{
@@ -73,14 +77,6 @@ func DefaultUpdater() *Updater {
 	if defaultUpdater != nil {
 		return defaultUpdater
 	}
-	// an error can only be returned when using GitHub Enterprise URLs
-	// so we're safe here :)
-	source, _ := NewGitHubSource(GitHubConfig{})
-	defaultUpdater = &Updater{
-		source: source,
-		os:     runtime.GOOS,
-		arch:   runtime.GOARCH,
-		arm:    goarm,
-	}
+	defaultUpdater, _ = NewUpdater(Config{})
 	return defaultUpdater
 }

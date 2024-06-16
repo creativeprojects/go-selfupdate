@@ -35,7 +35,7 @@ Self-Update library for Github, Gitea and Gitlab hosted applications in Go
 
 # Introduction
 
-go-selfupdate detects the information of the latest release via a source provider and
+`go-selfupdate` detects the information of the latest release via a source provider and
 checks the current version. If a newer version than itself is detected, it downloads the released binary from
 the source provider and replaces itself.
 
@@ -43,17 +43,19 @@ the source provider and replaces itself.
 - Retrieve the proper binary for the OS and arch where the binary is running
 - Update the binary with rollback support on failure
 - Tested on Linux, macOS and Windows
+- Support for different versions of ARM architectures
+- Support macOS universal binaries
 - Many archive and compression formats are supported (zip, tar, gzip, xzip, bzip2)
 - Support private repositories
 - Support hash, signature validation
 
-Two source providers are available:
+Three source providers are available:
 - GitHub
 - Gitea
 - Gitlab
 
 This library started as a fork of https://github.com/rhysd/go-github-selfupdate. A few things have changed from the original implementation:
-- don't expose an external semver.Version type, but provide the same functionality through the API: LessThan, Equal and GreaterThan
+- don't expose an external `semver.Version` type, but provide the same functionality through the API: `LessThan`, `Equal` and `GreaterThan`
 - use an interface to send logs (compatible with standard log.Logger)
 - able to detect different ARM CPU architectures (the original library wasn't working on my different versions of raspberry pi)
 - support for assets compressed with bzip2 (.bz2)

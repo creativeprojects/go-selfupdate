@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
+	"github.com/creativeprojects/go-selfupdate/internal"
 	"github.com/creativeprojects/go-selfupdate/update"
 )
 
@@ -82,7 +83,7 @@ func (up *Updater) UpdateCommand(ctx context.Context, cmdPath string, current st
 // UpdateSelf updates the running executable itself to the latest version.
 // 'current' is used to check the latest version against the current version.
 func (up *Updater) UpdateSelf(ctx context.Context, current string, repository Repository) (*Release, error) {
-	cmdPath, err := os.Executable()
+	cmdPath, err := internal.GetExecutablePath()
 	if err != nil {
 		return nil, err
 	}

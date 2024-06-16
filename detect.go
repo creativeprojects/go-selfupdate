@@ -15,7 +15,7 @@ var reVersion = regexp.MustCompile(`\d+\.\d+\.\d+`)
 // It fetches releases information from the source provider and find out the latest release with matching the tag names and asset names.
 // Drafts and pre-releases are ignored.
 // Assets would be suffixed by the OS name and the arch name such as 'foo_linux_amd64' where 'foo' is a command name.
-// '-' can also be used as a separator. File can be compressed with zip, gzip, zxip, bzip2, tar&gzip or tar&zxip.
+// '-' can also be used as a separator. File can be compressed with zip, gzip, xz, bzip2, tar&gzip or tar&xz.
 // So the asset can have a file extension for the corresponding compression format such as '.zip'.
 // On Windows, '.exe' also can be contained such as 'foo_windows_amd64.exe.zip'.
 func (up *Updater) DetectLatest(ctx context.Context, repository Repository) (release *Release, found bool, err error) {
