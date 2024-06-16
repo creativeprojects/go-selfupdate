@@ -11,8 +11,10 @@ const (
 
 // getAdditionalArch we can use depending on the type of CPU
 func getAdditionalArch(arch string, goarm uint8, universalArch string) []string {
+	const defaultArchCapacity = 3
+	additionalArch := make([]string, 0, defaultArchCapacity)
+
 	if arch == "arm" && goarm >= minARM && goarm <= maxARM {
-		additionalArch := make([]string, 0, maxARM-minARM+1)
 		// more precise arch at the top of the list
 		for v := goarm; v >= minARM; v-- {
 			additionalArch = append(additionalArch, fmt.Sprintf("armv%d", v))
@@ -20,7 +22,7 @@ func getAdditionalArch(arch string, goarm uint8, universalArch string) []string 
 		additionalArch = append(additionalArch, "arm")
 		return additionalArch
 	}
-	additionalArch := make([]string, 0, 3)
+
 	additionalArch = append(additionalArch, arch)
 	if arch == "amd64" {
 		additionalArch = append(additionalArch, "x86_64")
