@@ -66,7 +66,7 @@ func Apply(update io.Reader, opts Options) error {
 
 	// get target path
 	var err error
-	if len(opts.TargetPath) == 0 {
+	if opts.TargetPath == "" {
 		opts.TargetPath, err = internal.GetExecutablePath()
 		if err != nil {
 			return err

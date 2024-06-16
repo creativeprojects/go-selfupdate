@@ -1,6 +1,7 @@
 package update
 
 import (
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -11,6 +12,9 @@ func TestHideFile(t *testing.T) {
 	t.Parallel()
 
 	tempFile := filepath.Join(t.TempDir(), t.Name())
-	err := hideFile(tempFile)
+	err := os.WriteFile(tempFile, []byte("test"), 0o644)
+	assert.NoError(t, err)
+
+	err = hideFile(tempFile)
 	assert.NoError(t, err)
 }

@@ -82,7 +82,7 @@ func update(version string) error {
 		return nil
 	}
 
-	exe, err := os.Executable()
+	exe, err := selfupdate.ExecutablePath()
 	if err != nil {
 		return errors.New("could not locate executable path")
 	}
@@ -355,7 +355,7 @@ func update() {
 	}
 	fmt.Printf("found release %s\n", release.Version())
 
-	exe, err := os.Executable()
+	exe, err := selfupdate.ExecutablePath()
 	if err != nil {
 		return errors.New("could not locate executable path")
 	}

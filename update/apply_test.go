@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -25,7 +27,7 @@ func cleanup(path string) {
 
 // we write with a separate name for each test so that we can run them in parallel
 func writeOldFile(path string, t *testing.T) {
-	if err := os.WriteFile(path, oldFile, 0o777); err != nil {
+	if err := os.WriteFile(path, oldFile, 0o600); err != nil {
 		t.Fatalf("Failed to write file for testing preparation: %v", err)
 	}
 }
@@ -196,6 +198,24 @@ func sign(parsePrivKey func([]byte) (crypto.Signer, error), privatePEM string, s
 	}
 
 	return sig
+}
+
+func TestSetInvalidPublicKeyPEM(t *testing.T) {
+	t.Parallel()
+
+	const wrongPublicKey = `
+-----BEGIN PUBLIC KEY-----
+== not valid base64 ==
+-----END PUBLIC KEY-----
+`
+
+	fName := t.Name()
+	defer cleanup(fName)
+	writeOldFile(fName, t)
+
+	opts := Options{TargetPath: fName}
+	err := opts.SetPublicKeyPEM([]byte(wrongPublicKey))
+	assert.Error(t, err, "Did not fail with invalid public key")
 }
 
 func TestVerifyECSignature(t *testing.T) {
