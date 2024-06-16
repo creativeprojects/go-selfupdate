@@ -80,13 +80,13 @@ func Apply(update io.Reader, opts Options) error {
 
 	// verify checksum if requested
 	if opts.Checksum != nil {
-		if err := opts.verifyChecksum(newBytes); err != nil {
+		if err = opts.verifyChecksum(newBytes); err != nil {
 			return err
 		}
 	}
 
 	if verify {
-		if err := opts.verifySignature(newBytes); err != nil {
+		if err = opts.verifySignature(newBytes); err != nil {
 			return err
 		}
 	}

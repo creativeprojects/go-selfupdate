@@ -16,7 +16,7 @@ type Config struct {
 	Arch string
 	// Arm 32bits version. Valid values are 0 (unknown), 5, 6 or 7. Default is detected value (if available).
 	Arm uint8
-	// Arch name to use when using a universal binary (macOS only). Default to none.
+	// Arch name for macOS universal binary. Default to none.
 	UniversalArch string
 	// Draft permits an upgrade to a "draft" version (default to false).
 	Draft bool
