@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"runtime"
@@ -27,7 +26,7 @@ func update(version string) error {
 
 	exe, err := selfupdate.ExecutablePath()
 	if err != nil {
-		return errors.New("could not locate executable path")
+		return fmt.Errorf("could not locate executable path: %w", err)
 	}
 	if err := selfupdate.UpdateTo(context.Background(), latest.AssetURL, latest.AssetName, exe); err != nil {
 		return fmt.Errorf("error occurred while updating binary: %w", err)

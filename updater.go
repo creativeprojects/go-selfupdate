@@ -10,14 +10,15 @@ import (
 
 // Updater is responsible for managing the context of self-update.
 type Updater struct {
-	source     Source
-	validator  Validator
-	filters    []*regexp.Regexp
-	os         string
-	arch       string
-	arm        uint8
-	prerelease bool
-	draft      bool
+	source        Source
+	validator     Validator
+	filters       []*regexp.Regexp
+	os            string
+	arch          string
+	arm           uint8
+	universalArch string // only filled in when needed
+	prerelease    bool
+	draft         bool
 }
 
 // keep the default updater instance in cache
@@ -51,20 +52,25 @@ func NewUpdater(config Config) (*Updater, error) {
 		arch = runtime.GOARCH
 	}
 	arm := config.Arm
-	if arm == 0 {
+	if arm == 0 && arch == "arm" {
 		exe, _ := internal.GetExecutablePath()
 		arm = getGOARM(exe)
 	}
+	universalArch := ""
+	if os == "darwin" && config.UniversalArch != "" {
+		universalArch = config.UniversalArch
+	}
 
 	return &Updater{
-		source:     source,
-		validator:  config.Validator,
-		filters:    filtersRe,
-		os:         os,
-		arch:       arch,
-		arm:        arm,
-		prerelease: config.Prerelease,
-		draft:      config.Draft,
+		source:        source,
+		validator:     config.Validator,
+		filters:       filtersRe,
+		os:            os,
+		arch:          arch,
+		arm:           arm,
+		universalArch: universalArch,
+		prerelease:    config.Prerelease,
+		draft:         config.Draft,
 	}, nil
 }
 

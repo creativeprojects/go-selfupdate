@@ -131,7 +131,7 @@ func findValidationAsset(rel SourceRelease, validationName string) (SourceAsset,
 func (up *Updater) findReleaseAndAsset(rels []SourceRelease, targetVersion string) (SourceRelease, SourceAsset, *semver.Version, bool) {
 	// we put the detected arch at the end of the list: that's fine for ARM so far,
 	// as the additional arch are more accurate than the generic one
-	for _, arch := range append(generateAdditionalArch(up.arch, up.arm), up.arch) {
+	for _, arch := range getAdditionalArch(up.arch, up.arm, up.universalArch) {
 		release, asset, version, found := up.findReleaseAndAssetForArch(arch, rels, targetVersion)
 		if found {
 			return release, asset, version, found
