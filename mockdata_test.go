@@ -57,35 +57,35 @@ func mockSourceRepository(t *testing.T) *MockSource {
 			},
 		},
 		&GitHubRelease{
-			name:         "v0.10.0",
-			tagName:      "v0.10.0",
-			url:          "v0.10.0",
+			name:         "v0.14.0",
+			tagName:      "v0.14.0",
+			url:          "v0.14.0",
 			prerelease:   false,
 			publishedAt:  time.Date(2010, 1, 1, 0, 0, 0, 0, time.UTC),
 			releaseNotes: "latest stable",
 			assets: []SourceAsset{
 				&GitHubAsset{
 					id:   4,
-					name: "resticprofile_0.10.0_linux_amd64.tar.gz",
-					url:  "resticprofile_0.10.0_linux_amd64.tar.gz",
+					name: "resticprofile_0.14.0_linux_amd64.tar.gz",
+					url:  "resticprofile_0.14.0_linux_amd64.tar.gz",
 					size: len(gzData),
 				},
 				&GitHubAsset{
 					id:   5,
-					name: "resticprofile_0.10.0_darwin_amd64.tar.gz",
-					url:  "resticprofile_0.10.0_darwin_amd64.tar.gz",
+					name: "resticprofile_0.14.0_darwin_amd64.tar.gz",
+					url:  "resticprofile_0.14.0_darwin_amd64.tar.gz",
 					size: len(gzData),
 				},
 				&GitHubAsset{
 					id:   6,
-					name: "resticprofile_0.10.0_windows_amd64.zip",
-					url:  "resticprofile_0.10.0_windows_amd64.zip",
+					name: "resticprofile_0.14.0_windows_amd64.zip",
+					url:  "resticprofile_0.14.0_windows_amd64.zip",
 					size: len(zipData),
 				},
 				&GitHubAsset{
 					id:   32,
-					name: "resticprofile_0.10.0_darwin_arm64.tar.gz",
-					url:  "resticprofile_0.10.0_darwin_arm64.tar.gz",
+					name: "resticprofile_0.14.0_darwin_arm64.tar.gz",
+					url:  "resticprofile_0.14.0_darwin_arm64.tar.gz",
 					size: len(gzData),
 				},
 			},
@@ -273,7 +273,7 @@ func mockSourceRepository(t *testing.T) *MockSource {
 			name: "checksums.txt",
 		})
 		files[id] = checksums.Bytes()
-		t.Logf("file id %d contains checksums:\n%s\n", id, string(files[id]))
+		// t.Logf("file id %d contains checksums:\n%s\n", id, string(files[id]))
 	}
 
 	return NewMockSource(releases, files)

@@ -2,7 +2,6 @@ package selfupdate
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	stdlog "log"
 	"os"
@@ -47,7 +46,7 @@ func TestDetectReleaseWithVersionPrefix(t *testing.T) {
 			require.NoError(t, err)
 			assert.True(t, ok, "Failed to detect latest")
 			require.NotNil(t, r, "No release returned")
-			if r.LessThan("0.10.0") {
+			if r.LessThan("0.14.0") {
 				t.Error("Incorrect version:", r.Version())
 			}
 			if !strings.HasSuffix(r.AssetURL, ".zip") && !strings.HasSuffix(r.AssetURL, ".tar.gz") {
@@ -64,7 +63,7 @@ func TestDetectReleaseWithVersionPrefix(t *testing.T) {
 }
 
 func TestDetectVersionExisting(t *testing.T) {
-	testVersion := "v0.10.0"
+	testVersion := "v0.14.0"
 	gitHub, _ := NewUpdater(Config{Validator: &ChecksumValidator{UniqueFilename: "checksums.txt"}})
 	testData := []struct {
 		run     bool
@@ -91,7 +90,7 @@ func TestDetectVersionExisting(t *testing.T) {
 }
 
 func TestDetectVersionExistingWithNoValidationFile(t *testing.T) {
-	testVersion := "v0.10.0"
+	testVersion := "v0.14.0"
 	gitHub, _ := NewUpdater(Config{Validator: &ChecksumValidator{UniqueFilename: "notfound.txt"}})
 	testData := []struct {
 		run     bool
@@ -109,8 +108,7 @@ func TestDetectVersionExistingWithNoValidationFile(t *testing.T) {
 		t.Run(testItem.name, func(t *testing.T) {
 			_, _, err := testItem.updater.DetectVersion(context.Background(), testGithubRepository, testVersion)
 			skipRateLimitExceeded(t, err)
-			require.Error(t, err)
-			assert.True(t, errors.Is(err, ErrValidationAssetNotFound))
+			assert.ErrorIs(t, err, ErrValidationAssetNotFound)
 		})
 	}
 }
@@ -796,7 +794,7 @@ func TestFindReleaseAndAsset(t *testing.T) {
 }
 
 func TestBuildMultistepValidationChain(t *testing.T) {
-	testVersion := "v0.10.0"
+	testVersion := "v0.14.0"
 	source, keyRing := mockPGPSourceRepository(t)
 	checksumValidator := &ChecksumValidator{UniqueFilename: "checksums.txt"}
 
@@ -840,6 +838,10 @@ func TestBuildMultistepValidationChain(t *testing.T) {
 
 func newMockUpdater(t *testing.T, config Config) *Updater {
 	t.Helper()
+
+	if config.Source == nil {
+		config.Source = mockSourceRepository(t)
+	}
 	updater, err := NewUpdater(config)
 	require.NoError(t, err)
 	return updater

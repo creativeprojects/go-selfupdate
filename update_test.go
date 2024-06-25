@@ -22,7 +22,7 @@ func TestUpdateCommandWithWrongVersion(t *testing.T) {
 }
 
 func TestUpdateCommand(t *testing.T) {
-	current := "0.10.0"
+	current := "0.14.0"
 	new := "1.0.0"
 	source := mockSourceRepository(t)
 	updater, err := NewUpdater(Config{Source: source})
@@ -42,7 +42,7 @@ func TestUpdateViaSymlink(t *testing.T) {
 		t.Skip("skipping because creating symlink on windows requires admin privilege")
 	}
 
-	current := "0.10.0"
+	current := "0.14.0"
 	new := "1.0.0"
 	source := mockSourceRepository(t)
 	updater, err := NewUpdater(Config{Source: source})
@@ -91,7 +91,7 @@ func TestUpdateBrokenSymlinks(t *testing.T) {
 	defer os.Remove(xxx)
 
 	for _, filename := range []string{yyy, xxx} {
-		_, err := updater.UpdateCommand(context.Background(), filename, "0.10.0", ParseSlug("owner/repo"))
+		_, err := updater.UpdateCommand(context.Background(), filename, "0.14.0", ParseSlug("owner/repo"))
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to resolve symlink")
 	}
@@ -416,7 +416,7 @@ func TestUpdateToSuccess(t *testing.T) {
 }
 
 func TestUpdateToWithMultistepValidationChain(t *testing.T) {
-	testVersion := "v0.10.0"
+	testVersion := "v0.14.0"
 	source, keyRing := mockPGPSourceRepository(t)
 	updater, _ := NewUpdater(Config{
 		Source:    source,
