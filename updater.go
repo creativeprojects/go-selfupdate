@@ -4,18 +4,21 @@ import (
 	"fmt"
 	"regexp"
 	"runtime"
+
+	"github.com/creativeprojects/go-selfupdate/internal"
 )
 
 // Updater is responsible for managing the context of self-update.
 type Updater struct {
-	source     Source
-	validator  Validator
-	filters    []*regexp.Regexp
-	os         string
-	arch       string
-	arm        uint8
-	prerelease bool
-	draft      bool
+	source        Source
+	validator     Validator
+	filters       []*regexp.Regexp
+	os            string
+	arch          string
+	arm           uint8
+	universalArch string // only filled in when needed
+	prerelease    bool
+	draft         bool
 }
 
 // keep the default updater instance in cache
@@ -27,6 +30,7 @@ func NewUpdater(config Config) (*Updater, error) {
 	source := config.Source
 	if source == nil {
 		// default source is GitHub
+		// an error can only be returned when using GitHub Enterprise URLs
 		source, _ = NewGitHubSource(GitHubConfig{})
 	}
 
@@ -40,27 +44,33 @@ func NewUpdater(config Config) (*Updater, error) {
 	}
 
 	os := config.OS
-	arch := config.Arch
 	if os == "" {
 		os = runtime.GOOS
 	}
+	arch := config.Arch
 	if arch == "" {
 		arch = runtime.GOARCH
 	}
 	arm := config.Arm
-	if arm == 0 && goarm > 0 {
-		arm = goarm
+	if arm == 0 && arch == "arm" {
+		exe, _ := internal.GetExecutablePath()
+		arm = getGOARM(exe)
+	}
+	universalArch := ""
+	if os == "darwin" && config.UniversalArch != "" {
+		universalArch = config.UniversalArch
 	}
 
 	return &Updater{
-		source:     source,
-		validator:  config.Validator,
-		filters:    filtersRe,
-		os:         os,
-		arch:       arch,
-		arm:        arm,
-		prerelease: config.Prerelease,
-		draft:      config.Draft,
+		source:        source,
+		validator:     config.Validator,
+		filters:       filtersRe,
+		os:            os,
+		arch:          arch,
+		arm:           arm,
+		universalArch: universalArch,
+		prerelease:    config.Prerelease,
+		draft:         config.Draft,
 	}, nil
 }
 
@@ -73,14 +83,6 @@ func DefaultUpdater() *Updater {
 	if defaultUpdater != nil {
 		return defaultUpdater
 	}
-	// an error can only be returned when using GitHub Enterprise URLs
-	// so we're safe here :)
-	source, _ := NewGitHubSource(GitHubConfig{})
-	defaultUpdater = &Updater{
-		source: source,
-		os:     runtime.GOOS,
-		arch:   runtime.GOARCH,
-		arm:    goarm,
-	}
+	defaultUpdater, _ = NewUpdater(Config{})
 	return defaultUpdater
 }

@@ -524,17 +524,23 @@ func TestFindReleaseAndAsset(t *testing.T) {
 	rel2 := "rel2"
 	assetLinux386 := "asset_linux_386.tgz"
 	assetLinuxAMD64 := "asset_linux_amd64.tgz"
-	assetLinuxX86_64 := "asset_linux_x86_64.tgz"
+	assetLinuxX86 := "asset_linux_x86_64.tgz"
 	assetLinuxARM := "asset_linux_arm.tgz"
 	assetLinuxARMv5 := "asset_linux_armv5.tgz"
 	assetLinuxARMv6 := "asset_linux_armv6.tgz"
 	assetLinuxARMv7 := "asset_linux_armv7.tgz"
 	assetLinuxARM64 := "asset_linux_arm64.tgz"
+	assetLinuxAll := "asset_linux_all.tgz"
+	assetDarwinAMD64 := "asset_darwin_amd64.tgz"
+	assetDarwinARM64 := "asset_darwin_arm64.tgz"
+	assetDarwinAll := "asset_darwin_all.tgz"
+
 	testData := []struct {
 		name              string
 		os                string
 		arch              string
 		arm               uint8
+		universalArch     string
 		releases          []SourceRelease
 		version           string
 		filters           []string
@@ -763,7 +769,7 @@ func TestFindReleaseAndAsset(t *testing.T) {
 							name: assetLinux386,
 						},
 						&GitHubAsset{
-							name: assetLinuxX86_64,
+							name: assetLinuxX86,
 						},
 					},
 				},
@@ -771,17 +777,136 @@ func TestFindReleaseAndAsset(t *testing.T) {
 			version:           "v2.0.0",
 			filters:           nil,
 			found:             true,
-			expectedAssetName: assetLinuxX86_64,
+			expectedAssetName: assetLinuxX86,
+		},
+		{
+			name:          "universal binary ignored on linux",
+			os:            "linux", // universal binary is for darwin only
+			arch:          "amd64",
+			universalArch: "all",
+			releases: []SourceRelease{
+				&GitHubRelease{
+					name:    rel2,
+					tagName: tag2,
+					assets: []SourceAsset{
+						&GitHubAsset{
+							name: assetLinuxAll,
+						},
+					},
+				},
+			},
+			version: "v2.0.0",
+			filters: nil,
+			found:   false,
+		},
+		{
+			name:          "match amd64 instead of universal binary",
+			os:            "darwin", // universal binary is for darwin only
+			arch:          "amd64",
+			universalArch: "all",
+			releases: []SourceRelease{
+				&GitHubRelease{
+					name:    rel2,
+					tagName: tag2,
+					assets: []SourceAsset{
+						&GitHubAsset{
+							name: assetDarwinAMD64,
+						},
+						&GitHubAsset{
+							name: assetDarwinARM64,
+						},
+						&GitHubAsset{
+							name: assetDarwinAll,
+						},
+					},
+				},
+			},
+			version:           "v2.0.0",
+			filters:           nil,
+			found:             true,
+			expectedAssetName: assetDarwinAMD64,
+		},
+		{
+			name:          "match arm64 instead of universal binary",
+			os:            "darwin", // universal binary is for darwin only
+			arch:          "arm64",
+			universalArch: "all",
+			releases: []SourceRelease{
+				&GitHubRelease{
+					name:    rel2,
+					tagName: tag2,
+					assets: []SourceAsset{
+						&GitHubAsset{
+							name: assetDarwinAMD64,
+						},
+						&GitHubAsset{
+							name: assetDarwinARM64,
+						},
+						&GitHubAsset{
+							name: assetDarwinAll,
+						},
+					},
+				},
+			},
+			version:           "v2.0.0",
+			filters:           nil,
+			found:             true,
+			expectedAssetName: assetDarwinARM64,
+		},
+		{
+			name:          "match universal binary",
+			os:            "darwin", // universal binary is for darwin only
+			arch:          "arm64",
+			universalArch: "all",
+			releases: []SourceRelease{
+				&GitHubRelease{
+					name:    rel2,
+					tagName: tag2,
+					assets: []SourceAsset{
+						&GitHubAsset{
+							name: assetDarwinAll,
+						},
+					},
+				},
+			},
+			version:           "v2.0.0",
+			filters:           nil,
+			found:             true,
+			expectedAssetName: assetDarwinAll,
+		},
+		{
+			name:          "no match when universal binary not specified",
+			os:            "darwin",
+			arch:          "arm64",
+			universalArch: "",
+			releases: []SourceRelease{
+				&GitHubRelease{
+					name:    rel2,
+					tagName: tag2,
+					assets: []SourceAsset{
+						&GitHubAsset{
+							name: assetDarwinAll,
+						},
+					},
+				},
+			},
+			version: "v2.0.0",
+			filters: nil,
+			found:   false,
 		},
 	}
 
 	for _, testItem := range testData {
+		testItem := testItem
 		t.Run(testItem.name, func(t *testing.T) {
+			t.Parallel()
+
 			updater, err := NewUpdater(Config{
-				Filters: testItem.filters,
-				OS:      testItem.os,
-				Arch:    testItem.arch,
-				Arm:     testItem.arm,
+				Filters:       testItem.filters,
+				OS:            testItem.os,
+				Arch:          testItem.arch,
+				Arm:           testItem.arm,
+				UniversalArch: testItem.universalArch,
 			})
 			require.NoError(t, err)
 			_, asset, _, found := updater.findReleaseAndAsset(testItem.releases, testItem.version)

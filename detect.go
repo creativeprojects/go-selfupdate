@@ -15,7 +15,7 @@ var reVersion = regexp.MustCompile(`\d+\.\d+\.\d+`)
 // It fetches releases information from the source provider and find out the latest release with matching the tag names and asset names.
 // Drafts and pre-releases are ignored.
 // Assets would be suffixed by the OS name and the arch name such as 'foo_linux_amd64' where 'foo' is a command name.
-// '-' can also be used as a separator. File can be compressed with zip, gzip, zxip, bzip2, tar&gzip or tar&zxip.
+// '-' can also be used as a separator. File can be compressed with zip, gzip, xz, bzip2, tar&gzip or tar&xz.
 // So the asset can have a file extension for the corresponding compression format such as '.zip'.
 // On Windows, '.exe' also can be contained such as 'foo_windows_amd64.exe.zip'.
 func (up *Updater) DetectLatest(ctx context.Context, repository Repository) (release *Release, found bool, err error) {
@@ -131,7 +131,7 @@ func findValidationAsset(rel SourceRelease, validationName string) (SourceAsset,
 func (up *Updater) findReleaseAndAsset(rels []SourceRelease, targetVersion string) (SourceRelease, SourceAsset, *semver.Version, bool) {
 	// we put the detected arch at the end of the list: that's fine for ARM so far,
 	// as the additional arch are more accurate than the generic one
-	for _, arch := range append(generateAdditionalArch(up.arch, up.arm), up.arch) {
+	for _, arch := range getAdditionalArch(up.arch, up.arm, up.universalArch) {
 		release, asset, version, found := up.findReleaseAndAssetForArch(arch, rels, targetVersion)
 		if found {
 			return release, asset, version, found

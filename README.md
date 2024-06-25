@@ -26,6 +26,7 @@ Self-Update library for Github, Gitea and Gitlab hosted applications in Go
   * [SHA256](#sha256)
   * [ECDSA](#ecdsa)
   * [Using a single checksum file for all your assets](#using-a-single-checksum-file-for-all-your-assets)
+* [macOS universal binaries](#macos-universal-binaries)
 * [Other providers than Github](#other-providers-than-github)
 * [GitLab](#gitlab)
   * [Example:](#example-1)
@@ -35,7 +36,7 @@ Self-Update library for Github, Gitea and Gitlab hosted applications in Go
 
 # Introduction
 
-go-selfupdate detects the information of the latest release via a source provider and
+`go-selfupdate` detects the information of the latest release via a source provider and
 checks the current version. If a newer version than itself is detected, it downloads the released binary from
 the source provider and replaces itself.
 
@@ -43,17 +44,19 @@ the source provider and replaces itself.
 - Retrieve the proper binary for the OS and arch where the binary is running
 - Update the binary with rollback support on failure
 - Tested on Linux, macOS and Windows
-- Many archive and compression formats are supported (zip, tar, gzip, xzip, bzip2)
+- Support for different versions of ARM architecture
+- Support macOS universal binaries
+- Many archive and compression formats are supported (zip, tar, gzip, xz, bzip2)
 - Support private repositories
 - Support hash, signature validation
 
-Two source providers are available:
+Three source providers are available:
 - GitHub
 - Gitea
 - Gitlab
 
 This library started as a fork of https://github.com/rhysd/go-github-selfupdate. A few things have changed from the original implementation:
-- don't expose an external semver.Version type, but provide the same functionality through the API: LessThan, Equal and GreaterThan
+- don't expose an external `semver.Version` type, but provide the same functionality through the API: `LessThan`, `Equal` and `GreaterThan`
 - use an interface to send logs (compatible with standard log.Logger)
 - able to detect different ARM CPU architectures (the original library wasn't working on my different versions of raspberry pi)
 - support for assets compressed with bzip2 (.bz2)
@@ -80,7 +83,7 @@ func update(version string) error {
 		return nil
 	}
 
-	exe, err := os.Executable()
+	exe, err := selfupdate.ExecutablePath()
 	if err != nil {
 		return errors.New("could not locate executable path")
 	}
@@ -301,6 +304,18 @@ Tools like [goreleaser][] produce a single checksum file for all your assets. A 
 updater, _ := NewUpdater(Config{Validator: &ChecksumValidator{UniqueFilename: "checksums.txt"}})
 ```
 
+# macOS universal binaries
+
+You can ask the updater to choose a macOS universal binary as a fallback if the native architecture wasn't found.
+
+You need to provide the architecture name for the universal binary in the `Config` struct:
+
+```go
+updater, _ := NewUpdater(Config{UniversalArch: "all"})
+```
+
+Default is empty, which means no fallback.
+
 # Other providers than Github
 
 This library can be easily extended by providing a new source and release implementation for any git provider
@@ -353,7 +368,7 @@ func update() {
 	}
 	fmt.Printf("found release %s\n", release.Version())
 
-	exe, err := os.Executable()
+	exe, err := selfupdate.ExecutablePath()
 	if err != nil {
 		return errors.New("could not locate executable path")
 	}
