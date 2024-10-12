@@ -1,0 +1,45 @@
+last_release_id: 2
+last_asset_id: 6
+releases:
+    - release_id: 1
+      name: example
+      tag_name: v0.1.1
+      url: v0.1.1
+      draft: false
+      prerelease: false
+      published_at: 2024-09-30T09:26:01.612178185-05:00
+      release_notes: ""
+      assets:
+        - id: 1
+          name: metadata.json
+          size: 288
+          url: v0.1.1/metadata.json
+        - id: 2
+          name: example_linux_amd64.tar.gz
+          size: 52
+          url: v0.1.1/example_linux_amd64.tar.gz
+        - id: 3
+          name: checksums.txt
+          size: 93
+          url: v0.1.1/checksums.txt
+    - release_id: 2
+      name: example
+      tag_name: v0.1.2
+      url: v0.1.2
+      draft: false
+      prerelease: false
+      published_at: 2024-10-07T22:15:21.731224367-05:00
+      release_notes: ""
+      assets:
+        - id: 4
+          name: metadata.json
+          size: 288
+          url: v0.1.2/metadata.json
+        - id: 5
+          name: example_linux_amd64.tar.gz
+          size: 52
+          url: v0.1.2/example_linux_amd64.tar.gz
+        - id: 6
+          name: checksums.txt
+          size: 93
+          url: v0.1.2/checksums.txt
