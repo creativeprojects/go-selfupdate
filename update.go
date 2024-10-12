@@ -99,7 +99,8 @@ func (up *Updater) decompressAndUpdate(src io.Reader, assetName, assetURL, cmdPa
 
 	log.Printf("Will update %s to the latest downloaded from %s", cmdPath, assetURL)
 	return update.Apply(asset, update.Options{
-		TargetPath: cmdPath,
+		TargetPath:  cmdPath,
+		OldSavePath: up.oldSavePath,
 	})
 }
 
