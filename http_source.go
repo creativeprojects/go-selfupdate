@@ -189,9 +189,9 @@ func (s *HttpSource) DownloadReleaseAsset(ctx context.Context, rel *Release, ass
 	if err != nil {
 		return nil, err
 	}
-	if res.StatusCode != http.StatusOK {
-		res.Body.Close()
-		return nil, fmt.Errorf("HTTP request failed with status code %d", res.StatusCode)
+	if response.StatusCode != http.StatusOK {
+		response.Body.Close()
+		return nil, fmt.Errorf("HTTP request failed with status code %d", response.StatusCode)
 	}
 
 	return response.Body, nil
