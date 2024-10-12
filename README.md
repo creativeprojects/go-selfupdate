@@ -30,6 +30,8 @@ Self-Update library for Github, Gitea and Gitlab hosted applications in Go
 * [Other providers than Github](#other-providers-than-github)
 * [GitLab](#gitlab)
   * [Example:](#example-1)
+* [Http Based Repository](#http-based-repository)
+  * [Example:](#example-2)
 * [Copyright](#copyright)
 
 <!--te-->
