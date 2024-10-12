@@ -23,4 +23,6 @@ type Config struct {
 	Draft bool
 	// Prerelease permits an upgrade to a "pre-release" version (default to false).
 	Prerelease bool
+	// To prevent automatic removal of the old binary, and allow you to test an update prior to manual removal.
+	OldSavePath string
 }

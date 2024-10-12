@@ -19,6 +19,7 @@ type Updater struct {
 	universalArch string // only filled in when needed
 	prerelease    bool
 	draft         bool
+	oldSavePath   string
 }
 
 // keep the default updater instance in cache
@@ -71,6 +72,7 @@ func NewUpdater(config Config) (*Updater, error) {
 		universalArch: universalArch,
 		prerelease:    config.Prerelease,
 		draft:         config.Draft,
+		oldSavePath:   config.OldSavePath,
 	}, nil
 }
 
