@@ -64,17 +64,13 @@ func (s *HttpRepoTestServer) Stop() {
 // Verify the client ignores invalid URLs.
 func TestHttpClientInvalidURL(t *testing.T) {
 	_, err := NewHttpSource(HttpConfig{BaseURL: ":this is not a URL"})
-	if err == nil {
-		t.Fatal("Invalid URL should raise an error")
-	}
+	assert.NotNil(t, err, "Invalid URL should raise an error")
 }
 
 // Verify the client accepts valid URLs.
 func TestHttpClientValidURL(t *testing.T) {
 	_, err := NewHttpSource(HttpConfig{BaseURL: httpTestBaseURL})
-	if err != nil {
-		t.Fatal("Failed to initialize GitHub source with valid URL")
-	}
+	require.NoError(t, err)
 }
 
 // Verify cancelled contexts actually cancels a request.
