@@ -187,6 +187,8 @@ func TestHttpListAndDownloadReleaseAsset(t *testing.T) {
 	// Get updater with source.
 	updater, err := NewUpdater(Config{
 		Source: source,
+		OS:     "linux",
+		Arch:   "amd64",
 	})
 	require.NoError(t, err)
 
