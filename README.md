@@ -385,11 +385,11 @@ func update() {
 
 Support for http based repositories landed in version 1.4.0.
 
-The HttpSource is designed to work with repositories built using [goreleaser-http-repo-builder](https://github.com/GRMrGecko/goreleaser-http-repo-builder?tab=readme-ov-file). This is a simple way to add self update support to software that is not open source, allowing you to host your own updates. It requires that you still use the owner/project url style, and you can set custom headers to be used with requests to authenticate.
+The HttpSource is designed to work with repositories built using [goreleaser-http-repo-builder](https://github.com/GRMrGecko/goreleaser-http-repo-builder?tab=readme-ov-file). This provides a simple way to add self-update support to software that is not open source, allowing you to host your own updates. It requires that you still use the owner/project url style, and you can set custom headers to be used with requests to authenticate.
 
 ## Example:
 
-If your repository is at https://example.com/repo/project then you'd use the following example.
+If your repository is at example.com/repo/project, then you'd use the following example.
 
 ```go
 func update() {
