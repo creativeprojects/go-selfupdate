@@ -24,23 +24,20 @@ import (
 	"context"
 	"crypto/md5"
 	"encoding/hex"
-	"fmt"
 	"io"
-	goLog "log"
-	"net"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// Unused port for testing.
-const httpRepoTestPort = 8831
+const httpTestBaseURL = "http://localhost"
 
 // Test server for testing http repos.
 type HttpRepoTestServer struct {
-	server  *http.Server
+	server  *httptest.Server
 	repoURL string
 }
 
@@ -54,44 +51,14 @@ func NewHttpRepoTestServer() *HttpRepoTestServer {
 	mux.Handle("/repo/creativeprojects/resticprofile/", http.StripPrefix("/repo/creativeprojects/resticprofile", fs))
 
 	// Setup server config.
-	srvAddr := fmt.Sprintf("127.0.0.1:%d", httpRepoTestPort)
-	s.server = &http.Server{
-		Addr:    srvAddr,
-		Handler: mux,
-	}
-	s.repoURL = "http://" + srvAddr + "/repo/"
+	s.server = httptest.NewServer(mux)
+	s.repoURL = s.server.URL + "/repo/"
 	return s
-}
-
-// Run the http server.
-func (s *HttpRepoTestServer) Run() {
-	isListening := make(chan bool)
-	// Start server.
-	go s.Start(isListening)
-	// Allow the http server to initialize.
-	<-isListening
 }
 
 // Stop the HTTP server.
 func (s *HttpRepoTestServer) Stop() {
-	s.server.Shutdown(context.Background())
-}
-
-// Start the HTTP server with a notification channel
-// for when the server is listening.
-func (s *HttpRepoTestServer) Start(isListening chan bool) {
-	// Start server.
-	l, err := net.Listen("tcp", s.server.Addr)
-	if err != nil {
-		goLog.Fatal("Listen: ", err)
-	}
-	// Now notify we are listening.
-	isListening <- true
-	// Serve http server on the listening port.
-	err = s.server.Serve(l)
-	if err != nil && err != http.ErrServerClosed {
-		goLog.Fatal("Serve: ", err)
-	}
+	s.server.Close()
 }
 
 // Verify the client ignores invalid URLs.
@@ -104,7 +71,7 @@ func TestHttpClientInvalidURL(t *testing.T) {
 
 // Verify the client accepts valid URLs.
 func TestHttpClientValidURL(t *testing.T) {
-	_, err := NewHttpSource(HttpConfig{BaseURL: "http://localhost"})
+	_, err := NewHttpSource(HttpConfig{BaseURL: httpTestBaseURL})
 	if err != nil {
 		t.Fatal("Failed to initialize GitHub source with valid URL")
 	}
@@ -113,7 +80,7 @@ func TestHttpClientValidURL(t *testing.T) {
 // Verify cancelled contexts actually cancels a request.
 func TestHttpListReleasesContextCancelled(t *testing.T) {
 	// Make a valid HTTP source.
-	source, err := NewHttpSource(HttpConfig{BaseURL: "http://localhost"})
+	source, err := NewHttpSource(HttpConfig{BaseURL: httpTestBaseURL})
 	require.NoError(t, err)
 
 	// Create a cancelled context.
@@ -128,7 +95,7 @@ func TestHttpListReleasesContextCancelled(t *testing.T) {
 // Verify cancelled contexts actually cancels a download.
 func TestHttpDownloadReleaseAssetContextCancelled(t *testing.T) {
 	// Make a valid HTTP source.
-	source, err := NewHttpSource(HttpConfig{BaseURL: "http://localhost"})
+	source, err := NewHttpSource(HttpConfig{BaseURL: httpTestBaseURL})
 	require.NoError(t, err)
 
 	// Create a cancelled context.
@@ -138,7 +105,7 @@ func TestHttpDownloadReleaseAssetContextCancelled(t *testing.T) {
 	// Attempt to download release and verify result.
 	_, err = source.DownloadReleaseAsset(ctx, &Release{
 		AssetID:  11,
-		AssetURL: "http://localhost/",
+		AssetURL: httpTestBaseURL,
 	}, 11)
 	assert.ErrorIs(t, err, context.Canceled)
 }
@@ -146,7 +113,7 @@ func TestHttpDownloadReleaseAssetContextCancelled(t *testing.T) {
 // Verify no release actually returns an error.
 func TestHttpDownloadReleaseAssetWithNilRelease(t *testing.T) {
 	// Create valid HTTP source.
-	source, err := NewHttpSource(HttpConfig{BaseURL: "http://localhost"})
+	source, err := NewHttpSource(HttpConfig{BaseURL: httpTestBaseURL})
 	require.NoError(t, err)
 
 	// Attempt to download release without specifying the release and verify result.
@@ -158,7 +125,6 @@ func TestHttpDownloadReleaseAssetWithNilRelease(t *testing.T) {
 func TestHttpListAndDownloadReleaseAsset(t *testing.T) {
 	// Create test HTTP server and start it.
 	server := NewHttpRepoTestServer()
-	server.Run()
 
 	// Make HTTP source with our test server.
 	source, err := NewHttpSource(HttpConfig{BaseURL: server.repoURL})
