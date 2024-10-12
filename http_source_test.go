@@ -22,7 +22,7 @@ package selfupdate
 
 import (
 	"context"
-	"crypto/md5"
+	"crypto/sha256"
 	"encoding/hex"
 	"io"
 	"net/http"
@@ -135,20 +135,14 @@ func TestHttpListAndDownloadReleaseAsset(t *testing.T) {
 	require.NoError(t, err)
 
 	// Confirm the manifest parsed the correct number of releases.
-	if len(releases) != 2 {
-		t.Fatal("releases count is not valid")
-	}
+	assert.Equal(t, len(releases), 2, "releases count is not valid")
 
 	// Confirm the manifest parsed by the first release is valid.
-	if releases[0].GetTagName() != "v0.1.1" {
-		t.Fatal("release is not as expected")
-	}
+	assert.Equal(t, releases[0].GetTagName(), "v0.1.1", "release is not as expected")
 
 	// Confirm the release assets are parsed correctly.
 	assets := releases[1].GetAssets()
-	if assets[1].GetName() != "example_linux_amd64.tar.gz" {
-		t.Fatal("the release asset is not valid")
-	}
+	assert.Equal(t, assets[1].GetName(), "example_linux_amd64.tar.gz", "the release asset is not valid")
 
 	// Get updater with source.
 	updater, err := NewUpdater(Config{
@@ -161,9 +155,7 @@ func TestHttpListAndDownloadReleaseAsset(t *testing.T) {
 	// Find the latest release.
 	release, found, err := updater.DetectLatest(context.Background(), NewRepositorySlug("creativeprojects", "resticprofile"))
 	require.NoError(t, err)
-	if !found {
-		t.Fatal("no release found")
-	}
+	assert.Equal(t, found, true, "no release found")
 
 	// Download asset.
 	body, err := source.DownloadReleaseAsset(context.Background(), release, 5)
@@ -174,13 +166,11 @@ func TestHttpListAndDownloadReleaseAsset(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify data.
-	hfun := md5.New()
+	hfun := sha256.New()
 	hfun.Write(data)
 	sum := hfun.Sum(nil)
 	hash := hex.EncodeToString(sum)
-	if hash != "9cffcbe826ae684db1c8a08ff9216f34" {
-		t.Errorf("hash isn't valid for test file: %s", hash)
-	}
+	assert.Equal(t, hash, "9208c58af1265438c6894499847355bd5e77f93d04b201393baf41297d4680a3", "hash isn't valid for test file")
 
 	// Stop as we're done.
 	server.Stop()
