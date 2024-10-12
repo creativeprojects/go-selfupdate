@@ -27,7 +27,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"gopkg.in/yaml.v3"
+	yaml "gopkg.in/yaml.v3"
 )
 
 type HttpManifest struct {
@@ -124,6 +124,10 @@ func (s *HttpSource) ListReleases(ctx context.Context, repository Repository) ([
 	if err != nil {
 		return nil, err
 	}
+	if res.StatusCode != http.StatusOK {
+		res.Body.Close()
+		return nil, fmt.Errorf("HTTP request failed with status code %d", res.StatusCode)
+	}
 
 	// Decode the response.
 	manifest := new(HttpManifest)
@@ -184,6 +188,10 @@ func (s *HttpSource) DownloadReleaseAsset(ctx context.Context, rel *Release, ass
 	response, err := client.Do(req)
 	if err != nil {
 		return nil, err
+	}
+	if res.StatusCode != http.StatusOK {
+		res.Body.Close()
+		return nil, fmt.Errorf("HTTP request failed with status code %d", res.StatusCode)
 	}
 
 	return response.Body, nil

@@ -393,7 +393,7 @@ If your repository is at https://example.com/repo/project then you'd use the fol
 
 ```go
 func update() {
-	source, err := selfupdate.NewHttpSource(selfupdate.GitLabConfig{
+	source, err := selfupdate.NewHttpSource(selfupdate.HttpConfig{
 		BaseURL: "https://example.com/",
 	})
 	if err != nil {
