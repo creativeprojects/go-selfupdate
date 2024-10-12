@@ -12,7 +12,7 @@ GOGET=$(GOCMD) get
 GOPATH?=`$(GOCMD) env GOPATH`
 
 TESTS=. ./update
-COVERAGE_FILE=coverage.out
+COVERAGE_FILE=coverage.txt
 
 BUILD_DATE=`date`
 BUILD_COMMIT=`git rev-parse HEAD`
@@ -41,7 +41,7 @@ full-coverage:
 		$(GOTOOL) cover -html=$(COVERAGE_FILE)
 
 clean:
-		rm detect-latest-release go-get-release coverage.out
+		rm detect-latest-release go-get-release coverage.txt
 		$(GOCLEAN)
 
 toc:
@@ -51,3 +51,19 @@ toc:
 	sed -i ".1" "/${TOC_START}/,/${TOC_END}/{//!d;}" "${README}"
 	sed -i ".2" "/${TOC_START}/r ${TOC_PATH}" "${README}"
 	rm ${README}.1 ${README}.2 ${TOC_PATH}
+
+.PHONY: lint
+lint:
+	@echo "[*] $@"
+	GOOS=darwin golangci-lint run
+	GOOS=linux golangci-lint run
+	GOOS=windows golangci-lint run
+
+.PHONY: fix
+fix:
+	@echo "[*] $@"
+	$(GOCMD) mod tidy
+	$(GOCMD) fix ./...
+	GOOS=darwin golangci-lint run --fix
+	GOOS=linux golangci-lint run --fix
+	GOOS=windows golangci-lint run --fix

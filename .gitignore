@@ -4,5 +4,6 @@
 /detect-latest-release
 /go-get-release
 /coverage.out
+/coverage.txt
 /cmd/restic
 /.vscode/
