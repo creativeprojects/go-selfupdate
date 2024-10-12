@@ -1,7 +1,7 @@
 last_release_id: 2
 last_asset_id: 6
 releases:
-    - release_id: 1
+    - id: 1
       name: example
       tag_name: v0.1.1
       url: v0.1.1
@@ -22,7 +22,7 @@ releases:
           name: checksums.txt
           size: 93
           url: v0.1.1/checksums.txt
-    - release_id: 2
+    - id: 2
       name: example
       tag_name: v0.1.2
       url: v0.1.2

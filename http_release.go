@@ -50,7 +50,7 @@ func (a *HttpAsset) GetBrowserDownloadURL() string {
 var _ SourceAsset = &HttpAsset{}
 
 type HttpRelease struct {
-	ReleaseID    int64        `yaml:"release_id"`
+	ID           int64        `yaml:"id"`
 	Name         string       `yaml:"name"`
 	TagName      string       `yaml:"tag_name"`
 	URL          string       `yaml:"url"`
@@ -62,7 +62,7 @@ type HttpRelease struct {
 }
 
 func (r *HttpRelease) GetID() int64 {
-	return r.ReleaseID
+	return r.ID
 }
 
 func (r *HttpRelease) GetTagName() string {
