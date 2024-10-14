@@ -72,8 +72,8 @@ func (s *GitHubSource) ListReleases(ctx context.Context, repository Repository) 
 	}
 	rels, res, err := s.api.Repositories.ListReleases(ctx, owner, repo, nil)
 	if err != nil {
-		if res != nil && res.StatusCode == 404 {
-			// 404 means repository not found or release not found. It's not an error here.
+		if res != nil && res.StatusCode == http.StatusNotFound {
+			// repository not found or release not found. It's not an error here.
 			log.Print("Repository or release not found")
 			return nil, nil
 		}

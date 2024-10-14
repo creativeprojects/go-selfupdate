@@ -22,17 +22,17 @@ func TestUpdateCommandWithWrongVersion(t *testing.T) {
 }
 
 func TestUpdateCommand(t *testing.T) {
-	current := "0.14.0"
-	new := "1.0.0"
+	currentVersion := "0.14.0"
+	newVersion := "1.0.0"
 	source := mockSourceRepository(t)
 	updater, err := NewUpdater(Config{Source: source})
 	require.NoError(t, err)
 
 	filename := setupCurrentVersion(t)
 
-	rel, err := updater.UpdateCommand(context.Background(), filename, current, ParseSlug("creativeprojects/new_version"))
+	rel, err := updater.UpdateCommand(context.Background(), filename, currentVersion, ParseSlug("creativeprojects/new_version"))
 	require.NoError(t, err)
-	assert.Equal(t, new, rel.Version())
+	assert.Equal(t, newVersion, rel.Version())
 
 	assertNewVersion(t, filename)
 }
@@ -42,8 +42,8 @@ func TestUpdateViaSymlink(t *testing.T) {
 		t.Skip("skipping because creating symlink on windows requires admin privilege")
 	}
 
-	current := "0.14.0"
-	new := "1.0.0"
+	currentVersion := "0.14.0"
+	newVersion := "1.0.0"
 	source := mockSourceRepository(t)
 	updater, err := NewUpdater(Config{Source: source})
 	require.NoError(t, err)
@@ -54,9 +54,9 @@ func TestUpdateViaSymlink(t *testing.T) {
 	err = os.Symlink(exePath, symPath)
 	require.NoError(t, err)
 
-	rel, err := updater.UpdateCommand(context.Background(), symPath, current, ParseSlug("creativeprojects/new_version"))
+	rel, err := updater.UpdateCommand(context.Background(), symPath, currentVersion, ParseSlug("creativeprojects/new_version"))
 	require.NoError(t, err)
-	assert.Equal(t, new, rel.Version())
+	assert.Equal(t, newVersion, rel.Version())
 
 	// check actual file (not symlink)
 	assertNewVersion(t, exePath)
@@ -478,7 +478,7 @@ func setupCurrentVersion(t *testing.T) string {
 		filename += ".exe"
 	}
 
-	err := os.WriteFile(filename, []byte("old version"), 0o777)
+	err := os.WriteFile(filename, []byte("old version"), 0o600)
 	require.NoError(t, err)
 
 	return filename

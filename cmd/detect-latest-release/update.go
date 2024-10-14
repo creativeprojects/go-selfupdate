@@ -10,6 +10,8 @@ import (
 )
 
 // keep this function here, this is the example from the README
+//
+//nolint:unused
 func update(version string) error {
 	latest, found, err := selfupdate.DetectLatest(context.Background(), selfupdate.ParseSlug("creativeprojects/resticprofile"))
 	if err != nil {

@@ -10,11 +10,13 @@ import (
 // DetectLatest detects the latest release from the repository.
 // This function is a shortcut version of updater.DetectLatest with the DefaultUpdater.
 func DetectLatest(ctx context.Context, repository Repository) (*Release, bool, error) {
+	//nolint:contextcheck
 	return DefaultUpdater().DetectLatest(ctx, repository)
 }
 
 // DetectVersion detects the given release from the repository.
 func DetectVersion(ctx context.Context, repository Repository, version string) (*Release, bool, error) {
+	//nolint:contextcheck
 	return DefaultUpdater().DetectVersion(ctx, repository, version)
 }
 
@@ -23,6 +25,7 @@ func DetectVersion(ctx context.Context, repository Repository, version string) (
 // this function is not available to update a release for private repositories.
 // cmdPath is a file path to command executable.
 func UpdateTo(ctx context.Context, assetURL, assetFileName, cmdPath string) error {
+	//nolint:contextcheck
 	up := DefaultUpdater()
 	src, err := downloadReleaseAssetFromURL(ctx, assetURL)
 	if err != nil {
@@ -35,18 +38,20 @@ func UpdateTo(ctx context.Context, assetURL, assetFileName, cmdPath string) erro
 // UpdateCommand updates a given command binary to the latest version.
 // This function is a shortcut version of updater.UpdateCommand using a DefaultUpdater()
 func UpdateCommand(ctx context.Context, cmdPath string, current string, repository Repository) (*Release, error) {
+	//nolint:contextcheck
 	return DefaultUpdater().UpdateCommand(ctx, cmdPath, current, repository)
 }
 
 // UpdateSelf updates the running executable itself to the latest version.
 // This function is a shortcut version of updater.UpdateSelf using a DefaultUpdater()
 func UpdateSelf(ctx context.Context, current string, repository Repository) (*Release, error) {
+	//nolint:contextcheck
 	return DefaultUpdater().UpdateSelf(ctx, current, repository)
 }
 
 func downloadReleaseAssetFromURL(ctx context.Context, url string) (rc io.ReadCloser, err error) {
 	client := http.DefaultClient
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
 	}

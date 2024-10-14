@@ -152,7 +152,7 @@ func (v *SHAValidator) Validate(filename string, release, asset []byte) error {
 		return ErrIncorrectChecksumFile
 	}
 
-	hash := fmt.Sprintf("%s", asset[:sha256.BlockSize])
+	hash := string(asset[:sha256.BlockSize])
 	calculatedHash := fmt.Sprintf("%x", sha256.Sum256(release))
 
 	if equal, err := hexStringEquals(sha256.Size, calculatedHash, hash); !equal {

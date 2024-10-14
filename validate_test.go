@@ -7,13 +7,14 @@ import (
 	"encoding/hex"
 	"encoding/pem"
 	"fmt"
-	"golang.org/x/crypto/openpgp"
-	"golang.org/x/crypto/openpgp/armor"
+	"io"
 	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/crypto/openpgp"
+	"golang.org/x/crypto/openpgp/armor"
 )
 
 func TestValidatorAssetNames(t *testing.T) {
@@ -321,10 +322,12 @@ func TestPGPValidatorWithArmoredKeyRing(t *testing.T) {
 
 func getTestPGPKeyRing(t *testing.T) (PGPKeyRing []byte, entity *openpgp.Entity) {
 	var err error
+	var armoredWriter io.WriteCloser
 	entity, err = openpgp.NewEntity("go-selfupdate", "", "info@go-selfupdate.local", nil)
+	require.NoError(t, err)
 
 	buffer := &bytes.Buffer{}
-	if armoredWriter, err := armor.Encode(buffer, openpgp.PublicKeyType, nil); err == nil {
+	if armoredWriter, err = armor.Encode(buffer, openpgp.PublicKeyType, nil); err == nil {
 		if err = entity.Serialize(armoredWriter); err == nil {
 			err = armoredWriter.Close()
 		}

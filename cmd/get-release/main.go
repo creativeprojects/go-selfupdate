@@ -54,6 +54,7 @@ func main() {
 		os.Exit(1)
 	}
 
+	ctx := context.Background()
 	updater, err := selfupdate.NewUpdater(selfupdate.Config{
 		Source: source,
 	})
@@ -61,7 +62,7 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	latest, found, err := updater.DetectLatest(context.Background(), selfupdate.ParseSlug(slug))
+	latest, found, err := updater.DetectLatest(ctx, selfupdate.ParseSlug(slug))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Error while detecting the latest version:", err)
 		os.Exit(1)
@@ -75,12 +76,12 @@ func main() {
 	cmdPath := filepath.Join(build.Default.GOPATH, "bin", cmd)
 	if _, err := os.Stat(cmdPath); err != nil {
 		// When executable is not existing yet
-		if err := installFrom(latest.AssetURL, cmd, cmdPath); err != nil {
+		if err := installFrom(ctx, latest.AssetURL, cmd, cmdPath); err != nil {
 			fmt.Fprintf(os.Stderr, "Error while installing the release binary from %s: %s\n", latest.AssetURL, err)
 			os.Exit(1)
 		}
 	} else {
-		if err := updater.UpdateTo(context.Background(), latest, cmdPath); err != nil {
+		if err := updater.UpdateTo(ctx, latest, cmdPath); err != nil {
 			fmt.Fprintf(os.Stderr, "Error while replacing the binary with %s: %s\n", latest.AssetURL, err)
 			os.Exit(1)
 		}
@@ -105,20 +106,22 @@ Flags:`)
 }
 
 func getCommand(pkg string) string {
-	if strings.HasSuffix(pkg, "/") {
-		pkg = strings.TrimSuffix(pkg, "/")
-	}
+	pkg = strings.TrimSuffix(pkg, "/")
 	_, cmd := filepath.Split(pkg)
 	return cmd
 }
 
-func installFrom(url, cmd, path string) error {
-	res, err := http.Get(url)
+func installFrom(ctx context.Context, url, cmd, path string) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
+	if err != nil {
+		return fmt.Errorf("failed to create request to download release binary from %s: %s", url, err)
+	}
+	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to download release binary from %s: %s", url, err)
 	}
 	defer res.Body.Close()
-	if res.StatusCode != 200 {
+	if res.StatusCode != http.StatusOK {
 		return fmt.Errorf("failed to download release binary from %s: Invalid response ", url)
 	}
 	executable, err := selfupdate.DecompressCommand(res.Body, url, cmd, runtime.GOOS, runtime.GOARCH)

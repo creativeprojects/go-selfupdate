@@ -12,7 +12,7 @@ func TestHideFile(t *testing.T) {
 	t.Parallel()
 
 	tempFile := filepath.Join(t.TempDir(), t.Name())
-	err := os.WriteFile(tempFile, []byte("test"), 0o644)
+	err := os.WriteFile(tempFile, []byte("test"), 0o600)
 	assert.NoError(t, err)
 
 	err = hideFile(tempFile)

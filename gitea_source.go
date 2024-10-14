@@ -68,8 +68,8 @@ func (s *GiteaSource) ListReleases(ctx context.Context, repository Repository) (
 	s.api.SetContext(ctx)
 	rels, res, err := s.api.ListReleases(owner, repo, gitea.ListReleasesOptions{})
 	if err != nil {
-		if res != nil && res.StatusCode == 404 {
-			// 404 means repository not found or release not found. It's not an error here.
+		if res != nil && res.StatusCode == http.StatusNotFound {
+			// repository not found or release not found. It's not an error here.
 			log.Print("Repository or release not found")
 			return nil, nil
 		}
