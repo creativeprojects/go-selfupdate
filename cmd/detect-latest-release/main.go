@@ -30,12 +30,13 @@ func usage() {
 
 func main() {
 	var help, verbose bool
-	var cvsType, forceOS, forceArch string
+	var cvsType, forceOS, forceArch, baseURL string
 	flag.BoolVar(&help, "h", false, "Show help")
 	flag.BoolVar(&verbose, "v", false, "Display debugging information")
-	flag.StringVar(&cvsType, "t", "auto", "Version control: \"github\", \"gitea\" or \"gitlab\"")
+	flag.StringVar(&cvsType, "t", "auto", "Version control: \"github\", \"gitea\", \"gitlab\" or \"http\"")
 	flag.StringVar(&forceOS, "o", "", "OS name to use (windows, darwin, linux, etc)")
 	flag.StringVar(&forceArch, "a", "", "CPU architecture to use (amd64, arm64, etc)")
+	flag.StringVar(&baseURL, "u", "", "Base URL for VCS on http or dedicated instances")
 
 	flag.Usage = usage
 	flag.Parse()
@@ -55,6 +56,10 @@ func main() {
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
+	}
+
+	if domain == "" && baseURL != "" {
+		domain = baseURL
 	}
 
 	if verbose {

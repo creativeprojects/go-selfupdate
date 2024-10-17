@@ -75,6 +75,9 @@ func getSourceFromName(name, domain string) (selfupdate.Source, error) {
 	case "gitlab":
 		return selfupdate.NewGitLabSource(selfupdate.GitLabConfig{BaseURL: domain})
 
+	case "http":
+		return selfupdate.NewHttpSource(selfupdate.HttpConfig{BaseURL: domain})
+
 	default:
 		return newGitHubSource(domain)
 	}
