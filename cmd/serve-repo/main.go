@@ -20,12 +20,12 @@ func main() {
 	mux := http.NewServeMux()
 	fs := http.FileServer(http.Dir(root))
 	pathPrefix := path.Join("/", prefix, fixedSlug)
-	log.Printf("listening on http://" + listen + pathPrefix)
+	log.Print("listening on http://" + listen + pathPrefix)
 	mux.Handle(pathPrefix+"/", http.StripPrefix(pathPrefix, WithLogging(fs)))
 	server := http.Server{
 		Addr:              listen,
 		Handler:           mux,
 		ReadHeaderTimeout: 15 * time.Second,
 	}
-	server.ListenAndServe()
+	_ = server.ListenAndServe()
 }

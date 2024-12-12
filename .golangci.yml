@@ -25,3 +25,5 @@ linters-settings:
   gosec:
     excludes:
       - G101 # Potential hardcoded credentials
+  staticcheck:
+    checks: ["all", "-SA1019"] # "golang.org/x/crypto/openpgp" is deprecated
