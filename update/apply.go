@@ -143,7 +143,7 @@ func Apply(update io.Reader, opts Options) error {
 		// Try to rollback by restoring the old binary to its original path.
 		rerr := os.Rename(oldPath, opts.TargetPath)
 		if rerr != nil {
-			return &rollbackErr{err, rerr}
+			return &rollbackError{err, rerr}
 		}
 
 		return err
@@ -172,13 +172,13 @@ func RollbackError(err error) error {
 	if err == nil {
 		return nil
 	}
-	if rerr, ok := err.(*rollbackErr); ok {
+	if rerr, ok := err.(*rollbackError); ok {
 		return rerr.rollbackErr
 	}
 	return nil
 }
 
-type rollbackErr struct {
+type rollbackError struct {
 	error             // original error
 	rollbackErr error // error encountered while rolling back
 }
