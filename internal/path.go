@@ -2,7 +2,6 @@ package internal
 
 import (
 	"os"
-	"path/filepath"
 )
 
 // GetExecutablePath returns the path of the executable file with all symlinks resolved.
@@ -12,7 +11,7 @@ func GetExecutablePath() (string, error) {
 		return "", err
 	}
 
-	exe, err = filepath.EvalSymlinks(exe)
+	exe, err = ResolvePath(exe)
 	if err != nil {
 		return "", err
 	}
