@@ -17,13 +17,23 @@ func ResolvePath(filename string) (string, error) {
 	}
 	defer f.Close()
 
+	// Get the Windows handle
 	handle := windows.Handle(f.Fd())
-	buf := make([]uint16, syscall.MAX_PATH)
-	_, err = windows.GetFinalPathNameByHandle(handle, &buf[0], uint32(len(buf)), 0)
+
+	// Probe call to determine the needed buffer size
+	bufSize, err := windows.GetFinalPathNameByHandle(handle, nil, 0, 0)
 	if err != nil {
 		return "", err
 	}
-	final := syscall.UTF16ToString(buf)
+
+	buf := make([]uint16, bufSize)
+	n, err := windows.GetFinalPathNameByHandle(handle, &buf[0], uint32(len(buf)), 0)
+	if err != nil {
+		return "", err
+	}
+
+	// Convert the buffer to a string
+	final := syscall.UTF16ToString(buf[:n])
 
 	// Strip possible "\\?\" prefix
 	final = strings.TrimPrefix(final, `\\?\`)
