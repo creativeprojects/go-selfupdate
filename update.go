@@ -54,7 +54,7 @@ func (up *Updater) UpdateCommand(ctx context.Context, cmdPath string, current st
 		return nil, fmt.Errorf("failed to stat '%s'. file may not exist: %s", cmdPath, err)
 	}
 	if stat.Mode()&os.ModeSymlink != 0 {
-		p, err := filepath.EvalSymlinks(cmdPath)
+		p, err := internal.ResolvePath(cmdPath)
 		if err != nil {
 			return nil, fmt.Errorf("failed to resolve symlink '%s' for executable: %s", cmdPath, err)
 		}
