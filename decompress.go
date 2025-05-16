@@ -144,7 +144,7 @@ func matchExecutableName(cmd, os, arch, target string) bool {
 	cmd = strings.TrimSuffix(cmd, ".exe")
 	pattern := regexp.MustCompile(
 		fmt.Sprintf(
-			`^%s([_-]%s)?([_-]%s[_-]%s)?(\.exe)?$`,
+			`^%s([_-]v?%s)?([_-]%s[_-]%s)?(\.exe)?$`,
 			regexp.QuoteMeta(cmd),
 			semverPattern,
 			regexp.QuoteMeta(os),
