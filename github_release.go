@@ -3,7 +3,7 @@ package selfupdate
 import (
 	"time"
 
-	"github.com/google/go-github/v30/github"
+	"github.com/google/go-github/v74/github"
 )
 
 type GitHubRelease struct {

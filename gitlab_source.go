@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/xanzy/go-gitlab"
+	gitlab "gitlab.com/gitlab-org/api/client-go"
 )
 
 // GitLabConfig is an object to pass to NewGitLabSource

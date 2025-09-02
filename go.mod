@@ -5,10 +5,10 @@ go 1.24.6
 require (
 	code.gitea.io/sdk/gitea v0.22.0
 	github.com/Masterminds/semver/v3 v3.4.0
-	github.com/google/go-github/v30 v30.1.0
+	github.com/google/go-github/v74 v74.0.0
 	github.com/stretchr/testify v1.11.1
-	github.com/ulikunitz/xz v0.5.14
-	github.com/xanzy/go-gitlab v0.115.0
+	github.com/ulikunitz/xz v0.5.15
+	gitlab.com/gitlab-org/api/client-go v0.142.6
 	golang.org/x/crypto v0.41.0
 	golang.org/x/oauth2 v0.30.0
 	golang.org/x/sys v0.35.0
