@@ -1,6 +1,6 @@
 module github.com/creativeprojects/go-selfupdate
 
-go 1.24.6
+go 1.24.7
 
 require (
 	code.gitea.io/sdk/gitea v0.22.0
@@ -8,10 +8,10 @@ require (
 	github.com/google/go-github/v74 v74.0.0
 	github.com/stretchr/testify v1.11.1
 	github.com/ulikunitz/xz v0.5.15
-	gitlab.com/gitlab-org/api/client-go v0.142.6
-	golang.org/x/crypto v0.41.0
-	golang.org/x/oauth2 v0.30.0
-	golang.org/x/sys v0.35.0
+	gitlab.com/gitlab-org/api/client-go v0.148.0
+	golang.org/x/crypto v0.42.0
+	golang.org/x/oauth2 v0.31.0
+	golang.org/x/sys v0.36.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -25,5 +25,6 @@ require (
 	github.com/hashicorp/go-retryablehttp v0.7.8 // indirect
 	github.com/hashicorp/go-version v1.7.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842 // indirect
 	golang.org/x/time v0.12.0 // indirect
 )
