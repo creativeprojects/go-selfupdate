@@ -9,7 +9,7 @@ This example shows how to update a program remotely from a URL.
 		"fmt"
 		"net/http"
 
-		"github.com/creativeprojects/go-selfupdate/update"
+		"github.com/sinspired/go-selfupdate/update"
 	)
 
 	func doUpdate(url string) error {
@@ -49,7 +49,7 @@ specified as a hex string.
 		"encoding/hex"
 		"io"
 
-		"github.com/creativeprojects/go-selfupdate/update"
+		"github.com/sinspired/go-selfupdate/update"
 	)
 
 	func updateWithChecksum(binary io.Reader, hexChecksum string) error {
@@ -85,7 +85,7 @@ with the private key and distribute the signature along with the update.
 		"encoding/hex"
 		"io"
 
-		"github.com/creativeprojects/go-selfupdate/update"
+		"github.com/sinspired/go-selfupdate/update"
 	)
 
 	var publicKey = []byte(`

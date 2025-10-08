@@ -6,7 +6,7 @@ import (
 	"log"
 	"runtime"
 
-	"github.com/creativeprojects/go-selfupdate"
+	"github.com/sinspired/go-selfupdate"
 )
 
 // keep this function here, this is the example from the README

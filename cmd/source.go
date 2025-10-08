@@ -5,7 +5,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/creativeprojects/go-selfupdate"
+	"github.com/sinspired/go-selfupdate"
 )
 
 // SplitDomainSlug tries to make sense of the repository string

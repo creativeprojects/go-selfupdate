@@ -5,7 +5,7 @@ import (
 	"regexp"
 	"runtime"
 
-	"github.com/creativeprojects/go-selfupdate/internal"
+	"github.com/sinspired/go-selfupdate/internal"
 )
 
 // Updater is responsible for managing the context of self-update.

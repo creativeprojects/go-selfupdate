@@ -190,7 +190,7 @@ func TestInvalidSlugForUpdate(t *testing.T) {
 }
 
 func TestInvalidAssetURL(t *testing.T) {
-	err := UpdateTo(context.Background(), "https://github.com/creativeprojects/non-existing-repo/releases/download/v1.2.3/foo.zip", "foo.zip", "foo")
+	err := UpdateTo(context.Background(), "https://github.com/sinspired/non-existing-repo/releases/download/v1.2.3/foo.zip", "foo.zip", "foo")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to download a release file")
 }

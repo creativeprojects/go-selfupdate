@@ -1,4 +1,4 @@
-module github.com/creativeprojects/go-selfupdate
+module github.com/sinspired/go-selfupdate
 
 go 1.24.7
 

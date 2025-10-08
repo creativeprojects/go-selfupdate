@@ -3,7 +3,7 @@ package internal_test
 import (
 	"testing"
 
-	"github.com/creativeprojects/go-selfupdate/internal"
+	"github.com/sinspired/go-selfupdate/internal"
 	"github.com/stretchr/testify/assert"
 )
 

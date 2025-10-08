@@ -1,8 +1,8 @@
 Self-Update library for Github, Gitea and Gitlab hosted applications in Go
 ==============================================================
 
-[![Godoc reference](https://godoc.org/github.com/creativeprojects/go-selfupdate?status.svg)](http://godoc.org/github.com/creativeprojects/go-selfupdate)
-[![Build](https://github.com/creativeprojects/go-selfupdate/workflows/Build/badge.svg)](https://github.com/creativeprojects/go-selfupdate/actions)
+[![Godoc reference](https://godoc.org/github.com/sinspired/go-selfupdate?status.svg)](http://godoc.org/github.com/sinspired/go-selfupdate)
+[![Build](https://github.com/sinspired/go-selfupdate/workflows/Build/badge.svg)](https://github.com/sinspired/go-selfupdate/actions)
 [![codecov](https://codecov.io/gh/creativeprojects/go-selfupdate/branch/main/graph/badge.svg?token=3FejM0fkw2)](https://codecov.io/gh/creativeprojects/go-selfupdate)
 [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=creativeprojects_go-selfupdate&metric=bugs)](https://sonarcloud.io/summary/new_code?id=creativeprojects_go-selfupdate)
 [![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=creativeprojects_go-selfupdate&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=creativeprojects_go-selfupdate)

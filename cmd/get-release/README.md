@@ -3,7 +3,7 @@ Download and install the latest release of any binary from GitHub.
 ## Installation
 
 ```
-$ go get -u github.com/creativeprojects/go-selfupdate/cmd/get-release
+$ go get -u github.com/sinspired/go-selfupdate/cmd/get-release
 ```
 
 ## Usage

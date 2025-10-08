@@ -10,8 +10,8 @@ import (
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/creativeprojects/go-selfupdate/internal"
-	"github.com/creativeprojects/go-selfupdate/update"
+	"github.com/sinspired/go-selfupdate/internal"
+	"github.com/sinspired/go-selfupdate/update"
 )
 
 // UpdateTo downloads an executable from the source provider and replace current binary with the downloaded one.
