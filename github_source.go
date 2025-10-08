@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/google/go-github/v74/github"
 	"golang.org/x/oauth2"
@@ -93,6 +94,42 @@ func (s *GitHubSource) DownloadReleaseAsset(ctx context.Context, rel *Release, a
 	if rel == nil {
 		return nil, ErrInvalidRelease
 	}
+	// Check if the AssetURL contains more than one "https://"
+	useGithubProxy := strings.Count(rel.AssetURL, "https://") > 1
+	// If the AssetURL contains more than 2 "https://", it means it's using a GitHub Proxy service.
+	// In this case, we should download the asset directly from the AssetURL instead of using the GitHub API.
+	// This is a workaround for the issue that the GitHub API does not support downloading assets from GitHub Proxy services.
+	if useGithubProxy {
+		// Determine download url based on asset id.
+		var downloadUrl string
+		if rel.AssetID == assetID {
+			downloadUrl = rel.AssetURL
+		} else if rel.ValidationAssetID == assetID {
+			downloadUrl = rel.ValidationAssetURL
+		}
+		if downloadUrl == "" {
+			return nil, fmt.Errorf("asset ID %d: %w", assetID, ErrAssetNotFound)
+		}
+		// Download the asset directly from the AssetURL
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, downloadUrl, http.NoBody)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create download request:%w", err)
+		}
+
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return nil, fmt.Errorf("download failed:%w", err)
+		}
+
+		// The caller is responsible for closing resp.Body
+		if resp.StatusCode != http.StatusOK {
+			defer resp.Body.Close()
+			return nil, fmt.Errorf("download failed, status code:%d", resp.StatusCode)
+		}
+
+		return resp.Body, nil
+	}
+	// continue with the normal GitHub API download
 	owner, repo, err := rel.repository.GetSlug()
 	if err != nil {
 		return nil, err
