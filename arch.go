@@ -27,6 +27,9 @@ func getAdditionalArch(arch string, goarm uint8, universalArch string) []string 
 	if arch == "amd64" {
 		additionalArch = append(additionalArch, "x86_64")
 	}
+	if arch == "386" {
+		additionalArch = append(additionalArch, "i386", "x86", "x86_32")
+	}
 	if universalArch != "" {
 		additionalArch = append(additionalArch, universalArch)
 	}
