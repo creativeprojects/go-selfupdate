@@ -28,7 +28,7 @@ func ResolvePath(filename string) (string, error) {
 	}
 
 	buf := make([]uint16, bufSize)
-	n, err := windows.GetFinalPathNameByHandle(handle, &buf[0], uint32(len(buf)), 0) //nolint:gosec
+	n, err := windows.GetFinalPathNameByHandle(handle, &buf[0], bufSize, 0)
 	if err != nil {
 		return "", err
 	}

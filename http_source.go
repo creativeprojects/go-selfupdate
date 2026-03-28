@@ -30,14 +30,14 @@ import (
 	yaml "gopkg.in/yaml.v3"
 )
 
-type HttpManifest struct { //nolint:staticcheck
+type HttpManifest struct {
 	LastReleaseID int64          `yaml:"last_release_id"`
 	LastAssetID   int64          `yaml:"last_asset_id"`
 	Releases      []*HttpRelease `yaml:"releases"`
 }
 
 // HttpConfig is an object to pass to NewHttpSource
-type HttpConfig struct { //nolint:staticcheck
+type HttpConfig struct {
 	// BaseURL is a base URL of your update server. This parameter has NO default value.
 	BaseURL string
 	// HTTP Transport Config
@@ -47,14 +47,14 @@ type HttpConfig struct { //nolint:staticcheck
 }
 
 // HttpSource is used to load release information from an http repository
-type HttpSource struct { //nolint:staticcheck
+type HttpSource struct {
 	baseURL   string
 	transport *http.Transport
 	headers   http.Header
 }
 
 // NewHttpSource creates a new HttpSource from a config object.
-func NewHttpSource(config HttpConfig) (*HttpSource, error) { //nolint:staticcheck
+func NewHttpSource(config HttpConfig) (*HttpSource, error) {
 	// Validate Base URL.
 	if config.BaseURL == "" {
 		return nil, fmt.Errorf("http base url must be set")
