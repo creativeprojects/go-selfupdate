@@ -83,6 +83,6 @@ fix: $(GOBIN)/golangci-lint-v2
 	@echo "[*] $@"
 	$(GOCMD) mod tidy
 	$(GOCMD) fix ./...
-	GOOS=darwin $(GOBIN)/golangci-lint-v2 --fix
-	GOOS=linux $(GOBIN)/golangci-lint-v2 --fix
-	GOOS=windows $(GOBIN)/golangci-lint-v2 --fix
+	GOOS=darwin $(GOBIN)/golangci-lint-v2 run --fix
+	GOOS=linux $(GOBIN)/golangci-lint-v2 run --fix
+	GOOS=windows $(GOBIN)/golangci-lint-v2 run --fix
