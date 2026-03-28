@@ -101,17 +101,17 @@ func (s *GitHubSource) DownloadReleaseAsset(ctx context.Context, rel *Release, a
 	// This is a workaround for the issue that the GitHub API does not support downloading assets from GitHub Proxy services.
 	if useGithubProxy {
 		// Determine download url based on asset id.
-		var downloadUrl string
+		var downloadURL string
 		if rel.AssetID == assetID {
-			downloadUrl = rel.AssetURL
+			downloadURL = rel.AssetURL
 		} else if rel.ValidationAssetID == assetID {
-			downloadUrl = rel.ValidationAssetURL
+			downloadURL = rel.ValidationAssetURL
 		}
-		if downloadUrl == "" {
+		if downloadURL == "" {
 			return nil, fmt.Errorf("asset ID %d: %w", assetID, ErrAssetNotFound)
 		}
 		// Download the asset directly from the AssetURL
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, downloadUrl, http.NoBody)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, downloadURL, http.NoBody)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create download request:%w", err)
 		}

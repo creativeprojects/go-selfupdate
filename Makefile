@@ -10,6 +10,11 @@ GOTEST=$(GOCMD) test
 GOTOOL=$(GOCMD) tool
 GOGET=$(GOCMD) get
 GOPATH?=`$(GOCMD) env GOPATH`
+GOBIN=$(shell $(GOCMD) env GOBIN)
+
+ifeq ($(GOBIN),)
+	GOBIN := $(GOPATH)/bin
+endif
 
 TESTS=. ./update
 COVERAGE_FILE=coverage.txt
@@ -25,6 +30,20 @@ TOC_PATH=toc.md
 .PHONY: all test build coverage full-coverage clean toc
 
 all: test build
+
+verify: ## Verify go installation
+ifeq ($(GOPATH),)
+	@echo "GOPATH not found, please check your go installation"
+	exit 1
+endif
+
+$(GOBIN)/eget: verify
+	@echo "[*] $@"
+	GOBIN="$(GOBIN)" $(GOCMD) install -v github.com/zyedidia/eget@v1.3.4
+
+$(GOBIN)/golangci-lint-v2: verify $(GOBIN)/eget
+	@echo "[*] $@"
+	"$(GOBIN)/eget" golangci/golangci-lint --tag v2.11.4 --asset=tar.gz --upgrade-only --to '$(GOBIN)/golangci-lint-v2'
 
 build:
 		$(GOBUILD) -v ./...
@@ -53,17 +72,17 @@ toc:
 	rm ${README}.1 ${README}.2 ${TOC_PATH}
 
 .PHONY: lint
-lint:
+lint: $(GOBIN)/golangci-lint-v2
 	@echo "[*] $@"
-	GOOS=darwin golangci-lint run
-	GOOS=linux golangci-lint run
-	GOOS=windows golangci-lint run
+	GOOS=darwin $(GOBIN)/golangci-lint-v2 run
+	GOOS=linux $(GOBIN)/golangci-lint-v2 run
+	GOOS=windows $(GOBIN)/golangci-lint-v2 run
 
 .PHONY: fix
-fix:
+fix: $(GOBIN)/golangci-lint-v2
 	@echo "[*] $@"
 	$(GOCMD) mod tidy
 	$(GOCMD) fix ./...
-	GOOS=darwin golangci-lint run --fix
-	GOOS=linux golangci-lint run --fix
-	GOOS=windows golangci-lint run --fix
+	GOOS=darwin $(GOBIN)/golangci-lint-v2 --fix
+	GOOS=linux $(GOBIN)/golangci-lint-v2 --fix
+	GOOS=windows $(GOBIN)/golangci-lint-v2 --fix

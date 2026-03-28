@@ -1,6 +1,7 @@
 package selfupdate
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -36,7 +37,7 @@ func TestGetGOARM(t *testing.T) {
 		t.Run(tc.goOS+" "+tc.goArch+" "+tc.goArm, func(t *testing.T) {
 			tempBinary := t.TempDir() + "/tempBinary-" + tc.goOS + tc.goArch + "v" + tc.goArm
 			buildCmd := fmt.Sprintf("GOOS=%s GOARCH=%s GOARM=%s go build -o %s ./testdata/hello", tc.goOS, tc.goArch, tc.goArm, tempBinary)
-			cmd := exec.Command("sh", "-c", buildCmd)
+			cmd := exec.CommandContext(context.TODO(), "sh", "-c", buildCmd)
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
 			err := cmd.Run()

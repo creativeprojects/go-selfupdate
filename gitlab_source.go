@@ -75,19 +75,19 @@ func (s *GitLabSource) DownloadReleaseAsset(ctx context.Context, rel *Release, a
 	if rel == nil {
 		return nil, ErrInvalidRelease
 	}
-	var downloadUrl string
+	var downloadURL string
 	if rel.AssetID == assetID {
-		downloadUrl = rel.AssetURL
+		downloadURL = rel.AssetURL
 	} else if rel.ValidationAssetID == assetID {
-		downloadUrl = rel.ValidationAssetURL
+		downloadURL = rel.ValidationAssetURL
 	}
-	if downloadUrl == "" {
+	if downloadURL == "" {
 		return nil, fmt.Errorf("asset ID %d: %w", assetID, ErrAssetNotFound)
 	}
 
-	log.Printf("downloading %q", downloadUrl)
+	log.Printf("downloading %q", downloadURL)
 	client := http.DefaultClient
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, downloadUrl, http.NoBody)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, downloadURL, http.NoBody)
 	if err != nil {
 		log.Print(err)
 		return nil, err
@@ -95,7 +95,7 @@ func (s *GitLabSource) DownloadReleaseAsset(ctx context.Context, rel *Release, a
 
 	if s.token != "" {
 		// verify request is from same domain not to leak token
-		ok, err := canUseTokenForDomain(s.baseURL, downloadUrl)
+		ok, err := canUseTokenForDomain(s.baseURL, downloadURL)
 		if err != nil {
 			return nil, err
 		}

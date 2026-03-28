@@ -1,3 +1,4 @@
+version: "2"
 linters:
   enable:
     - asasalint
@@ -8,7 +9,7 @@ linters:
     - errname
     - gocheckcompilerdirectives
     - gosec
-    - maintidx
+    # - maintidx
     - misspell
     - nilnil
     - noctx
@@ -20,10 +21,29 @@ linters:
     - unconvert
     - unparam
     - usestdlibvars
-
-linters-settings:
-  gosec:
-    excludes:
-      - G101 # Potential hardcoded credentials
-  staticcheck:
-    checks: ["all", "-SA1019"] # "golang.org/x/crypto/openpgp" is deprecated
+  settings:
+    gosec:
+      excludes:
+        - G101
+    staticcheck:
+      checks:
+        - all
+        - -SA1019
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

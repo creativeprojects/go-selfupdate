@@ -142,9 +142,9 @@ func (up *Updater) validate(ctx context.Context, rel *Release, data []byte) erro
 	return nil
 }
 
-func (up *Updater) download(ctx context.Context, rel *Release, assetId int64) (data []byte, err error) {
+func (up *Updater) download(ctx context.Context, rel *Release, assetID int64) (data []byte, err error) {
 	var reader io.ReadCloser
-	if reader, err = up.source.DownloadReleaseAsset(ctx, rel, assetId); err == nil {
+	if reader, err = up.source.DownloadReleaseAsset(ctx, rel, assetID); err == nil {
 		defer func() { _ = reader.Close() }()
 		data, err = io.ReadAll(reader)
 	}

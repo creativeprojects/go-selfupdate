@@ -76,7 +76,7 @@ type GitLabAsset struct {
 
 func NewGitLabAsset(from *gitlab.ReleaseLink) *GitLabAsset {
 	return &GitLabAsset{
-		id:   int64(from.ID),
+		id:   from.ID,
 		name: from.Name,
 		url:  from.URL,
 	}

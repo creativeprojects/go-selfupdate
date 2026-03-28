@@ -99,7 +99,7 @@ func gunzip(src io.Reader, cmd, os, arch string) (io.Reader, error) {
 		return nil, fmt.Errorf("%w gzip file: %s", ErrCannotDecompressFile, err)
 	}
 
-	name := r.Header.Name
+	name := r.Name
 	if !matchExecutableName(cmd, os, arch, name) {
 		return nil, fmt.Errorf("%w: expected %q but found %q", ErrExecutableNotFoundInArchive, cmd, name)
 	}

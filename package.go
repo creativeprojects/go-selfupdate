@@ -51,7 +51,7 @@ func UpdateSelf(ctx context.Context, current string, repository Repository) (*Re
 
 func downloadReleaseAssetFromURL(ctx context.Context, url string) (rc io.ReadCloser, err error) {
 	client := http.DefaultClient
-	req, err := http.NewRequest(http.MethodGet, url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, err
 	}

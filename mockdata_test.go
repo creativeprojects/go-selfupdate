@@ -265,7 +265,7 @@ func mockSourceRepository(t *testing.T) *MockSource {
 				t.Errorf("file ID %d not found", asset.GetID())
 			}
 			hash := sha256.Sum256(file)
-			checksums.WriteString(fmt.Sprintf("%x  %s\n", hash, asset.GetName()))
+			fmt.Fprintf(checksums, "%x  %s\n", hash, asset.GetName())
 		}
 		id := int64(i*10 + 101)
 		rel.assets = append(rel.assets, &GitHubAsset{
@@ -293,7 +293,7 @@ func mockPGPSourceRepository(t *testing.T) (source *MockSource, PGPKeyRing []byt
 		rel := release.(*GitHubRelease)
 
 		id := int64(i*10 + 101)
-		signatureId := id + 1
+		signatureID := id + 1
 		shaSums := source.files[id]
 
 		// Create SHA256SUMS.asc (by signing SHA256SUMS)
@@ -302,12 +302,12 @@ func mockPGPSourceRepository(t *testing.T) (source *MockSource, PGPKeyRing []byt
 		require.NoError(t, err)
 
 		rel.assets = append(rel.assets, &GitHubAsset{
-			id:   signatureId,
+			id:   signatureID,
 			name: "checksums.txt.asc",
 		})
-		source.files[signatureId] = signature.Bytes()
+		source.files[signatureID] = signature.Bytes()
 
-		t.Logf("file id %d contains PGP signature:\n%s\n", signatureId, string(source.files[signatureId]))
+		t.Logf("file id %d contains PGP signature:\n%s\n", signatureID, string(source.files[signatureID]))
 	}
 
 	return

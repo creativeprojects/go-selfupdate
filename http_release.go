@@ -24,7 +24,7 @@ import (
 	"time"
 )
 
-type HttpAsset struct {
+type HttpAsset struct { //nolint:staticcheck
 	ID   int64  `yaml:"id"`
 	Name string `yaml:"name"`
 	Size int    `yaml:"size"`
@@ -49,7 +49,7 @@ func (a *HttpAsset) GetBrowserDownloadURL() string {
 
 var _ SourceAsset = &HttpAsset{}
 
-type HttpRelease struct {
+type HttpRelease struct { //nolint:staticcheck
 	ID           int64        `yaml:"id"`
 	Name         string       `yaml:"name"`
 	TagName      string       `yaml:"tag_name"`

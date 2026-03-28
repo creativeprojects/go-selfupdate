@@ -47,7 +47,7 @@ func WithLogging(h http.Handler) http.Handler {
 
 		duration := time.Since(start)
 
-		slog.Info("request completed",
+		slog.Info("request completed", //nolint:gosec
 			"uri", req.RequestURI,
 			"method", req.Method,
 			"status", responseData.status, // get captured status code

@@ -30,14 +30,14 @@ import (
 	yaml "gopkg.in/yaml.v3"
 )
 
-type HttpManifest struct {
+type HttpManifest struct { //nolint:staticcheck
 	LastReleaseID int64          `yaml:"last_release_id"`
 	LastAssetID   int64          `yaml:"last_asset_id"`
 	Releases      []*HttpRelease `yaml:"releases"`
 }
 
 // HttpConfig is an object to pass to NewHttpSource
-type HttpConfig struct {
+type HttpConfig struct { //nolint:staticcheck
 	// BaseURL is a base URL of your update server. This parameter has NO default value.
 	BaseURL string
 	// HTTP Transport Config
@@ -47,14 +47,14 @@ type HttpConfig struct {
 }
 
 // HttpSource is used to load release information from an http repository
-type HttpSource struct {
+type HttpSource struct { //nolint:staticcheck
 	baseURL   string
 	transport *http.Transport
 	headers   http.Header
 }
 
 // NewHttpSource creates a new HttpSource from a config object.
-func NewHttpSource(config HttpConfig) (*HttpSource, error) {
+func NewHttpSource(config HttpConfig) (*HttpSource, error) { //nolint:staticcheck
 	// Validate Base URL.
 	if config.BaseURL == "" {
 		return nil, fmt.Errorf("http base url must be set")
@@ -162,13 +162,13 @@ func (s *HttpSource) DownloadReleaseAsset(ctx context.Context, rel *Release, ass
 	}
 
 	// Determine download url based on asset id.
-	var downloadUrl string
+	var downloadURL string
 	if rel.AssetID == assetID {
-		downloadUrl = rel.AssetURL
+		downloadURL = rel.AssetURL
 	} else if rel.ValidationAssetID == assetID {
-		downloadUrl = rel.ValidationAssetURL
+		downloadURL = rel.ValidationAssetURL
 	}
-	if downloadUrl == "" {
+	if downloadURL == "" {
 		return nil, fmt.Errorf("asset ID %d: %w", assetID, ErrAssetNotFound)
 	}
 
@@ -176,7 +176,7 @@ func (s *HttpSource) DownloadReleaseAsset(ctx context.Context, rel *Release, ass
 	client := &http.Client{Transport: s.transport}
 
 	// Make request.
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, downloadUrl, http.NoBody)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, downloadURL, http.NoBody)
 	if err != nil {
 		return nil, err
 	}

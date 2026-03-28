@@ -36,8 +36,8 @@ func NewGitHubRelease(from *github.RepositoryRelease) *GitHubRelease {
 	return release
 }
 
-func (a *GitHubRelease) GetID() int64 {
-	return a.releaseID
+func (r *GitHubRelease) GetID() int64 {
+	return r.releaseID
 }
 
 func (r *GitHubRelease) GetTagName() string {

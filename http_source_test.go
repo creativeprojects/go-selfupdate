@@ -36,14 +36,14 @@ import (
 const httpTestBaseURL = "http://localhost"
 
 // Test server for testing http repos.
-type HttpRepoTestServer struct {
+type HTTPRepoTestServer struct {
 	server  *httptest.Server
 	repoURL string
 }
 
 // Setup test server with test data.
-func NewHttpRepoTestServer() *HttpRepoTestServer {
-	s := new(HttpRepoTestServer)
+func NewHTTPRepoTestServer() *HTTPRepoTestServer {
+	s := new(HTTPRepoTestServer)
 
 	// Setup handlers.
 	mux := http.NewServeMux()
@@ -57,7 +57,7 @@ func NewHttpRepoTestServer() *HttpRepoTestServer {
 }
 
 // Stop the HTTP server.
-func (s *HttpRepoTestServer) Stop() {
+func (s *HTTPRepoTestServer) Stop() {
 	s.server.Close()
 }
 
@@ -120,7 +120,7 @@ func TestHttpDownloadReleaseAssetWithNilRelease(t *testing.T) {
 // Verify we're able to list releases and download an asset.
 func TestHttpListAndDownloadReleaseAsset(t *testing.T) {
 	// Create test HTTP server and start it.
-	server := NewHttpRepoTestServer()
+	server := NewHTTPRepoTestServer()
 
 	// Make HTTP source with our test server.
 	source, err := NewHttpSource(HttpConfig{BaseURL: server.repoURL})
