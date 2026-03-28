@@ -3,10 +3,11 @@
 package internal
 
 import (
-	"golang.org/x/sys/windows"
 	"os"
 	"strings"
 	"syscall"
+
+	"golang.org/x/sys/windows"
 )
 
 // ResolvePath returns the path of a given filename with all symlinks resolved.
@@ -27,7 +28,7 @@ func ResolvePath(filename string) (string, error) {
 	}
 
 	buf := make([]uint16, bufSize)
-	n, err := windows.GetFinalPathNameByHandle(handle, &buf[0], uint32(len(buf)), 0)
+	n, err := windows.GetFinalPathNameByHandle(handle, &buf[0], uint32(len(buf)), 0) //nolint:gosec
 	if err != nil {
 		return "", err
 	}

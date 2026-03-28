@@ -897,7 +897,6 @@ func TestFindReleaseAndAsset(t *testing.T) {
 	}
 
 	for _, testItem := range testData {
-		testItem := testItem
 		t.Run(testItem.name, func(t *testing.T) {
 			t.Parallel()
 

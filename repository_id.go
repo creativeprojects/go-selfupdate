@@ -14,6 +14,6 @@ func (r RepositoryID) GetSlug() (string, string, error) {
 	return "", "", ErrInvalidID
 }
 
-func (r RepositoryID) Get() (interface{}, error) {
+func (r RepositoryID) Get() (any, error) {
 	return int(r), nil
 }

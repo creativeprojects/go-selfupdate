@@ -11,13 +11,13 @@ func SetLogger(logger Logger) {
 // Logger interface. Compatible with standard log.Logger
 type Logger interface {
 	// Print calls Output to print to the standard logger. Arguments are handled in the manner of fmt.Print.
-	Print(v ...interface{})
+	Print(v ...any)
 	// Printf calls Output to print to the standard logger. Arguments are handled in the manner of fmt.Printf.
-	Printf(format string, v ...interface{})
+	Printf(format string, v ...any)
 }
 
 // emptyLogger to discard all logs by default
 type emptyLogger struct{}
 
-func (l *emptyLogger) Print(v ...interface{})                 {}
-func (l *emptyLogger) Printf(format string, v ...interface{}) {}
+func (l *emptyLogger) Print(v ...any)                 {}
+func (l *emptyLogger) Printf(format string, v ...any) {}

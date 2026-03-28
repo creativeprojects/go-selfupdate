@@ -51,7 +51,7 @@ func (r RepositorySlug) GetSlug() (string, string, error) {
 	return r.owner, r.repo, nil
 }
 
-func (r RepositorySlug) Get() (interface{}, error) {
+func (r RepositorySlug) Get() (any, error) {
 	_, _, err := r.GetSlug()
 	if err != nil {
 		return "", err
