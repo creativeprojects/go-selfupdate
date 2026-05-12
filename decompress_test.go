@@ -16,7 +16,7 @@ import (
 func TestCompressionNotRequired(t *testing.T) {
 	buf := []byte{'a', 'b', 'c'}
 	want := bytes.NewReader(buf)
-	r, err := DecompressCommand(want, "https://github.com/foo/bar/releases/download/v1.2.3/foo", "foo", runtime.GOOS, runtime.GOOS)
+	r, err := DecompressCommand(DecompressCommandOpt{want, "https://github.com/foo/bar/releases/download/v1.2.3/foo", "foo", runtime.GOOS, runtime.GOOS})
 	require.NoError(t, err)
 
 	have, err := io.ReadAll(r)
@@ -52,7 +52,7 @@ func TestDecompress(t *testing.T) {
 
 			ext := getArchiveFileExt(testCase)
 			url := "https://github.com/foo/bar/releases/download/v1.2.3/bar" + ext
-			r, err := DecompressCommand(f, url, "bar", runtime.GOOS, runtime.GOOS)
+			r, err := DecompressCommand(DecompressCommandOpt{f, url, "bar", runtime.GOOS, runtime.GOOS})
 			require.NoError(t, err)
 
 			content, err := io.ReadAll(r)
@@ -81,7 +81,7 @@ func TestDecompressInvalidArchive(t *testing.T) {
 
 		ext := getArchiveFileExt(testCase.name)
 		url := "https://github.com/foo/bar/releases/download/v1.2.3/bar" + ext
-		_, err = DecompressCommand(f, url, "bar", runtime.GOOS, runtime.GOOS)
+		_, err = DecompressCommand(DecompressCommandOpt{f, url, "bar", runtime.GOOS, runtime.GOOS})
 		assert.ErrorIs(t, err, ErrCannotDecompressFile)
 		if !strings.Contains(err.Error(), testCase.msg) {
 			t.Fatal("Unexpected error:", err)
@@ -106,7 +106,7 @@ func TestTargetNotFound(t *testing.T) {
 
 			ext := getArchiveFileExt(testCase.name)
 			url := "https://github.com/foo/bar/releases/download/v1.2.3/bar" + ext
-			_, err = DecompressCommand(f, url, "bar", runtime.GOOS, runtime.GOOS)
+			_, err = DecompressCommand(DecompressCommandOpt{f, url, "bar", runtime.GOOS, runtime.GOOS})
 			assert.ErrorIs(t, err, ErrExecutableNotFoundInArchive)
 		})
 	}
@@ -189,7 +189,7 @@ func TestErrorFromReader(t *testing.T) {
 
 	for _, extension := range extensions {
 		t.Run(extension, func(t *testing.T) {
-			reader, err := DecompressCommand(&bogusReader{}, "foo."+extension, "foo."+extension, runtime.GOOS, runtime.GOARCH)
+			reader, err := DecompressCommand(DecompressCommandOpt{&bogusReader{}, "foo." + extension, "foo." + extension, runtime.GOOS, runtime.GOARCH})
 			if err != nil {
 				t.Log(err)
 				assert.ErrorIs(t, err, ErrCannotDecompressFile)

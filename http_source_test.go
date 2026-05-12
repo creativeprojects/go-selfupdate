@@ -149,7 +149,7 @@ func TestHttpListAndDownloadReleaseAsset(t *testing.T) {
 	require.NoError(t, err)
 
 	// Find the latest release.
-	release, found, err := updater.DetectLatest(context.Background(), NewRepositorySlug("creativeprojects", "resticprofile"))
+	release, found, err := updater.DetectLatest(context.Background(), DetectLatestOpt{NewRepositorySlug("creativeprojects", "resticprofile")})
 	require.NoError(t, err)
 	assert.Equal(t, found, true, "no release found")
 

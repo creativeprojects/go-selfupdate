@@ -41,7 +41,7 @@ func TestDetectReleaseWithVersionPrefix(t *testing.T) {
 			continue
 		}
 		t.Run(testItem.name, func(t *testing.T) {
-			r, ok, err := testItem.updater.DetectLatest(context.Background(), testGithubRepository)
+			r, ok, err := testItem.updater.DetectLatest(context.Background(), DetectLatestOpt{testGithubRepository})
 			skipRateLimitExceeded(t, err)
 			require.NoError(t, err)
 			assert.True(t, ok, "Failed to detect latest")
@@ -79,7 +79,7 @@ func TestDetectVersionExisting(t *testing.T) {
 			continue
 		}
 		t.Run(testItem.name, func(t *testing.T) {
-			r, ok, err := testItem.updater.DetectVersion(context.Background(), testGithubRepository, testVersion)
+			r, ok, err := testItem.updater.DetectVersion(context.Background(), DetectVersionOpt{testGithubRepository, testVersion})
 			skipRateLimitExceeded(t, err)
 			require.NoError(t, err)
 			assert.Truef(t, ok, "Failed to detect %s", testVersion)
@@ -106,7 +106,7 @@ func TestDetectVersionExistingWithNoValidationFile(t *testing.T) {
 			continue
 		}
 		t.Run(testItem.name, func(t *testing.T) {
-			_, _, err := testItem.updater.DetectVersion(context.Background(), testGithubRepository, testVersion)
+			_, _, err := testItem.updater.DetectVersion(context.Background(), DetectVersionOpt{testGithubRepository, testVersion})
 			skipRateLimitExceeded(t, err)
 			assert.ErrorIs(t, err, ErrValidationAssetNotFound)
 		})
@@ -128,7 +128,7 @@ func TestDetectVersionNotExisting(t *testing.T) {
 			continue
 		}
 		t.Run(testItem.name, func(t *testing.T) {
-			r, ok, err := testItem.updater.DetectVersion(context.Background(), testGithubRepository, "foobar")
+			r, ok, err := testItem.updater.DetectVersion(context.Background(), DetectVersionOpt{testGithubRepository, "foobar"})
 			skipRateLimitExceeded(t, err)
 			require.NoError(t, err)
 			assert.False(t, ok, "Failed to correctly detect foobar")
@@ -151,7 +151,7 @@ func TestDetectPrerelease(t *testing.T) {
 				Source:     mockSourceRepository(t),
 				Prerelease: testFixture.prerelease,
 			})
-			r, ok, err := updater.DetectLatest(context.Background(), RepositorySlug{owner: "owner", repo: "repo"})
+			r, ok, err := updater.DetectLatest(context.Background(), DetectLatestOpt{RepositorySlug{owner: "owner", repo: "repo"}})
 			require.NotNil(t, r)
 			assert.True(t, ok)
 			assert.NoError(t, err)
@@ -178,7 +178,7 @@ func TestDetectReleasesForVariousArchives(t *testing.T) {
 			require.NoError(t, err, "failed to create source")
 			updater, err := NewUpdater(Config{Source: source, Arch: "amd64"})
 			require.NoError(t, err, "failed to create updater")
-			r, ok, err := updater.DetectLatest(context.Background(), ParseSlug(tc.slug))
+			r, ok, err := updater.DetectLatest(context.Background(), DetectLatestOpt{ParseSlug(tc.slug)})
 			skipRateLimitExceeded(t, err)
 
 			assert.NoError(t, err, "fetch failed")
@@ -231,7 +231,7 @@ func TestDetectReleaseButNoAsset(t *testing.T) {
 			continue
 		}
 		t.Run(testItem.name, func(t *testing.T) {
-			_, ok, err := testItem.updater.DetectLatest(context.Background(), ParseSlug("rhysd/clever-f.vim"))
+			_, ok, err := testItem.updater.DetectLatest(context.Background(), DetectLatestOpt{ParseSlug("rhysd/clever-f.vim")})
 			skipRateLimitExceeded(t, err)
 			require.NoError(t, err)
 			assert.False(t, ok, "When no asset found, result should be marked as 'not found'")
@@ -254,7 +254,7 @@ func TestNonExistingRepo(t *testing.T) {
 			continue
 		}
 		t.Run(testItem.name, func(t *testing.T) {
-			_, ok, err := testItem.updater.DetectLatest(context.Background(), ParseSlug("rhysd/non-existing-repo"))
+			_, ok, err := testItem.updater.DetectLatest(context.Background(), DetectLatestOpt{ParseSlug("rhysd/non-existing-repo")})
 			skipRateLimitExceeded(t, err)
 			require.NoError(t, err)
 			assert.False(t, ok, "Release for non-existing repo should not be found")
@@ -277,7 +277,7 @@ func TestNoReleaseFound(t *testing.T) {
 			continue
 		}
 		t.Run(testItem.name, func(t *testing.T) {
-			_, ok, err := testItem.updater.DetectLatest(context.Background(), ParseSlug("rhysd/misc"))
+			_, ok, err := testItem.updater.DetectLatest(context.Background(), DetectLatestOpt{ParseSlug("rhysd/misc")})
 			skipRateLimitExceeded(t, err)
 			require.NoError(t, err)
 			assert.False(t, ok, "Repo having no release should not be found")
@@ -928,7 +928,7 @@ func TestBuildMultistepValidationChain(t *testing.T) {
 			Validator: NewChecksumWithPGPValidator("checksums.txt", keyRing),
 		})
 
-		release, found, err := updater.DetectVersion(context.Background(), testGithubRepository, testVersion)
+		release, found, err := updater.DetectVersion(context.Background(), DetectVersionOpt{testGithubRepository, testVersion})
 		require.True(t, found)
 		assert.NoError(t, err)
 		assert.Equal(t, 2, len(release.ValidationChain))
@@ -943,7 +943,7 @@ func TestBuildMultistepValidationChain(t *testing.T) {
 				Add("*", checksumValidator),
 		})
 
-		_, _, err := updater.DetectVersion(context.Background(), testGithubRepository, testVersion)
+		_, _, err := updater.DetectVersion(context.Background(), DetectVersionOpt{testGithubRepository, testVersion})
 		assert.NoError(t, err)
 	})
 
@@ -955,7 +955,7 @@ func TestBuildMultistepValidationChain(t *testing.T) {
 				Add("*", new(SHAValidator)),
 		})
 
-		_, _, err := updater.DetectVersion(context.Background(), testGithubRepository, testVersion)
+		_, _, err := updater.DetectVersion(context.Background(), DetectVersionOpt{testGithubRepository, testVersion})
 		assert.EqualError(t, err, "validation file not found: \"checksums.txt.sha256\"")
 	})
 }

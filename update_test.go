@@ -16,7 +16,7 @@ import (
 )
 
 func TestUpdateCommandWithWrongVersion(t *testing.T) {
-	_, err := UpdateCommand(context.Background(), "path", "wrong version", ParseSlug("test/test"))
+	_, err := UpdateCommand(context.Background(), UpdateCommandOpt{"file", "path", "wrong version", ParseSlug("test/test")})
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, semver.ErrInvalidSemVer)
 }
@@ -30,7 +30,7 @@ func TestUpdateCommand(t *testing.T) {
 
 	filename := setupCurrentVersion(t)
 
-	rel, err := updater.UpdateCommand(context.Background(), filename, currentVersion, ParseSlug("creativeprojects/new_version"))
+	rel, err := updater.UpdateCommand(context.Background(), UpdateCommandOpt{"new_version", filename, currentVersion, ParseSlug("creativeprojects/new_version")})
 	require.NoError(t, err)
 	assert.Equal(t, newVersion, rel.Version())
 
@@ -54,7 +54,7 @@ func TestUpdateViaSymlink(t *testing.T) {
 	err = os.Symlink(exePath, symPath)
 	require.NoError(t, err)
 
-	rel, err := updater.UpdateCommand(context.Background(), symPath, currentVersion, ParseSlug("creativeprojects/new_version"))
+	rel, err := updater.UpdateCommand(context.Background(), UpdateCommandOpt{"new_version", symPath, currentVersion, ParseSlug("creativeprojects/new_version")})
 	require.NoError(t, err)
 	assert.Equal(t, newVersion, rel.Version())
 
@@ -91,16 +91,31 @@ func TestUpdateBrokenSymlinks(t *testing.T) {
 	defer os.Remove(xxx)
 
 	for _, filename := range []string{yyy, xxx} {
-		_, err := updater.UpdateCommand(context.Background(), filename, "0.14.0", ParseSlug("owner/repo"))
+		_, err := updater.UpdateCommand(context.Background(), UpdateCommandOpt{filename, filename, "0.14.0", ParseSlug("owner/repo")})
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to resolve symlink")
 	}
 }
 
+func TestNotExistingExe(t *testing.T) {
+	asset := "https://github.com/rhysd-test/test-release-zip/releases/download/v1.2.3/github-release-test_linux_amd64.zip"
+	err := UpdateTo(context.Background(), UpdateToOpt{&Release{AssetURL: asset}, "not-existing-exe", "foo"})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "executable not found in zip file")
+}
+
 func TestNotExistingCommandPath(t *testing.T) {
-	_, err := UpdateCommand(context.Background(), "not-existing-command-path", "1.2.2", ParseSlug("owner/repo"))
+	_, err := UpdateCommand(context.Background(), UpdateCommandOpt{"not-existing-exe-name", "not-existing-command-path", "1.2.2", ParseSlug("owner/repo")})
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "file may not exist")
+}
+
+func TestUpdateToInvalidRelease(t *testing.T) {
+	updater, err := NewUpdater(Config{Source: &MockSource{}})
+	require.NoError(t, err)
+
+	err = updater.UpdateTo(context.Background(), UpdateToOpt{nil, "", ""})
+	assert.ErrorIs(t, err, ErrInvalidRelease)
 }
 
 func TestNoReleaseFoundForUpdate(t *testing.T) {
@@ -109,7 +124,7 @@ func TestNoReleaseFoundForUpdate(t *testing.T) {
 	updater, err := NewUpdater(Config{Source: &MockSource{}})
 	require.NoError(t, err)
 
-	rel, err := updater.UpdateCommand(context.Background(), fake, finalVersion, ParseSlug("owner/repo"))
+	rel, err := updater.UpdateCommand(context.Background(), UpdateCommandOpt{"fake-executable", fake, finalVersion, ParseSlug("owner/repo")})
 	assert.NoError(t, err)
 	assert.Equal(t, finalVersion, rel.Version())
 	assert.Empty(t, rel.URL)
@@ -124,7 +139,7 @@ func TestCurrentIsTheLatest(t *testing.T) {
 	require.NoError(t, err)
 
 	latest := "1.0.0"
-	rel, err := updater.UpdateCommand(context.Background(), filename, latest, ParseSlug("creativeprojects/new_version"))
+	rel, err := updater.UpdateCommand(context.Background(), UpdateCommandOpt{"new_version", filename, latest, ParseSlug("creativeprojects/new_version")})
 	assert.NoError(t, err)
 	assert.Equal(t, latest, rel.Version())
 	assert.NotEmpty(t, rel.URL)
@@ -178,26 +193,26 @@ func TestBrokenBinaryUpdate(t *testing.T) {
 	updater, err := NewUpdater(Config{Source: source})
 	require.NoError(t, err)
 
-	_, err = updater.UpdateCommand(context.Background(), fake, "1.2.2", ParseSlug("rhysd-test/test-incorrect-release"))
+	_, err = updater.UpdateCommand(context.Background(), UpdateCommandOpt{"fake-executable", fake, "1.2.2", ParseSlug("rhysd-test/test-incorrect-release")})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to decompress")
 }
 
 func TestInvalidSlugForUpdate(t *testing.T) {
 	fake := filepath.FromSlash("./testdata/fake-executable")
-	_, err := UpdateCommand(context.Background(), fake, "1.0.0", ParseSlug("rhysd/"))
+	_, err := UpdateCommand(context.Background(), UpdateCommandOpt{"fake-executable", fake, "1.0.0", ParseSlug("rhysd/")})
 	assert.Error(t, err)
 }
 
 func TestInvalidAssetURL(t *testing.T) {
-	err := UpdateTo(context.Background(), "https://github.com/creativeprojects/non-existing-repo/releases/download/v1.2.3/foo.zip", "foo.zip", "foo")
+	err := UpdateTo(context.Background(), UpdateToOpt{&Release{AssetURL: "https://github.com/creativeprojects/non-existing-repo/releases/download/v1.2.3/foo.zip"}, "foo", "foo"})
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to download a release file")
 }
 
 func TestBrokenAsset(t *testing.T) {
 	asset := "https://github.com/rhysd-test/test-incorrect-release/releases/download/invalid/broken-zip.zip"
-	err := UpdateTo(context.Background(), asset, "broken-zip.zip", "foo")
+	err := UpdateTo(context.Background(), UpdateToOpt{&Release{AssetURL: asset}, "foo", "foo"})
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to decompress zip file")
 }
@@ -209,9 +224,10 @@ func TestBrokenGitHubEnterpriseURL(t *testing.T) {
 
 	err = up.UpdateTo(
 		context.Background(),
-		&Release{AssetURL: "https://example.com",
+		UpdateToOpt{&Release{AssetURL: "https://example.com",
 			repository: NewRepositorySlug("test", "test")},
-		"foo")
+			"foo",
+			"foo"})
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to call GitHub Releases API for getting the asset")
 }
@@ -322,7 +338,7 @@ func TestUpdateToInvalidOwner(t *testing.T) {
 		repository: NewRepositorySlug("", "test"),
 		AssetID:    123,
 	}
-	err := updater.UpdateTo(context.Background(), release, "")
+	err := updater.UpdateTo(context.Background(), UpdateToOpt{release, "", ""})
 	assert.EqualError(t, err, fmt.Sprintf("failed to read asset \"\": %s", ErrIncorrectParameterOwner.Error()))
 	assert.ErrorIs(t, err, ErrIncorrectParameterOwner)
 }
@@ -334,7 +350,7 @@ func TestUpdateToInvalidRepo(t *testing.T) {
 		repository: NewRepositorySlug("test", ""),
 		AssetID:    123,
 	}
-	err := updater.UpdateTo(context.Background(), release, "")
+	err := updater.UpdateTo(context.Background(), UpdateToOpt{release, "", ""})
 	assert.EqualError(t, err, fmt.Sprintf("failed to read asset \"\": %s", ErrIncorrectParameterRepo.Error()))
 	assert.ErrorIs(t, err, ErrIncorrectParameterRepo)
 }
@@ -351,7 +367,7 @@ func TestUpdateToReadError(t *testing.T) {
 		repository: NewRepositorySlug("test", "test"),
 		AssetID:    123,
 	}
-	err := updater.UpdateTo(context.Background(), release, "")
+	err := updater.UpdateTo(context.Background(), UpdateToOpt{release, "", ""})
 	require.Error(t, err)
 	assert.True(t, errors.Is(err, errTestRead))
 }
@@ -380,7 +396,7 @@ func TestUpdateToWithWrongHash(t *testing.T) {
 		validator: &ChecksumValidator{},
 	}
 
-	err = updater.UpdateTo(context.Background(), release, "")
+	err = updater.UpdateTo(context.Background(), UpdateToOpt{release, "", ""})
 	require.Error(t, err)
 	assert.True(t, errors.Is(err, ErrChecksumValidationFailed))
 }
@@ -411,7 +427,7 @@ func TestUpdateToSuccess(t *testing.T) {
 
 	tempfile := createEmptyFile(t, "foo")
 
-	err = updater.UpdateTo(context.Background(), release, tempfile)
+	err = updater.UpdateTo(context.Background(), UpdateToOpt{release, "foo", tempfile})
 	require.NoError(t, err)
 }
 
@@ -426,7 +442,7 @@ func TestUpdateToWithMultistepValidationChain(t *testing.T) {
 	tempFile := createEmptyFile(t, "new_version")
 
 	getRelease := func(t *testing.T) *Release {
-		release, found, err := updater.DetectVersion(context.Background(), testGithubRepository, testVersion)
+		release, found, err := updater.DetectVersion(context.Background(), DetectVersionOpt{Repository: testGithubRepository, Version: testVersion})
 		require.NotNil(t, release)
 		require.NoError(t, err)
 		require.True(t, found)
@@ -436,7 +452,7 @@ func TestUpdateToWithMultistepValidationChain(t *testing.T) {
 
 	t.Run("Succeeds", func(t *testing.T) {
 		release := getRelease(t)
-		err := updater.UpdateTo(context.Background(), release, tempFile)
+		err := updater.UpdateTo(context.Background(), UpdateToOpt{release, "new_version", tempFile})
 		assert.NoError(t, err)
 	})
 
@@ -444,7 +460,7 @@ func TestUpdateToWithMultistepValidationChain(t *testing.T) {
 		release := getRelease(t)
 		release.ValidationChain[0].ValidationAssetID = 1
 
-		err := updater.UpdateTo(context.Background(), release, tempFile)
+		err := updater.UpdateTo(context.Background(), UpdateToOpt{release, "new_version", tempFile})
 		assert.EqualError(t, err, fmt.Sprintf("failed validating asset content %q: incorrect checksum file format", release.AssetName))
 	})
 
@@ -452,7 +468,7 @@ func TestUpdateToWithMultistepValidationChain(t *testing.T) {
 		release := getRelease(t)
 		release.ValidationChain[1].ValidationAssetID = 1
 
-		err := updater.UpdateTo(context.Background(), release, tempFile)
+		err := updater.UpdateTo(context.Background(), UpdateToOpt{release, "new_version", tempFile})
 		assert.EqualError(t, err, "failed validating asset content \"checksums.txt\": invalid PGP signature")
 	})
 }

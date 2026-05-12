@@ -9,44 +9,44 @@ import (
 
 // DetectLatest detects the latest release from the repository.
 // This function is a shortcut version of updater.DetectLatest with the DefaultUpdater.
-func DetectLatest(ctx context.Context, repository Repository) (*Release, bool, error) {
+func DetectLatest(ctx context.Context, opt DetectLatestOpt) (*Release, bool, error) {
 	//nolint:contextcheck
-	return DefaultUpdater().DetectLatest(ctx, repository)
+	return DefaultUpdater().DetectLatest(ctx, opt)
 }
 
 // DetectVersion detects the given release from the repository.
-func DetectVersion(ctx context.Context, repository Repository, version string) (*Release, bool, error) {
+func DetectVersion(ctx context.Context, opt DetectVersionOpt) (*Release, bool, error) {
 	//nolint:contextcheck
-	return DefaultUpdater().DetectVersion(ctx, repository, version)
+	return DefaultUpdater().DetectVersion(ctx, opt)
 }
 
 // UpdateTo downloads an executable from assetURL and replaces the current binary with the downloaded one.
 // This function is low-level API to update the binary. Because it does not use a source provider and downloads asset directly from the URL via HTTP,
 // this function is not available to update a release for private repositories.
 // cmdPath is a file path to command executable.
-func UpdateTo(ctx context.Context, assetURL, assetFileName, cmdPath string) error {
+func UpdateTo(ctx context.Context, opt UpdateToOpt) error {
 	//nolint:contextcheck
 	up := DefaultUpdater()
-	src, err := downloadReleaseAssetFromURL(ctx, assetURL)
+	src, err := downloadReleaseAssetFromURL(ctx, opt.Rel.AssetURL)
 	if err != nil {
 		return err
 	}
 	defer src.Close()
-	return up.decompressAndUpdate(src, assetFileName, assetURL, cmdPath)
+	return up.decompressAndUpdate(src, opt.Rel.AssetURL, opt.RelExe, opt.CmdPath)
 }
 
 // UpdateCommand updates a given command binary to the latest version.
 // This function is a shortcut version of updater.UpdateCommand using a DefaultUpdater()
-func UpdateCommand(ctx context.Context, cmdPath string, current string, repository Repository) (*Release, error) {
+func UpdateCommand(ctx context.Context, opt UpdateCommandOpt) (*Release, error) {
 	//nolint:contextcheck
-	return DefaultUpdater().UpdateCommand(ctx, cmdPath, current, repository)
+	return DefaultUpdater().UpdateCommand(ctx, opt)
 }
 
 // UpdateSelf updates the running executable itself to the latest version.
 // This function is a shortcut version of updater.UpdateSelf using a DefaultUpdater()
-func UpdateSelf(ctx context.Context, current string, repository Repository) (*Release, error) {
+func UpdateSelf(ctx context.Context, opt UpdateSelfOpt) (*Release, error) {
 	//nolint:contextcheck
-	return DefaultUpdater().UpdateSelf(ctx, current, repository)
+	return DefaultUpdater().UpdateSelf(ctx, opt)
 }
 
 func downloadReleaseAssetFromURL(ctx context.Context, url string) (rc io.ReadCloser, err error) {
