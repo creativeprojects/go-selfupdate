@@ -43,7 +43,7 @@ $(GOBIN)/eget: verify
 
 $(GOBIN)/golangci-lint-v2: verify $(GOBIN)/eget
 	@echo "[*] $@"
-	"$(GOBIN)/eget" golangci/golangci-lint --tag v2.11.4 --asset=tar.gz --upgrade-only --to '$(GOBIN)/golangci-lint-v2'
+	"$(GOBIN)/eget" golangci/golangci-lint --tag v2.12.2 --asset=tar.gz --upgrade-only --to '$(GOBIN)/golangci-lint-v2'
 
 build:
 		$(GOBUILD) -v ./...
