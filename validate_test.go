@@ -13,8 +13,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"golang.org/x/crypto/openpgp"
-	"golang.org/x/crypto/openpgp/armor"
+	"github.com/ProtonMail/go-crypto/openpgp"
+	"github.com/ProtonMail/go-crypto/openpgp/armor"
 )
 
 func TestValidatorAssetNames(t *testing.T) {
@@ -306,7 +306,10 @@ func TestPGPValidator(t *testing.T) {
 	t.Run("Fail", func(t *testing.T) {
 		validator := new(PGPValidator).WithArmoredKeyRing(keyRing)
 		err = validator.Validate("foo.tar.xz", otherData, signatureData)
-		assert.EqualError(t, err, "openpgp: invalid signature: hash tag doesn't match")
+		// Assert the error category rather than the exact wording: the reason
+		// reported after "invalid signature" is an implementation detail of the
+		// openpgp library and is not part of this package's contract.
+		assert.ErrorContains(t, err, "openpgp: invalid signature")
 	})
 }
 
