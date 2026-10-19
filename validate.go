@@ -14,7 +14,7 @@ import (
 	"math/big"
 	"path"
 
-	"golang.org/x/crypto/openpgp"
+	"github.com/ProtonMail/go-crypto/openpgp"
 )
 
 // Validator represents an interface which enables additional validation of releases.
@@ -308,10 +308,12 @@ func (g *PGPValidator) Validate(filename string, release, signature []byte) (err
 	log.Printf("Verifying PGP signature on %q", filename)
 
 	data, sig := bytes.NewReader(release), bytes.NewReader(signature)
+	// A nil *packet.Config selects the library defaults, matching the behaviour
+	// of the golang.org/x/crypto/openpgp functions this replaces.
 	if g.Binary {
-		_, err = openpgp.CheckDetachedSignature(g.KeyRing, data, sig)
+		_, err = openpgp.CheckDetachedSignature(g.KeyRing, data, sig, nil)
 	} else {
-		_, err = openpgp.CheckArmoredDetachedSignature(g.KeyRing, data, sig)
+		_, err = openpgp.CheckArmoredDetachedSignature(g.KeyRing, data, sig, nil)
 	}
 
 	if errors.Is(err, io.EOF) {
