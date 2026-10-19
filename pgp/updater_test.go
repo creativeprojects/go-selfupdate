@@ -91,7 +91,7 @@ func TestUpdateWithSignedChecksums(t *testing.T) {
 
 	// the executable name must match the file inside the archive
 	target := filepath.Join(t.TempDir(), "new_version")
-	require.NoError(t, os.WriteFile(target, nil, 0o755))
+	require.NoError(t, os.WriteFile(target, nil, 0o600))
 
 	t.Run("ValidSignature", func(t *testing.T) {
 		assert.NoError(t, updater.UpdateTo(context.Background(), release, target))

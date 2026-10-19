@@ -308,8 +308,7 @@ For e.g. use gpg, the file `foo.zip.asc` is generated with:
 gpg --armor --detach-sign foo.zip
 ```
 
-The PGP validator lives in the `pgp` sub-package, so applications not using it don't need to
-compile the OpenPGP library:
+The PGP validator lives in the `pgp` sub-package, so applications not using it don't need to import the PGP libraries:
 
 ```go
 import "github.com/creativeprojects/go-selfupdate/pgp"
