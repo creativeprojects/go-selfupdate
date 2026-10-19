@@ -16,7 +16,7 @@ ifeq ($(GOBIN),)
 	GOBIN := $(GOPATH)/bin
 endif
 
-TESTS=. ./update
+TESTS=. ./update ./pgp
 COVERAGE_FILE=coverage.txt
 
 BUILD_DATE=`date`

@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/ProtonMail/go-crypto/openpgp"
 )
 
 // mockSourceRepository creates a new *MockSource pre-populated with different versions and assets
@@ -279,15 +278,10 @@ func mockSourceRepository(t *testing.T) *MockSource {
 	return NewMockSource(releases, files)
 }
 
-// mockPGPSourceRepository creates a variant of  mockSourceRepository where "checksums.txt" is signed with PGP
-func mockPGPSourceRepository(t *testing.T) (source *MockSource, PGPKeyRing []byte) {
-
-	source = mockSourceRepository(t)
-
-	var err error
-
-	var entity *openpgp.Entity
-	PGPKeyRing, entity = getTestPGPKeyRing(t)
+// mockSignedSourceRepository creates a variant of mockSourceRepository where "checksums.txt" is "signed":
+// "checksums.txt.asc" holds the SHA256 of "checksums.txt" and is checked by signatureValidator.
+func mockSignedSourceRepository(t *testing.T) *MockSource {
+	source := mockSourceRepository(t)
 
 	for i, release := range source.releases {
 		rel := release.(*GitHubRelease)
@@ -296,19 +290,30 @@ func mockPGPSourceRepository(t *testing.T) (source *MockSource, PGPKeyRing []byt
 		signatureID := id + 1
 		shaSums := source.files[id]
 
-		// Create SHA256SUMS.asc (by signing SHA256SUMS)
-		signature := &bytes.Buffer{}
-		err = openpgp.ArmoredDetachSign(signature, entity, bytes.NewReader(shaSums), nil)
-		require.NoError(t, err)
-
 		rel.assets = append(rel.assets, &GitHubAsset{
 			id:   signatureID,
 			name: "checksums.txt.asc",
 		})
-		source.files[signatureID] = signature.Bytes()
-
-		t.Logf("file id %d contains PGP signature:\n%s\n", signatureID, string(source.files[signatureID]))
+		source.files[signatureID] = []byte(fmt.Sprintf("%x", sha256.Sum256(shaSums)))
 	}
 
-	return
+	return source
+}
+
+// signatureValidator stands in for a signature validator (such as pgp.Validator) in multistep
+// validation tests: it checks a SHA256 hash stored in a ".asc" file.
+type signatureValidator struct {
+	SHAValidator
+}
+
+func (v *signatureValidator) GetValidationAssetName(releaseFilename string) string {
+	return releaseFilename + ".asc"
+}
+
+// newChecksumWithSignatureValidator mirrors pgp.NewChecksumValidator using signatureValidator
+func newChecksumWithSignatureValidator(checksumsFilename string) Validator {
+	return new(PatternValidator).
+		Add(checksumsFilename, new(signatureValidator)).
+		Add("*", &ChecksumValidator{UniqueFilename: checksumsFilename}).
+		SkipValidation("*.asc")
 }

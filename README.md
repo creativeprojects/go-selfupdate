@@ -25,6 +25,7 @@ Self-Update library for Github, Gitea and Gitlab hosted applications in Go
 * [Hash or Signature Validation](#hash-or-signature-validation)
   * [SHA256](#sha256)
   * [ECDSA](#ecdsa)
+  * [PGP](#pgp)
   * [Using a single checksum file for all your assets](#using-a-single-checksum-file-for-all-your-assets)
 * [macOS universal binaries](#macos-universal-binaries)
 * [Other providers than Github](#other-providers-than-github)
@@ -261,7 +262,7 @@ More information on targeting ARM cpu can be found here: [GoArm](https://github.
 # Hash or Signature Validation
 
 go-selfupdate supports hash or signature validation of the downloaded files. It comes
-with support for sha256 hashes or ECDSA signatures. If you need something different,
+with support for sha256 hashes, ECDSA or PGP signatures. If you need something different,
 you can implement the `Validator` interface with your own validation mechanism:
 
 ```go
@@ -298,12 +299,42 @@ openssl dgst -sha256 -sign Test.pem -out foo.zip.sig foo.zip
 go-selfupdate makes use of go internal crypto package. Therefore the private key
 has to be compatible with FIPS 186-3.
 
+## PGP
+
+To verify the signature by PGP generate a detached signature and save it within a file which has the
+same naming as original file with the suffix `.asc` (armored) or `.sig` (binary).
+For e.g. use gpg, the file `foo.zip.asc` is generated with:
+```shell
+gpg --armor --detach-sign foo.zip
+```
+
+The PGP validator lives in the `pgp` sub-package, so applications not using it don't need to
+compile the OpenPGP library:
+
+```go
+import "github.com/creativeprojects/go-selfupdate/pgp"
+
+updater, _ := selfupdate.NewUpdater(selfupdate.Config{
+	Validator: new(pgp.Validator).WithArmoredKeyRing(publicKey),
+})
+```
+
 ## Using a single checksum file for all your assets
 
 Tools like [goreleaser][] produce a single checksum file for all your assets. A Validator is provided out of the box for this case:
 
 ```go
 updater, _ := NewUpdater(Config{Validator: &ChecksumValidator{UniqueFilename: "checksums.txt"}})
+```
+
+If the checksum file is itself signed (`checksums.txt.sig` for ECDSA, `checksums.txt.asc` for PGP),
+use a validator that checks the assets against the checksum file, and the checksum file against its signature:
+
+```go
+// ECDSA
+updater, _ := NewUpdater(Config{Validator: NewChecksumWithECDSAValidator("checksums.txt", pemCertificate)})
+// PGP
+updater, _ := NewUpdater(Config{Validator: pgp.NewChecksumValidator("checksums.txt", armoredPublicKey)})
 ```
 
 # macOS universal binaries
