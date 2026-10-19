@@ -27,7 +27,7 @@ import (
 	"net/http"
 	"net/url"
 
-	yaml "gopkg.in/yaml.v3"
+	yaml "go.yaml.in/yaml/v3"
 )
 
 type HttpManifest struct {
