@@ -1,0 +1,24 @@
+package types
+
+import "errors"
+
+// Possible errors returned
+var (
+	ErrInvalidID                   = errors.New("invalid repository ID, expected 'owner/name' but found number")
+	ErrInvalidSlug                 = errors.New("invalid slug format, expected 'owner/name'")
+	ErrIncorrectParameterOwner     = errors.New("incorrect parameter \"owner\"")
+	ErrIncorrectParameterRepo      = errors.New("incorrect parameter \"repo\"")
+	ErrInvalidSource               = errors.New("invalid or missing source in configuration")
+	ErrNotSupported                = errors.New("operation not supported")
+	ErrInvalidRelease              = errors.New("invalid release (nil argument)")
+	ErrAssetNotFound               = errors.New("asset not found")
+	ErrValidationAssetNotFound     = errors.New("validation file not found")
+	ErrValidatorNotFound           = errors.New("file did not match a configured validator")
+	ErrIncorrectChecksumFile       = errors.New("incorrect checksum file format")
+	ErrChecksumValidationFailed    = errors.New("sha256 validation failed")
+	ErrHashNotFound                = errors.New("hash not found in checksum file")
+	ErrECDSAValidationFailed       = errors.New("ECDSA signature verification failed")
+	ErrInvalidECDSASignature       = errors.New("invalid ECDSA signature")
+	ErrCannotDecompressFile        = errors.New("failed to decompress")
+	ErrExecutableNotFoundInArchive = errors.New("executable not found")
+)

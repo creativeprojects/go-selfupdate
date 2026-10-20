@@ -1,4 +1,4 @@
-// Package pgp provides a PGP signature validator for go-selfupdate.
+// Package pgp provides a PGP signature validator for go-types.
 //
 // It is kept in a separate package so that applications not using PGP
 // signatures do not pull in the OpenPGP library.
@@ -10,9 +10,9 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/ProtonMail/go-crypto/openpgp"
+	"github.com/creativeprojects/go-selfupdate/types"
 
-	"github.com/creativeprojects/go-selfupdate"
+	"github.com/ProtonMail/go-crypto/openpgp"
 )
 
 // Possible errors returned
@@ -72,12 +72,12 @@ func (g *Validator) GetValidationAssetName(releaseFilename string) string {
 
 // NewChecksumValidator returns a validator that checks assets with a checksums file
 // (e.g. SHA256SUMS) and the checksums file with an armored PGP signature (e.g. SHA256SUMS.asc).
-func NewChecksumValidator(checksumsFilename string, armoredKeyRing []byte) selfupdate.Validator {
-	return new(selfupdate.PatternValidator).
+func NewChecksumValidator(checksumsFilename string, armoredKeyRing []byte) types.Validator {
+	return new(types.PatternValidator).
 		Add(checksumsFilename, new(Validator).WithArmoredKeyRing(armoredKeyRing)).
-		Add("*", &selfupdate.ChecksumValidator{UniqueFilename: checksumsFilename}).
+		Add("*", &types.ChecksumValidator{UniqueFilename: checksumsFilename}).
 		SkipValidation("*.asc")
 }
 
 // Verify interface
-var _ selfupdate.Validator = &Validator{}
+var _ types.Validator = &Validator{}

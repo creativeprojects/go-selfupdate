@@ -5,37 +5,20 @@ import (
 	"context"
 	"crypto/sha256"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/creativeprojects/go-selfupdate"
+	"github.com/creativeprojects/go-selfupdate/memory"
+	"github.com/creativeprojects/go-selfupdate/types"
+
 	"github.com/ProtonMail/go-crypto/openpgp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/creativeprojects/go-selfupdate"
 )
-
-// memorySource is an in-memory selfupdate.Source
-type memorySource struct {
-	releases []selfupdate.SourceRelease
-	files    map[int64][]byte
-}
-
-func (s *memorySource) ListReleases(_ context.Context, _ selfupdate.Repository) ([]selfupdate.SourceRelease, error) {
-	return s.releases, nil
-}
-
-func (s *memorySource) DownloadReleaseAsset(_ context.Context, _ *selfupdate.Release, assetID int64) (io.ReadCloser, error) {
-	content, ok := s.files[assetID]
-	if !ok {
-		return nil, selfupdate.ErrAssetNotFound
-	}
-	return io.NopCloser(bytes.NewReader(content)), nil
-}
 
 func TestUpdateWithSignedChecksums(t *testing.T) {
 	const (
@@ -53,28 +36,28 @@ func TestUpdateWithSignedChecksums(t *testing.T) {
 	signature := &bytes.Buffer{}
 	require.NoError(t, openpgp.ArmoredDetachSign(signature, entity, strings.NewReader(checksums), nil))
 
-	source := &memorySource{
-		releases: []selfupdate.SourceRelease{
-			&selfupdate.HttpRelease{
-				ID:          1,
+	source := &memory.Source{
+		Releases: []types.SourceRelease{
+			&memory.Release{
+				ReleaseID:   1,
 				Name:        "v1.0.0",
 				TagName:     "v1.0.0",
 				PublishedAt: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
-				Assets: []*selfupdate.HttpAsset{
-					{ID: archiveID, Name: assetName, Size: len(archive)},
-					{ID: checksumsID, Name: "checksums.txt", Size: len(checksums)},
-					{ID: signatureID, Name: "checksums.txt.asc", Size: signature.Len()},
+				Assets: []types.SourceAsset{
+					&memory.Asset{ID: archiveID, Name: assetName, Size: len(archive)},
+					&memory.Asset{ID: checksumsID, Name: "checksums.txt", Size: len(checksums)},
+					&memory.Asset{ID: signatureID, Name: "checksums.txt.asc", Size: signature.Len()},
 				},
 			},
 		},
-		files: map[int64][]byte{
+		Files: map[int64][]byte{
 			archiveID:   archive,
 			checksumsID: []byte(checksums),
 			signatureID: signature.Bytes(),
 		},
 	}
 
-	updater, err := selfupdate.NewUpdater(selfupdate.Config{
+	updater, err := selfupdate.NewUpdater(types.Config{
 		Source:    source,
 		Validator: NewChecksumValidator("checksums.txt", keyRing),
 		OS:        "linux",
@@ -82,7 +65,7 @@ func TestUpdateWithSignedChecksums(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	release, found, err := updater.DetectLatest(context.Background(), selfupdate.NewRepositorySlug("owner", "new_version"))
+	release, found, err := updater.DetectLatest(context.Background(), selfupdate.DetectLatestOpt{Repository: types.NewRepositorySlug("owner", "new_version")})
 	require.NoError(t, err)
 	require.True(t, found)
 	require.Len(t, release.ValidationChain, 2)
@@ -94,19 +77,19 @@ func TestUpdateWithSignedChecksums(t *testing.T) {
 	require.NoError(t, os.WriteFile(target, nil, 0o600))
 
 	t.Run("ValidSignature", func(t *testing.T) {
-		assert.NoError(t, updater.UpdateTo(context.Background(), release, target))
+		assert.NoError(t, updater.UpdateTo(context.Background(), selfupdate.UpdateToOpt{Rel: release, CmdPath: target}))
 	})
 
 	t.Run("InvalidSignature", func(t *testing.T) {
-		source.files[signatureID] = archive
-		err := updater.UpdateTo(context.Background(), release, target)
+		source.Files[signatureID] = archive
+		err := updater.UpdateTo(context.Background(), selfupdate.UpdateToOpt{Rel: release, CmdPath: target})
 		assert.ErrorIs(t, err, ErrInvalidSignature)
 	})
 
 	t.Run("TamperedChecksums", func(t *testing.T) {
-		source.files[signatureID] = signature.Bytes()
-		source.files[checksumsID] = []byte(checksums + "deadbeef  tampered_file\n")
-		err := updater.UpdateTo(context.Background(), release, target)
+		source.Files[signatureID] = signature.Bytes()
+		source.Files[checksumsID] = []byte(checksums + "deadbeef  tampered_file\n")
+		err := updater.UpdateTo(context.Background(), selfupdate.UpdateToOpt{Rel: release, CmdPath: target})
 		assert.ErrorContains(t, err, "openpgp: invalid signature")
 	})
 }

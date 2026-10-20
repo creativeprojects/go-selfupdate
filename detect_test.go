@@ -32,7 +32,7 @@ func TestDetectReleaseWithVersionPrefix(t *testing.T) {
 		name    string
 		updater *Updater
 	}{
-		{true, "Mock", newMockUpdater(t, Config{Source: mockSourceRepository(t)})},
+		{true, "Mock", newMockUpdater(t, Config{Source: mockMemorySource(t)})},
 		{!testing.Short(), "GitHub", DefaultUpdater()},
 	}
 
@@ -70,7 +70,7 @@ func TestDetectVersionExisting(t *testing.T) {
 		name    string
 		updater *Updater
 	}{
-		{true, "Mock", newMockUpdater(t, Config{Source: mockSourceRepository(t), Validator: &ChecksumValidator{UniqueFilename: "checksums.txt"}})},
+		{true, "Mock", newMockUpdater(t, Config{Source: mockMemorySource(t), Validator: &ChecksumValidator{UniqueFilename: "checksums.txt"}})},
 		{!testing.Short(), "GitHub", gitHub},
 	}
 
@@ -97,7 +97,7 @@ func TestDetectVersionExistingWithNoValidationFile(t *testing.T) {
 		name    string
 		updater *Updater
 	}{
-		{true, "Mock", newMockUpdater(t, Config{Source: mockSourceRepository(t), Validator: &ChecksumValidator{UniqueFilename: "notfound.txt"}})},
+		{true, "Mock", newMockUpdater(t, Config{Source: mockMemorySource(t), Validator: &ChecksumValidator{UniqueFilename: "notfound.txt"}})},
 		{!testing.Short(), "GitHub", gitHub},
 	}
 
@@ -119,7 +119,7 @@ func TestDetectVersionNotExisting(t *testing.T) {
 		name    string
 		updater *Updater
 	}{
-		{true, "Mock", newMockUpdater(t, Config{Source: mockSourceRepository(t)})},
+		{true, "Mock", newMockUpdater(t, Config{Source: mockMemorySource(t)})},
 		{!testing.Short(), "GitHub", DefaultUpdater()},
 	}
 
@@ -148,7 +148,7 @@ func TestDetectPrerelease(t *testing.T) {
 	for _, testFixture := range testFixtures {
 		t.Run(strconv.FormatBool(testFixture.prerelease), func(t *testing.T) {
 			updater := newMockUpdater(t, Config{
-				Source:     mockSourceRepository(t),
+				Source:     mockMemorySource(t),
 				Prerelease: testFixture.prerelease,
 			})
 			r, ok, err := updater.DetectLatest(context.Background(), DetectLatestOpt{RepositorySlug{owner: "owner", repo: "repo"}})
@@ -964,7 +964,7 @@ func newMockUpdater(t *testing.T, config Config) *Updater {
 	t.Helper()
 
 	if config.Source == nil {
-		config.Source = mockSourceRepository(t)
+		config.Source = mockMemorySource(t)
 	}
 	updater, err := NewUpdater(config)
 	require.NoError(t, err)

@@ -6,12 +6,13 @@ import (
 	"runtime"
 
 	"github.com/creativeprojects/go-selfupdate/internal"
+	"github.com/creativeprojects/go-selfupdate/types"
 )
 
 // Updater is responsible for managing the context of self-update.
 type Updater struct {
-	source        Source
-	validator     Validator
+	source        types.Source
+	validator     types.Validator
 	filters       []*regexp.Regexp
 	os            string
 	arch          string
@@ -26,13 +27,11 @@ type Updater struct {
 var defaultUpdater *Updater
 
 // NewUpdater creates a new updater instance.
-// If you don't specify a source in the config object, GitHub will be used
-func NewUpdater(config Config) (*Updater, error) {
+// Returns an error if the source is not specified in the config.
+func NewUpdater(config types.Config) (*Updater, error) {
 	source := config.Source
 	if source == nil {
-		// default source is GitHub
-		// an error can only be returned when using GitHub Enterprise URLs
-		source, _ = NewGitHubSource(GitHubConfig{})
+		return nil, types.ErrInvalidSource
 	}
 
 	filtersRe := make([]*regexp.Regexp, 0, len(config.Filters))
@@ -74,17 +73,4 @@ func NewUpdater(config Config) (*Updater, error) {
 		draft:         config.Draft,
 		oldSavePath:   config.OldSavePath,
 	}, nil
-}
-
-// DefaultUpdater creates a new updater instance with default configuration.
-// It initializes GitHub API client with default API base URL.
-// If you set your API token to $GITHUB_TOKEN, the client will use it.
-// Every call to this function will always return the same instance, it's only created once
-func DefaultUpdater() *Updater {
-	// instantiate it only once
-	if defaultUpdater != nil {
-		return defaultUpdater
-	}
-	defaultUpdater, _ = NewUpdater(Config{})
-	return defaultUpdater
 }

@@ -6,18 +6,18 @@ import (
 	"os"
 	"testing"
 
+	"github.com/creativeprojects/go-selfupdate/types"
+
 	"github.com/ProtonMail/go-crypto/openpgp"
 	"github.com/ProtonMail/go-crypto/openpgp/armor"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/creativeprojects/go-selfupdate"
 )
 
 func TestValidatorAssetNames(t *testing.T) {
 	filename := "asset"
 	for _, test := range []struct {
-		validator      selfupdate.Validator
+		validator      types.Validator
 		validationName string
 	}{
 		{
@@ -108,7 +108,7 @@ func TestNewChecksumValidator(t *testing.T) {
 	keyRing, _ := getTestKeyRing(t)
 
 	validator := NewChecksumValidator("checksums", keyRing)
-	assert.Implements(t, (*selfupdate.RecursiveValidator)(nil), validator)
+	assert.Implements(t, (*types.RecursiveValidator)(nil), validator)
 	assert.Equal(t, "checksums", validator.GetValidationAssetName("anything"))
 	assert.Equal(t, "checksums.asc", validator.GetValidationAssetName("checksums"))
 }
@@ -116,7 +116,7 @@ func TestNewChecksumValidator(t *testing.T) {
 func getTestKeyRing(t *testing.T) (keyRing []byte, entity *openpgp.Entity) {
 	var err error
 	var armoredWriter io.WriteCloser
-	entity, err = openpgp.NewEntity("go-selfupdate", "", "info@go-selfupdate.local", nil)
+	entity, err = openpgp.NewEntity("go-selfupdate", "", "info@go-types.local", nil)
 	require.NoError(t, err)
 
 	buffer := &bytes.Buffer{}

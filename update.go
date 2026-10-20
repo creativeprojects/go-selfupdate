@@ -11,11 +11,12 @@ import (
 
 	"github.com/Masterminds/semver/v3"
 	"github.com/creativeprojects/go-selfupdate/internal"
+	"github.com/creativeprojects/go-selfupdate/types"
 	"github.com/creativeprojects/go-selfupdate/update"
 )
 
 type UpdateToOpt struct {
-	Rel *Release
+	Rel *types.Release
 	RelExe,
 	CmdPath string
 }
@@ -24,20 +25,20 @@ type UpdateCommandOpt struct {
 	RelExe,
 	CmdPath,
 	Current string
-	Repository Repository
+	Repository types.Repository
 }
 
 type UpdateSelfOpt struct {
 	RelExe,
 	Current string
-	Repository Repository
+	Repository types.Repository
 }
 
 // UpdateTo downloads an executable from the source provider and replace current binary with the downloaded one.
 // It downloads a release asset via the source provider so this function is available for update releases on private repository.
 func (up *Updater) UpdateTo(ctx context.Context, opt UpdateToOpt) error {
 	if opt.Rel == nil {
-		return ErrInvalidRelease
+		return types.ErrInvalidRelease
 	}
 	if opt.RelExe == "" {
 		_, opt.RelExe = filepath.Split(opt.CmdPath)
@@ -60,7 +61,7 @@ func (up *Updater) UpdateTo(ctx context.Context, opt UpdateToOpt) error {
 
 // UpdateCommand updates a given command binary to the latest version.
 // 'opt.Current' is used to check the latest version against the current version.
-func (up *Updater) UpdateCommand(ctx context.Context, opt UpdateCommandOpt) (*Release, error) {
+func (up *Updater) UpdateCommand(ctx context.Context, opt UpdateCommandOpt) (*types.Release, error) {
 	version, err := semver.NewVersion(opt.Current)
 	if err != nil {
 		return nil, fmt.Errorf("incorrect version %q: %w", opt.Current, err)
@@ -89,7 +90,7 @@ func (up *Updater) UpdateCommand(ctx context.Context, opt UpdateCommandOpt) (*Re
 	}
 	if !ok {
 		log.Print("No release detected. Current version is considered up-to-date")
-		return &Release{version: version}, nil
+		return &types.Release{version: version}, nil
 	}
 	if version.Equal(rel.version) {
 		log.Printf("Current version %s is the latest. Update is not needed", version.String())
@@ -104,7 +105,7 @@ func (up *Updater) UpdateCommand(ctx context.Context, opt UpdateCommandOpt) (*Re
 
 // UpdateSelf updates the running executable itself to the latest version.
 // 'current' is used to check the latest version against the current version.
-func (up *Updater) UpdateSelf(ctx context.Context, opt UpdateSelfOpt) (*Release, error) {
+func (up *Updater) UpdateSelf(ctx context.Context, opt UpdateSelfOpt) (*types.Release, error) {
 	cmdPath, err := internal.GetExecutablePath()
 	if err != nil {
 		return nil, err
@@ -127,9 +128,9 @@ func (up *Updater) decompressAndUpdate(src io.Reader, assetURL, relExe, cmdPath 
 
 // validate loads the validation file and passes it to the validator.
 // The validation is successful if no error was returned
-func (up *Updater) validate(ctx context.Context, rel *Release, data []byte) error {
+func (up *Updater) validate(ctx context.Context, rel *types.Release, data []byte) error {
 	if rel == nil {
-		return ErrInvalidRelease
+		return types.ErrInvalidRelease
 	}
 
 	// compatibility with setting rel.ValidationAssetID directly
@@ -163,7 +164,7 @@ func (up *Updater) validate(ctx context.Context, rel *Release, data []byte) erro
 	return nil
 }
 
-func (up *Updater) download(ctx context.Context, rel *Release, assetID int64) (data []byte, err error) {
+func (up *Updater) download(ctx context.Context, rel *types.Release, assetID int64) (data []byte, err error) {
 	var reader io.ReadCloser
 	if reader, err = up.source.DownloadReleaseAsset(ctx, rel, assetID); err == nil {
 		defer func() { _ = reader.Close() }()

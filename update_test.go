@@ -24,7 +24,7 @@ func TestUpdateCommandWithWrongVersion(t *testing.T) {
 func TestUpdateCommand(t *testing.T) {
 	currentVersion := "0.14.0"
 	newVersion := "1.0.0"
-	source := mockSourceRepository(t)
+	source := mockMemorySource(t)
 	updater, err := NewUpdater(Config{Source: source})
 	require.NoError(t, err)
 
@@ -44,7 +44,7 @@ func TestUpdateViaSymlink(t *testing.T) {
 
 	currentVersion := "0.14.0"
 	newVersion := "1.0.0"
-	source := mockSourceRepository(t)
+	source := mockMemorySource(t)
 	updater, err := NewUpdater(Config{Source: source})
 	require.NoError(t, err)
 
@@ -75,7 +75,7 @@ func TestUpdateBrokenSymlinks(t *testing.T) {
 		t.Skip("skipping because creating symlink on windows requires admin privilege")
 	}
 
-	updater, err := NewUpdater(Config{Source: mockSourceRepository(t)})
+	updater, err := NewUpdater(Config{Source: mockMemorySource(t)})
 	require.NoError(t, err)
 
 	// unknown-xxx -> unknown-yyy -> {not existing}
@@ -135,7 +135,7 @@ func TestNoReleaseFoundForUpdate(t *testing.T) {
 func TestCurrentIsTheLatest(t *testing.T) {
 	filename := setupCurrentVersion(t)
 
-	updater, err := NewUpdater(Config{Source: mockSourceRepository(t)})
+	updater, err := NewUpdater(Config{Source: mockMemorySource(t)})
 	require.NoError(t, err)
 
 	latest := "1.0.0"
@@ -225,7 +225,7 @@ func TestBrokenGitHubEnterpriseURL(t *testing.T) {
 	err = up.UpdateTo(
 		context.Background(),
 		UpdateToOpt{&Release{AssetURL: "https://example.com",
-			repository: NewRepositorySlug("test", "test")},
+			Repository: NewRepositorySlug("test", "test")},
 			"foo",
 			"foo"})
 	assert.Error(t, err)
@@ -237,7 +237,7 @@ func TestBrokenGitHubEnterpriseURL(t *testing.T) {
 func TestNoValidationFile(t *testing.T) {
 	source := &MockSource{}
 	release := &Release{
-		repository:        NewRepositorySlug("test", "test"),
+		Repository:        NewRepositorySlug("test", "test"),
 		ValidationAssetID: 123,
 	}
 	updater := &Updater{
@@ -258,7 +258,7 @@ func TestValidationWrongHash(t *testing.T) {
 		},
 	}
 	release := &Release{
-		repository:        NewRepositorySlug("test", "test"),
+		Repository:        NewRepositorySlug("test", "test"),
 		ValidationAssetID: 123,
 		AssetName:         "foo.zip",
 	}
@@ -286,7 +286,7 @@ func TestValidationReadError(t *testing.T) {
 		},
 	}
 	release := &Release{
-		repository:        NewRepositorySlug("test", "test"),
+		Repository:        NewRepositorySlug("test", "test"),
 		ValidationAssetID: 123,
 		AssetName:         "foo.tar.xz",
 	}
@@ -313,7 +313,7 @@ func TestValidationSuccess(t *testing.T) {
 		},
 	}
 	release := &Release{
-		repository:        NewRepositorySlug("test", "test"),
+		Repository:        NewRepositorySlug("test", "test"),
 		ValidationAssetID: 123,
 		AssetName:         "foo.tar.xz",
 	}
@@ -335,7 +335,7 @@ func TestUpdateToInvalidOwner(t *testing.T) {
 	source := &MockSource{}
 	updater := &Updater{source: source}
 	release := &Release{
-		repository: NewRepositorySlug("", "test"),
+		Repository: NewRepositorySlug("", "test"),
 		AssetID:    123,
 	}
 	err := updater.UpdateTo(context.Background(), UpdateToOpt{release, "", ""})
@@ -347,7 +347,7 @@ func TestUpdateToInvalidRepo(t *testing.T) {
 	source := &MockSource{}
 	updater := &Updater{source: source}
 	release := &Release{
-		repository: NewRepositorySlug("test", ""),
+		Repository: NewRepositorySlug("test", ""),
 		AssetID:    123,
 	}
 	err := updater.UpdateTo(context.Background(), UpdateToOpt{release, "", ""})
@@ -364,7 +364,7 @@ func TestUpdateToReadError(t *testing.T) {
 	}
 	updater := &Updater{source: source}
 	release := &Release{
-		repository: NewRepositorySlug("test", "test"),
+		Repository: NewRepositorySlug("test", "test"),
 		AssetID:    123,
 	}
 	err := updater.UpdateTo(context.Background(), UpdateToOpt{release, "", ""})
@@ -386,7 +386,7 @@ func TestUpdateToWithWrongHash(t *testing.T) {
 		},
 	}
 	release := &Release{
-		repository:        NewRepositorySlug("test", "test"),
+		Repository:        NewRepositorySlug("test", "test"),
 		AssetID:           111,
 		ValidationAssetID: 123,
 		AssetName:         "foo.zip",
@@ -415,7 +415,7 @@ func TestUpdateToSuccess(t *testing.T) {
 		},
 	}
 	release := &Release{
-		repository:        NewRepositorySlug("test", "test"),
+		Repository:        NewRepositorySlug("test", "test"),
 		AssetID:           111,
 		ValidationAssetID: 123,
 		AssetName:         "foo.tar.xz",
