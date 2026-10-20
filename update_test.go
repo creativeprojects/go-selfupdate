@@ -417,10 +417,10 @@ func TestUpdateToSuccess(t *testing.T) {
 
 func TestUpdateToWithMultistepValidationChain(t *testing.T) {
 	testVersion := "v0.14.0"
-	source, keyRing := mockPGPSourceRepository(t)
+	source := mockSignedSourceRepository(t)
 	updater, _ := NewUpdater(Config{
 		Source:    source,
-		Validator: NewChecksumWithPGPValidator("checksums.txt", keyRing),
+		Validator: newChecksumWithSignatureValidator("checksums.txt"),
 	})
 
 	tempFile := createEmptyFile(t, "new_version")
@@ -453,7 +453,8 @@ func TestUpdateToWithMultistepValidationChain(t *testing.T) {
 		release.ValidationChain[1].ValidationAssetID = 1
 
 		err := updater.UpdateTo(context.Background(), release, tempFile)
-		assert.EqualError(t, err, "failed validating asset content \"checksums.txt\": invalid PGP signature")
+		assert.ErrorContains(t, err, "failed validating asset content \"checksums.txt\"")
+		assert.ErrorIs(t, err, ErrChecksumValidationFailed)
 	})
 }
 

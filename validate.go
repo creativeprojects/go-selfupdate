@@ -8,13 +8,9 @@ import (
 	"encoding/asn1"
 	"encoding/hex"
 	"encoding/pem"
-	"errors"
 	"fmt"
-	"io"
 	"math/big"
 	"path"
-
-	"github.com/ProtonMail/go-crypto/openpgp"
 )
 
 // Validator represents an interface which enables additional validation of releases.
@@ -54,7 +50,8 @@ type RecursiveValidator interface {
 //
 //	 new(PatternValidator).
 //		// "SHA256SUMS" file is checked by PGP signature (from "SHA256SUMS.asc")
-//		Add("SHA256SUMS", new(PGPValidator).WithArmoredKeyRing(key)).
+//		// using the validator from the pgp subpackage
+//		Add("SHA256SUMS", new(pgp.Validator).WithArmoredKeyRing(key)).
 //		// "SHA256SUMS.asc" file is not checked (is the signature for "SHA256SUMS")
 //		SkipValidation("*.asc").
 //		// All other files are checked by the "SHA256SUMS" file
@@ -280,59 +277,6 @@ func (v *ECDSAValidator) GetValidationAssetName(releaseFilename string) string {
 
 //=====================================================================================================================
 
-// PGPValidator specifies a PGP validator for additional file validation
-// before updating.
-type PGPValidator struct {
-	// KeyRing is usually filled by openpgp.ReadArmoredKeyRing(bytes.NewReader(key)) with key being the PGP pub key.
-	KeyRing openpgp.EntityList
-	// Binary toggles whether to validate detached *.sig (binary) or *.asc (ascii) signature files
-	Binary bool
-}
-
-// WithArmoredKeyRing is a convenience method to set KeyRing
-func (g *PGPValidator) WithArmoredKeyRing(key []byte) *PGPValidator {
-	if ring, err := openpgp.ReadArmoredKeyRing(bytes.NewReader(key)); err == nil {
-		g.KeyRing = ring
-	} else {
-		panic(fmt.Errorf("failed setting armored public key ring: %w", err))
-	}
-	return g
-}
-
-// Validate checks the PGP signature of the release against the signature
-// contained in an additional asset file.
-func (g *PGPValidator) Validate(filename string, release, signature []byte) (err error) {
-	if g.KeyRing == nil {
-		return ErrPGPKeyRingNotSet
-	}
-	log.Printf("Verifying PGP signature on %q", filename)
-
-	data, sig := bytes.NewReader(release), bytes.NewReader(signature)
-	// A nil *packet.Config selects the library defaults, matching the behaviour
-	// of the golang.org/x/crypto/openpgp functions this replaces.
-	if g.Binary {
-		_, err = openpgp.CheckDetachedSignature(g.KeyRing, data, sig, nil)
-	} else {
-		_, err = openpgp.CheckArmoredDetachedSignature(g.KeyRing, data, sig, nil)
-	}
-
-	if errors.Is(err, io.EOF) {
-		err = ErrInvalidPGPSignature
-	}
-
-	return err
-}
-
-// GetValidationAssetName returns the asset name for PGP validation.
-func (g *PGPValidator) GetValidationAssetName(releaseFilename string) string {
-	if g.Binary {
-		return releaseFilename + ".sig"
-	}
-	return releaseFilename + ".asc"
-}
-
-//=====================================================================================================================
-
 func hexStringEquals(size int, a, b string) (equal bool, err error) {
 	size *= 2
 	if len(a) == size && len(b) == size {
@@ -355,15 +299,6 @@ func NewChecksumWithECDSAValidator(checksumsFilename string, pemECDSACertificate
 		SkipValidation("*.sig")
 }
 
-// NewChecksumWithPGPValidator returns a validator that checks assets with a checksums file
-// (e.g. SHA256SUMS) and the checksums file with an armored PGP signature (e.g. SHA256SUMS.asc).
-func NewChecksumWithPGPValidator(checksumsFilename string, armoredPGPKeyRing []byte) Validator {
-	return new(PatternValidator).
-		Add(checksumsFilename, new(PGPValidator).WithArmoredKeyRing(armoredPGPKeyRing)).
-		Add("*", &ChecksumValidator{UniqueFilename: checksumsFilename}).
-		SkipValidation("*.asc")
-}
-
 //=====================================================================================================================
 
 // Verify interface
@@ -371,7 +306,6 @@ var (
 	_ Validator          = &SHAValidator{}
 	_ Validator          = &ChecksumValidator{}
 	_ Validator          = &ECDSAValidator{}
-	_ Validator          = &PGPValidator{}
 	_ Validator          = &PatternValidator{}
 	_ RecursiveValidator = &PatternValidator{}
 )

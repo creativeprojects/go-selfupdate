@@ -919,13 +919,13 @@ func TestFindReleaseAndAsset(t *testing.T) {
 
 func TestBuildMultistepValidationChain(t *testing.T) {
 	testVersion := "v0.14.0"
-	source, keyRing := mockPGPSourceRepository(t)
+	source := mockSignedSourceRepository(t)
 	checksumValidator := &ChecksumValidator{UniqueFilename: "checksums.txt"}
 
 	t.Run("ValidConfig", func(t *testing.T) {
 		updater, _ := NewUpdater(Config{
 			Source:    source,
-			Validator: NewChecksumWithPGPValidator("checksums.txt", keyRing),
+			Validator: newChecksumWithSignatureValidator("checksums.txt"),
 		})
 
 		release, found, err := updater.DetectVersion(context.Background(), testGithubRepository, testVersion)
