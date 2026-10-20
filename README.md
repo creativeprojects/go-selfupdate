@@ -73,7 +73,10 @@ Here's an example how to use the library for an application to update itself
 
 ```go
 func update(version string) error {
-	latest, found, err := selfupdate.DetectLatest(context.Background(), selfupdate.ParseSlug("creativeprojects/resticprofile"))
+	latest, found, err := selfupdate.DetectLatest(
+		context.Background(),
+		selfupdate.DetectLatestOpt{Repository: selfupdate.ParseSlug("creativeprojects/resticprofile")},
+	)
 	if err != nil {
 		return fmt.Errorf("error occurred while detecting version: %w", err)
 	}
@@ -86,11 +89,14 @@ func update(version string) error {
 		return nil
 	}
 
-	exe, err := selfupdate.ExecutablePath()
+	cmdPath, err := selfupdate.ExecutablePath()
 	if err != nil {
-		return errors.New("could not locate executable path")
+		return fmt.Errorf("could not locate executable path: %w", err)
 	}
-	if err := selfupdate.UpdateTo(context.Background(), latest.AssetURL, latest.AssetName, exe); err != nil {
+
+	// In the new release, the binary file can have any name — this is set by the selfupdate.UpdateToOpt.RelExe.
+	// If it's the same as the old one, then selfupdate.UpdateToOpt.RelExe should be empty.
+	if err := selfupdate.UpdateTo(context.Background(), selfupdate.UpdateToOpt{Rel: latest, CmdPath: cmdPath}); err != nil {
 		return fmt.Errorf("error occurred while updating binary: %w", err)
 	}
 	log.Printf("Successfully updated to version %s", latest.Version())
@@ -376,7 +382,7 @@ See [goreleaser documentation](https://goreleaser.com/scm/gitlab/#generic-packag
 ## Example:
 
 ```go
-func update() {
+func update() error {
 	source, err := selfupdate.NewGitLabSource(selfupdate.GitLabConfig{
 		BaseURL: "https://private.instance.on.gitlab.com/",
 	})
@@ -390,24 +396,31 @@ func update() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	release, found, err := updater.DetectLatest(context.Background(), selfupdate.NewRepositorySlug("owner", "cli-tool"))
+	release, found, err := updater.DetectLatest(
+		context.Background(),
+		selfupdate.DetectLatestOpt{Repository: selfupdate.NewRepositorySlug("owner", "cli-tool")},
+	)
 	if err != nil {
 		log.Fatal(err)
 	}
 	if !found {
-		log.Print("Release not found")
-		return
+		return errors.New("release not found")
 	}
 	fmt.Printf("found release %s\n", release.Version())
 
-	exe, err := selfupdate.ExecutablePath()
+	cmdPath, err := selfupdate.ExecutablePath()
 	if err != nil {
 		return errors.New("could not locate executable path")
 	}
-	err = updater.UpdateTo(context.Background(), release, exe)
+
+	// In the new release, the binary file can have any name — this is set by the selfupdate.UpdateToOpt.RelExe.
+	// If it's the same as the old one, then selfupdate.UpdateToOpt.RelExe should be empty.
+	err = updater.UpdateTo(context.Background(), selfupdate.UpdateToOpt{Rel: release, CmdPath: cmdPath})
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	return nil
 }
 ```
 
@@ -422,7 +435,7 @@ The HttpSource is designed to work with repositories built using [goreleaser-htt
 If your repository is at example.com/repo/project, then you'd use the following example.
 
 ```go
-func update() {
+func update() error {
 	source, err := selfupdate.NewHttpSource(selfupdate.HttpConfig{
 		BaseURL: "https://example.com/",
 	})
@@ -436,24 +449,31 @@ func update() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	release, found, err := updater.DetectLatest(context.Background(), selfupdate.NewRepositorySlug("repo", "project"))
+	release, found, err := updater.DetectLatest(
+		context.Background(),
+		selfupdate.DetectLatestOpt{Repository: selfupdate.NewRepositorySlug("repo", "project")},
+	)
 	if err != nil {
 		log.Fatal(err)
 	}
 	if !found {
-		log.Print("Release not found")
-		return
+		return errors.New("release not found")
 	}
 	fmt.Printf("found release %s\n", release.Version())
 
-	exe, err := selfupdate.ExecutablePath()
+	cmdPath, err := selfupdate.ExecutablePath()
 	if err != nil {
 		return errors.New("could not locate executable path")
 	}
-	err = updater.UpdateTo(context.Background(), release, exe)
+
+	// In the new release, the binary file can have any name — this is set by the selfupdate.UpdateToOpt.RelExe.
+	// If it's the same as the old one, then selfupdate.UpdateToOpt.RelExe should be empty.
+	err = updater.UpdateTo(context.Background(), selfupdate.UpdateToOpt{Rel: release, CmdPath: cmdPath})
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	return nil
 }
 ```
 

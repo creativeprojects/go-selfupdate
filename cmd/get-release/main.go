@@ -28,7 +28,7 @@ func main() {
 	flag.Usage = usage
 	flag.Parse()
 
-	if help || flag.NArg() != 1 {
+	if help || flag.NArg() != 2 {
 		usage()
 		return
 	}
@@ -38,6 +38,7 @@ func main() {
 	}
 
 	repo := flag.Arg(0)
+	relExe := flag.Arg(1)
 
 	domain, slug, err := cmd.SplitDomainSlug(repo)
 	if err != nil {
@@ -67,7 +68,7 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	latest, found, err := updater.DetectLatest(ctx, selfupdate.ParseSlug(slug))
+	latest, found, err := updater.DetectLatest(ctx, selfupdate.DetectLatestOpt{Repository: selfupdate.ParseSlug(slug)})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Error while detecting the latest version:", err)
 		os.Exit(1)
@@ -77,16 +78,16 @@ func main() {
 		os.Exit(1)
 	}
 
-	cmd := getCommand(flag.Arg(0))
+	cmd := getCommand(repo)
 	cmdPath := filepath.Join(build.Default.GOPATH, "bin", cmd)
 	if _, err := os.Stat(cmdPath); err != nil {
 		// When executable is not existing yet
-		if err := installFrom(ctx, latest.AssetURL, cmd, cmdPath); err != nil {
+		if err := installFrom(ctx, latest.AssetURL, relExe, cmdPath); err != nil {
 			fmt.Fprintf(os.Stderr, "Error while installing the release binary from %s: %s\n", latest.AssetURL, err)
 			os.Exit(1)
 		}
 	} else {
-		if err := updater.UpdateTo(ctx, latest, cmdPath); err != nil {
+		if err := updater.UpdateTo(ctx, selfupdate.UpdateToOpt{Rel: latest, RelExe: relExe, CmdPath: cmdPath}); err != nil {
 			fmt.Fprintf(os.Stderr, "Error while replacing the binary with %s: %s\n", latest.AssetURL, err)
 			os.Exit(1)
 		}
@@ -101,10 +102,11 @@ Release Notes:
 
 func usage() {
 	fmt.Fprintln(os.Stderr, `
-Usage: get-release [flags] {package}
+Usage: get-release [flags] {package} {relExe}
 
   get-release is like "go get github.com/owner/repo@latest".
   {package} is using the same format: "github.com/owner/repo".
+  {relExe} is the name of the new executable file (usually inside a release archive).
 
 Flags:`)
 	flag.PrintDefaults()
@@ -116,7 +118,7 @@ func getCommand(pkg string) string {
 	return cmd
 }
 
-func installFrom(ctx context.Context, url, cmd, path string) error {
+func installFrom(ctx context.Context, url, relExe, path string) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 	if err != nil {
 		return fmt.Errorf("failed to create request to download release binary from %s: %s", url, err)
@@ -129,7 +131,13 @@ func installFrom(ctx context.Context, url, cmd, path string) error {
 	if res.StatusCode != http.StatusOK {
 		return fmt.Errorf("failed to download release binary from %s: Invalid response ", url)
 	}
-	executable, err := selfupdate.DecompressCommand(res.Body, url, cmd, runtime.GOOS, runtime.GOARCH)
+	executable, err := selfupdate.DecompressCommand(selfupdate.DecompressCommandOpt{
+		Src:    res.Body,
+		Url:    url,
+		RelExe: relExe,
+		Os:     runtime.GOOS,
+		Arch:   runtime.GOARCH,
+	})
 	if err != nil {
 		return fmt.Errorf("failed to decompress downloaded asset from %s: %s", url, err)
 	}

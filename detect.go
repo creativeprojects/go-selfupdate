@@ -11,6 +11,15 @@ import (
 
 var reVersion = regexp.MustCompile(`\d+\.\d+\.\d+`)
 
+type DetectLatestOpt struct {
+	Repository Repository
+}
+
+type DetectVersionOpt struct {
+	Repository Repository
+	Version    string
+}
+
 // DetectLatest tries to get the latest version from the source provider.
 // It fetches releases information from the source provider and find out the latest release with matching the tag names and asset names.
 // Drafts and pre-releases are ignored.
@@ -18,24 +27,24 @@ var reVersion = regexp.MustCompile(`\d+\.\d+\.\d+`)
 // '-' can also be used as a separator. File can be compressed with zip, gzip, xz, bzip2, tar&gzip or tar&xz.
 // So the asset can have a file extension for the corresponding compression format such as '.zip'.
 // On Windows, '.exe' also can be contained such as 'foo_windows_amd64.exe.zip'.
-func (up *Updater) DetectLatest(ctx context.Context, repository Repository) (release *Release, found bool, err error) {
-	return up.DetectVersion(ctx, repository, "")
+func (up *Updater) DetectLatest(ctx context.Context, opt DetectLatestOpt) (release *Release, found bool, err error) {
+	return up.DetectVersion(ctx, DetectVersionOpt{opt.Repository, ""})
 }
 
 // DetectVersion tries to get the given version from the source provider.
 // And version indicates the required version.
-func (up *Updater) DetectVersion(ctx context.Context, repository Repository, version string) (release *Release, found bool, err error) {
-	rels, err := up.source.ListReleases(ctx, repository)
+func (up *Updater) DetectVersion(ctx context.Context, opt DetectVersionOpt) (release *Release, found bool, err error) {
+	rels, err := up.source.ListReleases(ctx, opt.Repository)
 	if err != nil {
 		return nil, false, err
 	}
 
-	rel, asset, ver, found := up.findReleaseAndAsset(rels, version)
+	rel, asset, ver, found := up.findReleaseAndAsset(rels, opt.Version)
 	if !found {
 		return nil, false, nil
 	}
 
-	return up.validateReleaseAsset(repository, rel, asset, ver)
+	return up.validateReleaseAsset(opt.Repository, rel, asset, ver)
 }
 
 func (up *Updater) validateReleaseAsset(
