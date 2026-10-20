@@ -1,20 +1,16 @@
 package selfupdate
 
 import (
-	"bytes"
 	"crypto/ecdsa"
 	"crypto/x509"
 	"encoding/hex"
 	"encoding/pem"
 	"fmt"
-	"io"
 	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"golang.org/x/crypto/openpgp"
-	"golang.org/x/crypto/openpgp/armor"
 )
 
 func TestValidatorAssetNames(t *testing.T) {
@@ -29,14 +25,6 @@ func TestValidatorAssetNames(t *testing.T) {
 		},
 		{
 			validator:      &ECDSAValidator{},
-			validationName: filename + ".sig",
-		},
-		{
-			validator:      &PGPValidator{},
-			validationName: filename + ".asc",
-		},
-		{
-			validator:      &PGPValidator{Binary: true},
 			validationName: filename + ".sig",
 		},
 		{
@@ -250,93 +238,6 @@ func getTestPublicKey(t *testing.T) *ecdsa.PublicKey {
 	return pubKey
 }
 
-// ======= PGPValidator ======================================================
-
-func TestPGPValidator(t *testing.T) {
-	data, err := os.ReadFile("testdata/foo.zip")
-	require.NoError(t, err)
-
-	otherData, err := os.ReadFile("testdata/foo.tar.xz")
-	require.NoError(t, err)
-
-	keyRing, entity := getTestPGPKeyRing(t)
-	require.NotNil(t, keyRing)
-	require.NotNil(t, entity)
-
-	var signatureData []byte
-	{
-		signature := &bytes.Buffer{}
-		err = openpgp.ArmoredDetachSign(signature, entity, bytes.NewReader(data), nil)
-		require.NoError(t, err)
-		signatureData = signature.Bytes()
-	}
-
-	t.Run("NoPublicKey", func(t *testing.T) {
-		validator := new(PGPValidator)
-		err = validator.Validate("foo.zip", data, signatureData)
-		assert.ErrorIs(t, err, ErrPGPKeyRingNotSet)
-		err = validator.Validate("foo.zip", data, nil)
-		assert.ErrorIs(t, err, ErrPGPKeyRingNotSet)
-		err = validator.Validate("foo.zip", data, []byte{})
-		assert.ErrorIs(t, err, ErrPGPKeyRingNotSet)
-	})
-
-	t.Run("EmptySignature", func(t *testing.T) {
-		validator := new(PGPValidator).WithArmoredKeyRing(keyRing)
-		err = validator.Validate("foo.zip", data, nil)
-		assert.ErrorIs(t, err, ErrInvalidPGPSignature)
-		err = validator.Validate("foo.zip", data, []byte{})
-		assert.ErrorIs(t, err, ErrInvalidPGPSignature)
-	})
-
-	t.Run("InvalidSignature", func(t *testing.T) {
-		validator := new(PGPValidator).WithArmoredKeyRing(keyRing)
-		err = validator.Validate("foo.zip", data, []byte{0, 1, 2})
-		assert.ErrorIs(t, err, ErrInvalidPGPSignature)
-		err = validator.Validate("foo.zip", data, data)
-		assert.ErrorIs(t, err, ErrInvalidPGPSignature)
-	})
-
-	t.Run("ValidSignature", func(t *testing.T) {
-		validator := new(PGPValidator).WithArmoredKeyRing(keyRing)
-		err = validator.Validate("foo.zip", data, signatureData)
-		assert.NoError(t, err)
-	})
-
-	t.Run("Fail", func(t *testing.T) {
-		validator := new(PGPValidator).WithArmoredKeyRing(keyRing)
-		err = validator.Validate("foo.tar.xz", otherData, signatureData)
-		assert.EqualError(t, err, "openpgp: invalid signature: hash tag doesn't match")
-	})
-}
-
-func TestPGPValidatorWithArmoredKeyRing(t *testing.T) {
-	keyRing, entity := getTestPGPKeyRing(t)
-	validator := new(PGPValidator).WithArmoredKeyRing(keyRing)
-	assert.Equal(t, entity.PrimaryKey.KeyIdString(), validator.KeyRing[0].PrimaryKey.KeyIdString())
-
-	assert.PanicsWithError(t, "failed setting armored public key ring: openpgp: invalid argument: no armored data found", func() {
-		new(PGPValidator).WithArmoredKeyRing([]byte{})
-	})
-}
-
-func getTestPGPKeyRing(t *testing.T) (PGPKeyRing []byte, entity *openpgp.Entity) {
-	var err error
-	var armoredWriter io.WriteCloser
-	entity, err = openpgp.NewEntity("go-selfupdate", "", "info@go-selfupdate.local", nil)
-	require.NoError(t, err)
-
-	buffer := &bytes.Buffer{}
-	if armoredWriter, err = armor.Encode(buffer, openpgp.PublicKeyType, nil); err == nil {
-		if err = entity.Serialize(armoredWriter); err == nil {
-			err = armoredWriter.Close()
-		}
-	}
-	require.NoError(t, err)
-	PGPKeyRing = buffer.Bytes()
-	return
-}
-
 // ======= ChecksumValidator ====================================================
 
 func TestChecksumValidatorEmptyFile(t *testing.T) {
@@ -445,13 +346,4 @@ func TestNewChecksumWithECDSAValidator(t *testing.T) {
 	assert.Implements(t, (*RecursiveValidator)(nil), validator)
 	assert.Equal(t, "checksums", validator.GetValidationAssetName("anything"))
 	assert.Equal(t, "checksums.sig", validator.GetValidationAssetName("checksums"))
-}
-
-func TestNewChecksumWithPGPValidator(t *testing.T) {
-	keyRing, _ := getTestPGPKeyRing(t)
-
-	validator := NewChecksumWithPGPValidator("checksums", keyRing)
-	assert.Implements(t, (*RecursiveValidator)(nil), validator)
-	assert.Equal(t, "checksums", validator.GetValidationAssetName("anything"))
-	assert.Equal(t, "checksums.asc", validator.GetValidationAssetName("checksums"))
 }

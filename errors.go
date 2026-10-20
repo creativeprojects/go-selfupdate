@@ -18,8 +18,6 @@ var (
 	ErrHashNotFound                = errors.New("hash not found in checksum file")
 	ErrECDSAValidationFailed       = errors.New("ECDSA signature verification failed")
 	ErrInvalidECDSASignature       = errors.New("invalid ECDSA signature")
-	ErrInvalidPGPSignature         = errors.New("invalid PGP signature")
-	ErrPGPKeyRingNotSet            = errors.New("PGP key ring not set")
 	ErrCannotDecompressFile        = errors.New("failed to decompress")
 	ErrExecutableNotFoundInArchive = errors.New("executable not found")
 )

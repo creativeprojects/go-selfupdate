@@ -47,7 +47,7 @@ func WithLogging(h http.Handler) http.Handler {
 
 		duration := time.Since(start)
 
-		slog.Info("request completed", //nolint:gosec // G706: Log injection via taint analysis
+		slog.Info("request completed",
 			"uri", req.RequestURI,
 			"method", req.Method,
 			"status", responseData.status, // get captured status code

@@ -16,7 +16,7 @@ ifeq ($(GOBIN),)
 	GOBIN := $(GOPATH)/bin
 endif
 
-TESTS=. ./update
+TESTS=. ./update ./pgp
 COVERAGE_FILE=coverage.txt
 
 BUILD_DATE=`date`
@@ -43,7 +43,7 @@ $(GOBIN)/eget: verify
 
 $(GOBIN)/golangci-lint-v2: verify $(GOBIN)/eget
 	@echo "[*] $@"
-	"$(GOBIN)/eget" golangci/golangci-lint --tag v2.11.4 --asset=tar.gz --upgrade-only --to '$(GOBIN)/golangci-lint-v2'
+	"$(GOBIN)/eget" golangci/golangci-lint --tag v2.15.0 --asset=tar.gz --upgrade-only --to '$(GOBIN)/golangci-lint-v2'
 
 build:
 		$(GOBUILD) -v ./...
