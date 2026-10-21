@@ -32,7 +32,7 @@ func NewRelease(from *github.RepositoryRelease) *Release {
 		assets:       make([]selfupdate.SourceAsset, len(from.Assets)),
 	}
 	for i, fromAsset := range from.Assets {
-		release.assets[i] = NewGitHubAsset(fromAsset)
+		release.assets[i] = NewAsset(fromAsset)
 	}
 	return release
 }
@@ -80,7 +80,7 @@ type Asset struct {
 	url  string
 }
 
-func NewGitHubAsset(from *github.ReleaseAsset) *Asset {
+func NewAsset(from *github.ReleaseAsset) *Asset {
 	return &Asset{
 		id:   from.GetID(),
 		name: from.GetName(),
