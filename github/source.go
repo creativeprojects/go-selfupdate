@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/creativeprojects/go-selfupdate/v2"
-	"github.com/google/go-github/v86/github"
+	"github.com/google/go-github/v93/github"
 )
 
 // Config is an object to pass to github.NewSource
@@ -36,7 +36,7 @@ type Source struct {
 // You can pass an empty GitHubSource{} to use the default configuration
 // The function will return an error if the GitHub Enterprise URLs in the config object cannot be parsed
 func NewSource(config Config) (*Source, error) {
-	client := github.NewClient(nil)
+	var opts []github.ClientOptionsFunc
 
 	token := config.APIToken
 	if token == "" {
@@ -44,7 +44,7 @@ func NewSource(config Config) (*Source, error) {
 		token = os.Getenv("GITHUB_TOKEN")
 	}
 	if token != "" {
-		client = client.WithAuthToken(token)
+		opts = append(opts, github.WithAuthToken(token))
 	}
 
 	if config.EnterpriseBaseURL != "" {
@@ -52,11 +52,12 @@ func NewSource(config Config) (*Source, error) {
 		if uploadURL == "" {
 			uploadURL = config.EnterpriseBaseURL
 		}
-		var err error
-		client, err = client.WithEnterpriseURLs(config.EnterpriseBaseURL, uploadURL)
-		if err != nil {
-			return nil, fmt.Errorf("cannot parse GitHub enterprise URL: %w", err)
-		}
+		opts = append(opts, github.WithEnterpriseURLs(config.EnterpriseBaseURL, uploadURL))
+	}
+
+	client, err := github.NewClient(opts...)
+	if err != nil {
+		return nil, fmt.Errorf("cannot parse GitHub enterprise URL: %w", err)
 	}
 	return &Source{
 		api: client,

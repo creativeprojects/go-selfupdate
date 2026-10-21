@@ -8,7 +8,7 @@ import (
 
 	"github.com/creativeprojects/go-selfupdate/v2"
 	"github.com/creativeprojects/go-selfupdate/v2/memory"
-	"github.com/google/go-github/v86/github"
+	"github.com/google/go-github/v93/github"
 )
 
 // NewGitHubServer starts a fake GitHub API serving data.
@@ -58,13 +58,13 @@ func githubRelease(r *http.Request, release selfupdate.SourceRelease) *github.Re
 		assets = append(assets, githubAsset(r, asset))
 	}
 	return &github.RepositoryRelease{
-		ID:          github.Ptr(release.GetID()),
-		TagName:     github.Ptr(release.GetTagName()),
+		ID:          release.GetID(),
+		TagName:     release.GetTagName(),
 		Name:        github.Ptr(release.GetName()),
 		Body:        github.Ptr(release.GetReleaseNotes()),
-		HTMLURL:     github.Ptr(release.GetURL()),
-		Draft:       github.Ptr(release.GetDraft()),
-		Prerelease:  github.Ptr(release.GetPrerelease()),
+		HTMLURL:     release.GetURL(),
+		Draft:       release.GetDraft(),
+		Prerelease:  release.GetPrerelease(),
 		PublishedAt: &github.Timestamp{Time: release.GetPublishedAt()},
 		Assets:      assets,
 	}
