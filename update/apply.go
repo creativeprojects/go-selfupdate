@@ -16,7 +16,7 @@ var (
 	openFile = os.OpenFile
 )
 
-// Apply performs an update of the current executable (or opts.TargetFile, if set) with the contents of the given io.Reader.
+// Apply performs an update of the current executable (or opts.TargetPath, if set) with the contents of the given io.Reader.
 //
 // Apply performs the following actions to ensure a safe cross-platform update:
 //

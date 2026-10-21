@@ -57,8 +57,12 @@ The repository contains these packages:
 | Package | Purpose |
 |---|---|
 | `.` (root, `selfupdate`) | The library: release detection, asset selection, download, decompression, validation and update |
+| `github/`, `gitlab/`, `gitea/`, `http/` | One `selfupdate.Source` implementation per provider |
+| `pgp/` | PGP signature validator, in its own package so the OpenPGP library is only linked when used |
 | `update/` | Low level binary replacement with rollback, derived from `inconshreveable/go-update` |
-| `internal/` | Executable path resolution helpers, platform specific |
+| `internal/` | Executable path resolution and API token helpers, platform specific |
+| `internal/memory` | In-memory `selfupdate.Source` used by the tests |
+| `internal/sourcetest` | Conformance test suite for sources, with fake GitHub, GitLab, Gitea and HTTP servers |
 | `cmd/` | Shared helpers for the command line tools |
 | `cmd/detect-latest-release` | Tool that prints the latest release of a repository |
 | `cmd/get-release` | Tool that downloads a release binary for the current platform |
@@ -71,20 +75,16 @@ The repository contains these packages:
 make test
 ```
 
-This runs `go test -race -v` on the root package and on `update/`, which is what the CI pipeline runs. To run every package, including `cmd/` and `internal/`:
-
-```sh
-go test -race ./...
-```
+This runs `go test -race -v ./...`, every package including `cmd/` and `internal/`. The CI pipeline runs the same command, adding `-short` when no `GITHUB_TOKEN` is set.
 
 ### Tests that reach the network
 
-Most tests are offline: they use the `MockSource` defined in [mockdata_test.go](mockdata_test.go) and the fixtures in [testdata/](testdata/).
+Most tests are offline: they use the in-memory source from `internal/memory`, populated by `mockMemorySource(t)` in [mock_data_test.go](mock_data_test.go), and the fixtures in [testdata/](testdata/). Each provider package runs the conformance suite from `internal/sourcetest` against a fake server started with `httptest`, so the providers are tested offline too.
 
 Some tests talk to real servers. They are controlled in two ways:
 
 - **`-short` flag**: tests that query the public GitHub API for the `creativeprojects/resticprofile` repository only run when `-short` is **not** set. Use `go test -short ./...` to run a fully offline test suite.
-- **Environment variables**: the provider tests in `github_source_test.go`, `gitlab_source_test.go` and `gitea_source_test.go` are skipped unless `GITHUB_TOKEN`, `GITLAB_TOKEN` or `GITEA_TOKEN` respectively is set.
+- **Environment variables**: the tests creating a source with a real token, in `github/source_test.go`, `gitlab/source_test.go` and `gitea/source_test.go`, are skipped unless `GITHUB_TOKEN`, `GITLAB_TOKEN` or `GITEA_TOKEN` respectively is set.
 
 When running the GitHub tests without a token you may hit the API rate limit. Those tests detect the rate limit error and skip themselves rather than fail. Setting `GITHUB_TOKEN` to a personal access token (no scopes needed) avoids this.
 
@@ -124,7 +124,7 @@ The lint configuration does not enable a formatter, so run `gofmt` yourself or l
 ## Code guidelines
 
 - **Cross platform first.** Everything must build and pass on Linux, macOS and Windows. When behaviour differs, put it in a file with a platform suffix (`hide_windows.go`, `resolve_path_unix.go`) and provide a no-op or fallback for the other platforms (`hide_noop.go`).
-- **Keep the public API stable.** This library is at major version 1 and is imported by many projects. Do not rename or remove exported identifiers, change function signatures or change the semantics of existing options without discussing it in an issue first. Prefer adding a new option or function.
+- **Keep the public API stable.** This library is imported by many projects. Do not rename or remove exported identifiers, change function signatures or change the semantics of existing options without discussing it in an issue first. Prefer adding a new option or function.
 - **Pass a `context.Context`** to anything that does network or file I/O, as the `Source` interface does. Do not store contexts in structs.
 - **Return sentinel errors** from [errors.go](errors.go) where one exists, and wrap them with `fmt.Errorf("...: %w", err)` so callers can use `errors.Is`. Add a new `Err...` variable there when a new error condition is worth distinguishing.
 - **Log through the package logger.** Use the package level `log` variable (see [log.go](log.go)) rather than `fmt.Print` or the standard `log` package. The library is silent by default, and users opt in with `SetLogger`.
@@ -136,7 +136,7 @@ The lint configuration does not enable a formatter, so run `gofmt` yourself or l
 
 - Tests use [testify](https://github.com/stretchr/testify). Use `require` for preconditions that make the rest of the test meaningless when they fail, and `assert` for the actual checks.
 - Prefer table driven tests. Most existing tests follow this shape, with a `run bool` field for cases that depend on `testing.Short()`.
-- Use `mockSourceRepository(t)` from [mockdata_test.go](mockdata_test.go) when you need a source populated with releases and assets. Extend the mock data if your test needs a new asset shape, and keep the existing cases passing.
+- Use `mockMemorySource(t)` from [mock_data_test.go](mock_data_test.go) when you need a source populated with releases and assets, and `mockSignedSourceRepository(t)` for one with signed checksum files. Extend the mock data if your test needs a new asset shape, and keep the existing cases passing.
 - Put binary fixtures in [testdata/](testdata/). Keep them as small as possible, and add a note in the pull request on how they were produced if it is not obvious.
 - Use `t.TempDir()` for anything written to disk.
 - Use `t.Parallel()` when the test does not depend on global state (the package logger, environment variables, the working directory).
@@ -144,13 +144,13 @@ The lint configuration does not enable a formatter, so run `gofmt` yourself or l
 
 ## Adding a new source provider
 
-A provider is an implementation of the three interfaces in [source.go](source.go): `Source`, `SourceRelease` and `SourceAsset`. The Gitea provider is the simplest to use as a template:
+A provider is a package implementing the three interfaces in [source.go](source.go): `Source`, `SourceRelease` and `SourceAsset`. The `gitea` package is the simplest to use as a template:
 
-1. Create `<name>_source.go` with a `<Name>Config` struct, a `New<Name>Source` constructor and the `ListReleases` and `DownloadReleaseAsset` methods. Read an API token from a `<NAME>_TOKEN` environment variable when none is given in the config, like the existing providers.
-2. Create `<name>_release.go` with the release and asset types implementing `SourceRelease` and `SourceAsset`.
-3. Add a `<name>_source_test.go` that skips when the token environment variable is not set.
+1. Create a package `<name>/` with a `source.go` holding a `Config` struct, a `NewSource` constructor and the `ListReleases`, `GetLatestRelease` and `DownloadReleaseAsset` methods. Read an API token from a `<NAME>_TOKEN` environment variable when none is given in the config, like the existing providers. Return `selfupdate.ErrRepositoryNotFound` and `selfupdate.ErrReleaseNotFound` where the `Source` interface documents them.
+2. Add a `release.go` with the `Release` and `Asset` types implementing `SourceRelease` and `SourceAsset`.
+3. Add a `source_test.go` running the conformance suite with `sourcetest.Run` against a fake server. Add the fake server to [internal/sourcetest/](internal/sourcetest/) when the provider API is new, and list the release fields the provider cannot report in `sourcetest.Options`. Tests needing a real token must skip when the environment variable is not set.
 4. Register the provider in [cmd/source.go](cmd/source.go) so the command line tools can use it with the `-t` flag.
-5. Add a section to the README describing how to use it, and update the title line and the `Other providers than Github` section.
+5. Add a section to the README describing how to use it, and update the title line, the `Introduction` and the `Providers` sections. Add the package to the list in [doc.go](doc.go).
 
 ## Adding a new validator
 
@@ -158,9 +158,11 @@ A validator is an implementation of the `Validator` interface in [validate.go](v
 
 Add the tests to [validate_test.go](validate_test.go), with any signature or key fixtures in [testdata/](testdata/), and document the new validator in the `Hash or Signature Validation` section of the README.
 
+A validator pulling in a large dependency goes in its own package, like `pgp/`, so applications not using it do not link the library.
+
 ## Documentation
 
-The README is the user facing documentation. If you change behaviour, naming rules, or add an option, update the README in the same pull request.
+The README is the user facing documentation. If you change behaviour, naming rules, or add an option, update the README in the same pull request. The package comments in [doc.go](doc.go) and in each sub-package are published on pkg.go.dev: keep them in step with the README.
 
 The table of contents at the top of the README is generated. After adding or renaming a section, regenerate it with:
 
@@ -205,7 +207,7 @@ Reviews can take a little time, as this project is maintained in spare time. Fee
 
 ## Releases
 
-Releases are tagged by the maintainer with a semantic version (`v1.x.y`). Contributors do not need to bump any version number. A bug fix or a backward compatible addition goes in the next minor or patch release, a breaking change would need a new major version and is unlikely to be accepted without a very good reason.
+Releases are tagged by the maintainer with a semantic version (`v2.x.y`). Contributors do not need to bump any version number. A bug fix or a backward compatible addition goes in the next minor or patch release, a breaking change would need a new major version and is unlikely to be accepted without a very good reason.
 
 ## License
 

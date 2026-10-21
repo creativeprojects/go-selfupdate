@@ -1,7 +1,7 @@
 Self-Update library for Github, Gitea and Gitlab hosted applications in Go
 ==============================================================
 
-[![Godoc reference](https://godoc.org/github.com/creativeprojects/go-selfupdate?status.svg)](http://godoc.org/github.com/creativeprojects/go-selfupdate)
+[![Go Reference](https://pkg.go.dev/badge/github.com/creativeprojects/go-selfupdate/v2.svg)](https://pkg.go.dev/github.com/creativeprojects/go-selfupdate/v2)
 [![Build](https://github.com/creativeprojects/go-selfupdate/workflows/Build/badge.svg)](https://github.com/creativeprojects/go-selfupdate/actions)
 [![codecov](https://codecov.io/gh/creativeprojects/go-selfupdate/branch/main/graph/badge.svg?token=3FejM0fkw2)](https://codecov.io/gh/creativeprojects/go-selfupdate)
 
@@ -20,6 +20,7 @@ Self-Update library for Github, Gitea and Gitlab hosted applications in Go
   * [Methods on Updater struct](#methods-on-updater-struct)
 * [Upgrade from v1 to v2](#upgrade-from-v1-to-v2)
   * [No default source](#no-default-source)
+  * [Removed functions](#removed-functions)
   * [Sources and PGP are sub\-packages](#sources-and-pgp-are-sub-packages)
   * [Updater methods take an options struct](#updater-methods-take-an-options-struct)
   * [Detection methods return an error when nothing is found](#detection-methods-return-an-error-when-nothing-is-found)
@@ -94,7 +95,7 @@ func update(version string) error {
 
 	latest, err := updater.DetectLatest(
 		context.Background(),
-		selfupdate.DetectLatestOpt{Repository: selfupdate.ParseSlug("creativeprojects/resticprofile")},
+		selfupdate.ParseSlug("creativeprojects/resticprofile"),
 	)
 	if err != nil {
 		return fmt.Errorf("error occurred while detecting version: %w", err)
@@ -192,7 +193,18 @@ All methods are now accepting a `context` as their first parameter. You can use 
 
 The package level functions `DetectLatest`, `DetectVersion`, `UpdateTo`, `UpdateCommand` and `UpdateSelf`
 (and `DefaultUpdater`) are gone: they were silently using a GitHub source.
-Create an `Updater` with `NewUpdater` and give it a `Source` explicitly.
+Create an `Updater` with `NewUpdater` and give it a `Source` explicitly: `NewUpdater` returns `ErrInvalidSource` without one.
+
+## Removed functions
+
+| v1 | v2 |
+|----|----|
+| `DecompressCommand(src, url, cmd, os, arch)` | gone: `UpdateTo` decompresses the asset itself |
+| `GetExecutablePath()` | `ExecutablePath()` |
+| `ResolvePath(filename)` | gone |
+
+`UpdateTo` also creates the target file when it does not exist, so a first installation no longer needs
+to download and decompress the asset by hand.
 
 ## Sources and PGP are sub-packages
 
@@ -207,15 +219,26 @@ Create an `Updater` with `NewUpdater` and give it a `Source` explicitly.
 
 The import paths are `github.com/creativeprojects/go-selfupdate/v2/github`, `/gitea`, `/gitlab`, `/http` and `/pgp`.
 
+The types and errors of each provider moved with it and lost their prefix:
+
+| v1 | v2 |
+|----|----|
+| `selfupdate.GitHubConfig`, `GitHubSource`, `GitHubRelease`, `GitHubAsset` | `github.Config`, `github.Source`, `github.Release`, `github.Asset` |
+| `selfupdate.GiteaConfig`, `GiteaSource`, `GiteaRelease`, `GiteaAsset` | `gitea.Config`, `gitea.Source`, `gitea.Release`, `gitea.Asset` |
+| `selfupdate.GitLabConfig`, `GitLabSource`, `GitLabRelease`, `GitLabAsset` | `gitlab.Config`, `gitlab.Source`, `gitlab.Release`, `gitlab.Asset` |
+| `selfupdate.HttpConfig`, `HttpSource`, `HttpRelease`, `HttpAsset`, `HttpManifest` | `http.Config`, `http.Source`, `http.Release`, `http.Asset`, `http.Manifest` |
+| `selfupdate.ErrInvalidPGPSignature`, `ErrPGPKeyRingNotSet` | `pgp.ErrInvalidSignature`, `pgp.ErrKeyRingNotSet` |
+
 ## Updater methods take an options struct
 
 | v1 | v2 |
 |----|----|
-| `DetectLatest(ctx, repository)` | `DetectLatest(ctx, DetectLatestOpt{Repository: repository})` |
 | `DetectVersion(ctx, repository, version)` | `DetectVersion(ctx, DetectVersionOpt{Repository: repository, Version: version})` |
 | `UpdateTo(ctx, rel, cmdPath)` | `UpdateTo(ctx, UpdateToOpt{Rel: rel, CmdPath: cmdPath})` |
 | `UpdateCommand(ctx, cmdPath, current, repository)` | `UpdateCommand(ctx, UpdateCommandOpt{CmdPath: cmdPath, Current: current, Repository: repository})` |
 | `UpdateSelf(ctx, current, repository)` | `UpdateSelf(ctx, UpdateSelfOpt{Current: current, Repository: repository})` |
+
+`DetectLatest(ctx, repository)` keeps its v1 parameters.
 
 The `RelExe` field of `UpdateToOpt`, `UpdateCommandOpt` and `UpdateSelfOpt` names the executable inside the new release
 when it differs from the name of the current one.
@@ -223,8 +246,9 @@ when it differs from the name of the current one.
 ## Detection methods return an error when nothing is found
 
 `DetectLatest` and `DetectVersion` return `(*Release, error)` instead of `(*Release, bool, error)`.
-A missing release is reported as `ErrReleaseNotFound`, and a release without an asset for the current OS
-and architecture as `ErrAssetNotFound`.
+A missing repository is reported as `ErrRepositoryNotFound` and a missing release as `ErrReleaseNotFound`.
+When the latest release has no asset for the current OS and architecture, `DetectLatest` reports `ErrAssetNotFound`;
+`DetectVersion` reports `ErrReleaseNotFound`, as it searches the list of releases for one with a matching asset.
 
 | v1 | v2 |
 |----|----|
@@ -232,7 +256,8 @@ and architecture as `ErrAssetNotFound`.
 | `if !found { ... }` | `if errors.Is(err, selfupdate.ErrReleaseNotFound) { ... }` |
 
 `UpdateCommand` and `UpdateSelf` keep the v1 behaviour: when no release is found, they return the current version
-as if it were up to date. A missing repository is still an error.
+as if it were up to date. A missing repository, or a latest release without an asset for the current
+OS and architecture, is still an error.
 
 `DetectLatest` now asks the source for the release it marks as latest, instead of picking the highest version
 from the list of releases. `DetectVersion` with an empty `Version` still searches the list for the highest version.
@@ -294,8 +319,10 @@ systematically.
 Prefix before version number `\d+\.\d+\.\d+` is automatically omitted. For example, `ver1.2.3` or
 `release-1.2.3` are also ok.
 
-Tags which don't contain a version number are ignored (i.e. `nightly`). And releases marked as `pre-release`
-are also ignored.
+Tags which don't contain a version number are ignored (i.e. `nightly`).
+
+`DetectLatest` returns the release the provider marks as latest, whatever its flags. `DetectVersion` with an
+empty version ignores releases marked as `draft` or `pre-release`, unless `Config.Draft` or `Config.Prerelease` is set.
 
 [semantic versioning]: https://semver.org/
 
@@ -472,7 +499,7 @@ func update() error {
 	}
 	release, err := updater.DetectLatest(
 		context.Background(),
-		selfupdate.DetectLatestOpt{Repository: selfupdate.NewRepositorySlug("owner", "cli-tool")},
+		selfupdate.NewRepositorySlug("owner", "cli-tool"),
 	)
 	if err != nil {
 		log.Fatal(err)
@@ -522,7 +549,7 @@ func update() error {
 	}
 	release, err := updater.DetectLatest(
 		context.Background(),
-		selfupdate.DetectLatestOpt{Repository: selfupdate.NewRepositorySlug("repo", "project")},
+		selfupdate.NewRepositorySlug("repo", "project"),
 	)
 	if err != nil {
 		log.Fatal(err)
