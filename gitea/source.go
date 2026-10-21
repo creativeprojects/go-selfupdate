@@ -1,3 +1,7 @@
+// Package gitea provides a selfupdate.Source loading releases from a Gitea instance.
+//
+// Config.BaseURL is mandatory. An API token is read from Config.APIToken
+// or from the $GITEA_TOKEN environment variable.
 package gitea
 
 import (

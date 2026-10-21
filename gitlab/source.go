@@ -1,3 +1,9 @@
+// Package gitlab provides a selfupdate.Source loading releases from gitlab.com
+// or a self-managed GitLab instance.
+//
+// An API token is read from Config.APIToken or from the $GITLAB_TOKEN environment variable.
+// GitLab releases have no ID, draft or prerelease flag, and release links have no size:
+// the source reports zero values for them.
 package gitlab
 
 import (

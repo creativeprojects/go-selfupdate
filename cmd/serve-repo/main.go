@@ -1,4 +1,8 @@
-// Simple implementation of a HTTP server to be used by the updater with the http source
+// Serve-repo serves a directory over HTTP as a repository for the http source,
+// for local testing.
+//
+// The directory is exposed under {path-prefix}/{fixed-slug}/, so pointing the
+// http source at http://{listen}{path-prefix} with that slug reaches it.
 package main
 
 import (

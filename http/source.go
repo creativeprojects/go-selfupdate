@@ -18,6 +18,14 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+// Package http provides a selfupdate.Source loading releases from a plain HTTP server.
+//
+// Each repository lives at {BaseURL}/{owner}/{repo}/ and holds a manifest.yaml
+// (see Manifest) listing its releases and assets next to the asset files.
+// Asset URLs in the manifest are either absolute or relative to the repository directory.
+//
+// Such a repository can be built with goreleaser-http-repo-builder:
+// https://github.com/GRMrGecko/goreleaser-http-repo-builder
 package http
 
 import (

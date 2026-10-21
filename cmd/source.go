@@ -1,3 +1,5 @@
+// Package cmd holds helpers shared by the command line tools in this directory:
+// parsing the repository argument and picking the matching selfupdate.Source.
 package cmd
 
 import (

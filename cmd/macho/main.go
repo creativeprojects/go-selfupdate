@@ -1,3 +1,7 @@
+// Macho reports whether its own executable is a macOS universal binary.
+//
+// The Makefile builds it for amd64 and arm64 and merges both with lipo
+// into a universal binary.
 package main
 
 import (

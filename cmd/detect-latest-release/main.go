@@ -1,3 +1,7 @@
+// Detect-latest-release prints the latest release of a repository, with the
+// download URL of the asset matching the current (or a chosen) OS and architecture.
+//
+// Run it without arguments for usage.
 package main
 
 import (

@@ -1,7 +1,7 @@
 /*
 Package update provides functionality to implement secure, self-updating Go programs (or other single-file targets).
 
-Basic Example
+# Basic Example
 
 This example shows how to update a program remotely from a URL.
 
@@ -19,24 +19,23 @@ This example shows how to update a program remotely from a URL.
 			return err
 		}
 		defer resp.Body.Close()
-		err := update.Apply(resp.Body, update.Options{})
+		err = update.Apply(resp.Body, update.Options{})
 		if err != nil {
 			if rerr := update.RollbackError(err); rerr != nil {
-				fmt.Println("Failed to rollback from bad update: %v", rerr)
+				fmt.Printf("Failed to rollback from bad update: %v\n", rerr)
 			}
 		}
 		return err
 	}
 
-
-Checksum Verification
+# Checksum Verification
 
 Updating executable code on a computer can be a dangerous operation unless you
 take the appropriate steps to guarantee the authenticity of the new code. While
 checksum verification is important, it should always be combined with signature
 verification (next section) to guarantee that the code came from a trusted party.
 
-go-update validates SHA256 checksums by default, but this is pluggable via the Hash
+The package validates SHA256 checksums by default, but this is pluggable via the Hash
 property on the Options struct.
 
 This example shows how to guarantee that the newly-updated binary is verified to
@@ -58,7 +57,7 @@ specified as a hex string.
 			return err
 		}
 		err = update.Apply(binary, update.Options{
-			Hash: crypto.SHA256, 	// this is the default, you don't need to specify it
+			Hash:     crypto.SHA256, // this is the default, you don't need to specify it
 			Checksum: checksum,
 		})
 		if err != nil {
@@ -67,7 +66,7 @@ specified as a hex string.
 		return err
 	}
 
-Cryptographic Signature Verification
+# Cryptographic Signature Verification
 
 Cryptographic verification of new code from an update is an extremely important way to guarantee the
 security and integrity of your updates.
@@ -95,7 +94,7 @@ with the private key and distribute the signature along with the update.
 	-----END PUBLIC KEY-----
 	`)
 
-	func verifiedUpdate(binary io.Reader, hexChecksum, hexSignature string) {
+	func verifiedUpdate(binary io.Reader, hexChecksum, hexSignature string) error {
 		checksum, err := hex.DecodeString(hexChecksum)
 		if err != nil {
 			return err
@@ -105,10 +104,10 @@ with the private key and distribute the signature along with the update.
 			return err
 		}
 		opts := update.Options{
-			Checksum: checksum,
+			Checksum:  checksum,
 			Signature: signature,
-			Hash: crypto.SHA256, 	               // this is the default, you don't need to specify it
-			Verifier: update.NewECDSAVerifier(),   // this is the default, you don't need to specify it
+			Hash:      crypto.SHA256,            // this is the default, you don't need to specify it
+			Verifier:  update.NewECDSAVerifier(), // this is the default, you don't need to specify it
 		}
 		err = opts.SetPublicKeyPEM(publicKey)
 		if err != nil {
@@ -120,7 +119,5 @@ with the private key and distribute the signature along with the update.
 		}
 		return err
 	}
-
-
 */
 package update

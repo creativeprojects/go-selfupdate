@@ -1,3 +1,7 @@
+// Package memory provides an in-memory selfupdate.Source for unit tests.
+//
+// Releases, assets and file contents are set directly on Source;
+// its ReadError and NotFound fields simulate failures of a remote source.
 package memory
 
 import (

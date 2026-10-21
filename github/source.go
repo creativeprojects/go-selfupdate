@@ -1,3 +1,7 @@
+// Package github provides a selfupdate.Source loading releases from github.com
+// or a GitHub Enterprise instance.
+//
+// An API token is read from Config.APIToken or from the $GITHUB_TOKEN environment variable.
 package github
 
 import (

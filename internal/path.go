@@ -1,3 +1,6 @@
+// Package internal holds helpers shared by the selfupdate packages:
+// resolving the executable path and deciding whether an API token
+// can be sent along with a download request.
 package internal
 
 import (

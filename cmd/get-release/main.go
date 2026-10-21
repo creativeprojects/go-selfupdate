@@ -1,3 +1,7 @@
+// Get-release downloads the latest release of a repository and installs
+// the binary into $GOPATH/bin, like "go get" would.
+//
+// Run it without arguments for usage.
 package main
 
 import (
