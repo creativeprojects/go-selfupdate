@@ -129,6 +129,16 @@ func TestNoReleaseFoundForUpdate(t *testing.T) {
 	assert.Empty(t, rel.ReleaseNotes)
 }
 
+func TestRepositoryNotFoundForUpdate(t *testing.T) {
+	fake := filepath.FromSlash("./testdata/fake-executable")
+	updater, err := selfupdate.NewUpdater(selfupdate.Config{Source: newRepositoryNotFoundSource()})
+	require.NoError(t, err)
+
+	rel, err := updater.UpdateCommand(context.Background(), selfupdate.UpdateCommandOpt{"fake-executable", fake, "1.0.0", selfupdate.ParseSlug("owner/repo")})
+	assert.ErrorIs(t, err, selfupdate.ErrRepositoryNotFound)
+	assert.Nil(t, rel)
+}
+
 func TestCurrentIsTheLatest(t *testing.T) {
 	filename := setupCurrentVersion(t)
 

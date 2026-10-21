@@ -232,7 +232,7 @@ and architecture as `ErrAssetNotFound`.
 | `if !found { ... }` | `if errors.Is(err, selfupdate.ErrReleaseNotFound) { ... }` |
 
 `UpdateCommand` and `UpdateSelf` keep the v1 behaviour: when no release is found, they return the current version
-as if it were up to date.
+as if it were up to date. A missing repository is still an error.
 
 `DetectLatest` now asks the source for the release it marks as latest, instead of picking the highest version
 from the list of releases. `DetectVersion` with an empty `Version` still searches the list for the highest version.
