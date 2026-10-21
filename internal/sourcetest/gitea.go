@@ -7,7 +7,7 @@ import (
 
 	"code.gitea.io/sdk/gitea"
 	"github.com/creativeprojects/go-selfupdate/v2"
-	"github.com/creativeprojects/go-selfupdate/v2/memory"
+	"github.com/creativeprojects/go-selfupdate/v2/internal/memory"
 )
 
 // NewGiteaServer starts a fake Gitea API serving data.

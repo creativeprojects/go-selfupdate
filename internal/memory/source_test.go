@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/creativeprojects/go-selfupdate/v2"
+	"github.com/creativeprojects/go-selfupdate/v2/internal/memory"
 	"github.com/creativeprojects/go-selfupdate/v2/internal/sourcetest"
-	"github.com/creativeprojects/go-selfupdate/v2/memory"
 )
 
 // TestMemorySource runs the shared source test suite: the memory source is the reference implementation.

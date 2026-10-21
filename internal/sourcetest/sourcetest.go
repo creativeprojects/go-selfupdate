@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/creativeprojects/go-selfupdate/v2"
-	"github.com/creativeprojects/go-selfupdate/v2/memory"
+	"github.com/creativeprojects/go-selfupdate/v2/internal/memory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

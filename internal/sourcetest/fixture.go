@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/creativeprojects/go-selfupdate/v2"
-	"github.com/creativeprojects/go-selfupdate/v2/memory"
+	"github.com/creativeprojects/go-selfupdate/v2/internal/memory"
 )
 
 // Repository is the only repository served by the data returned by Fixture.

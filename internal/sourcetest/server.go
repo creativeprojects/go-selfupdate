@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/creativeprojects/go-selfupdate/v2"
-	"github.com/creativeprojects/go-selfupdate/v2/memory"
+	"github.com/creativeprojects/go-selfupdate/v2/internal/memory"
 )
 
 // startServer serves handler until the end of the test.

@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/creativeprojects/go-selfupdate/v2"
-	"github.com/creativeprojects/go-selfupdate/v2/memory"
+	"github.com/creativeprojects/go-selfupdate/v2/internal/memory"
 	"github.com/google/go-github/v93/github"
 )
 

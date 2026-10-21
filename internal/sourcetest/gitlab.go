@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/creativeprojects/go-selfupdate/v2"
-	"github.com/creativeprojects/go-selfupdate/v2/memory"
+	"github.com/creativeprojects/go-selfupdate/v2/internal/memory"
 	gitlab "gitlab.com/gitlab-org/api/client-go"
 )
 

@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/creativeprojects/go-selfupdate/v2/memory"
+	"github.com/creativeprojects/go-selfupdate/v2/internal/memory"
 	yaml "go.yaml.in/yaml/v3"
 )
 
