@@ -20,7 +20,7 @@ Self-Update library for Github, Gitea and Gitlab hosted applications in Go
   * [Methods on Updater struct](#methods-on-updater-struct)
 * [Upgrade from v1 to v2](#upgrade-from-v1-to-v2)
   * [No default source](#no-default-source)
-  * [Sources and PGP are sub-packages](#sources-and-pgp-are-sub-packages)
+  * [Sources and PGP are sub\-packages](#sources-and-pgp-are-sub-packages)
   * [Updater methods take an options struct](#updater-methods-take-an-options-struct)
   * [New method on the Source interface](#new-method-on-the-source-interface)
 * [Naming Rules of Released Binaries](#naming-rules-of-released-binaries)
@@ -33,7 +33,7 @@ Self-Update library for Github, Gitea and Gitlab hosted applications in Go
   * [PGP](#pgp)
   * [Using a single checksum file for all your assets](#using-a-single-checksum-file-for-all-your-assets)
 * [macOS universal binaries](#macos-universal-binaries)
-* [Other providers than Github](#other-providers-than-github)
+* [Providers](#providers)
 * [GitLab](#gitlab)
   * [Example:](#example-1)
 * [Http Based Repository](#http-based-repository)
@@ -410,7 +410,7 @@ updater, _ := NewUpdater(Config{UniversalArch: "all"})
 
 Default is empty, which means no fallback.
 
-# Other providers than Github
+# Providers
 
 This library can be easily extended by providing a new source and release implementation for any git provider.
 Currently implemented are:
@@ -423,7 +423,7 @@ None of them is the default: `NewUpdater` returns an error when the `Config` has
 
 # GitLab
 
-Support for GitLab landed in version 1.0.0.
+Support for GitLab is available since version 1.0.0.
 
 To be able to download assets from a private instance of GitLab, you have to publish your files to the [Generic Package Registry](https://docs.gitlab.com/ee/user/packages/package_registry/index.html).
 
@@ -485,7 +485,7 @@ func update() error {
 
 # Http Based Repository
 
-Support for http based repositories landed in version 1.4.0.
+Support for http based repositories is available since version 1.4.0.
 
 The `http` source is designed to work with repositories built using [goreleaser-http-repo-builder](https://github.com/GRMrGecko/goreleaser-http-repo-builder?tab=readme-ov-file). This provides a simple way to add self-update support to software that is not open source, allowing you to host your own updates. It requires that you still use the owner/project url style, and you can set custom headers to be used with requests to authenticate.
 
