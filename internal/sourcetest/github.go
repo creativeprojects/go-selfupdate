@@ -60,8 +60,8 @@ func githubRelease(r *http.Request, release selfupdate.SourceRelease) *github.Re
 	return &github.RepositoryRelease{
 		ID:          release.GetID(),
 		TagName:     release.GetTagName(),
-		Name:        github.Ptr(release.GetName()),
-		Body:        github.Ptr(release.GetReleaseNotes()),
+		Name:        new(release.GetName()),
+		Body:        new(release.GetReleaseNotes()),
 		HTMLURL:     release.GetURL(),
 		Draft:       release.GetDraft(),
 		Prerelease:  release.GetPrerelease(),
@@ -72,9 +72,9 @@ func githubRelease(r *http.Request, release selfupdate.SourceRelease) *github.Re
 
 func githubAsset(r *http.Request, asset selfupdate.SourceAsset) *github.ReleaseAsset {
 	return &github.ReleaseAsset{
-		ID:                 github.Ptr(asset.GetID()),
-		Name:               github.Ptr(asset.GetName()),
-		Size:               github.Ptr(asset.GetSize()),
-		BrowserDownloadURL: github.Ptr(downloadURL(r, asset.GetID())),
+		ID:                 new(asset.GetID()),
+		Name:               new(asset.GetName()),
+		Size:               new(asset.GetSize()),
+		BrowserDownloadURL: new(downloadURL(r, asset.GetID())),
 	}
 }
