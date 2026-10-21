@@ -10,8 +10,8 @@ import (
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/creativeprojects/go-selfupdate/internal"
-	"github.com/creativeprojects/go-selfupdate/update"
+	"github.com/creativeprojects/go-selfupdate/v2/internal"
+	"github.com/creativeprojects/go-selfupdate/v2/update"
 )
 
 type UpdateToOpt struct {

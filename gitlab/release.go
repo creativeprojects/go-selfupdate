@@ -3,7 +3,7 @@ package gitlab
 import (
 	"time"
 
-	"github.com/creativeprojects/go-selfupdate"
+	"github.com/creativeprojects/go-selfupdate/v2"
 	gitlab "gitlab.com/gitlab-org/api/client-go"
 )
 

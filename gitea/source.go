@@ -9,8 +9,8 @@ import (
 	"os"
 
 	"code.gitea.io/sdk/gitea"
-	"github.com/creativeprojects/go-selfupdate"
-	"github.com/creativeprojects/go-selfupdate/internal"
+	"github.com/creativeprojects/go-selfupdate/v2"
+	"github.com/creativeprojects/go-selfupdate/v2/internal"
 )
 
 // Config is an object to pass to NewGiteaSource

@@ -6,11 +6,11 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/creativeprojects/go-selfupdate"
-	"github.com/creativeprojects/go-selfupdate/gitea"
-	"github.com/creativeprojects/go-selfupdate/github"
-	"github.com/creativeprojects/go-selfupdate/gitlab"
-	"github.com/creativeprojects/go-selfupdate/http"
+	"github.com/creativeprojects/go-selfupdate/v2"
+	"github.com/creativeprojects/go-selfupdate/v2/gitea"
+	"github.com/creativeprojects/go-selfupdate/v2/github"
+	"github.com/creativeprojects/go-selfupdate/v2/gitlab"
+	"github.com/creativeprojects/go-selfupdate/v2/http"
 )
 
 // SplitDomainSlug tries to make sense of the repository string

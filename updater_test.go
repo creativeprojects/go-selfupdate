@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/creativeprojects/go-selfupdate"
-	"github.com/creativeprojects/go-selfupdate/memory"
+	"github.com/creativeprojects/go-selfupdate/v2"
+	"github.com/creativeprojects/go-selfupdate/v2/memory"
 )
 
 func TestCompileRegexForFiltering(t *testing.T) {

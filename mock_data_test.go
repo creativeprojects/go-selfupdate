@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/creativeprojects/go-selfupdate"
-	"github.com/creativeprojects/go-selfupdate/memory"
+	"github.com/creativeprojects/go-selfupdate/v2"
+	"github.com/creativeprojects/go-selfupdate/v2/memory"
 	"github.com/stretchr/testify/require"
 )
 

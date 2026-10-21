@@ -1,4 +1,4 @@
-module github.com/creativeprojects/go-selfupdate
+module github.com/creativeprojects/go-selfupdate/v2
 
 go 1.26.0
 

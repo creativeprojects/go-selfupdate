@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/creativeprojects/go-selfupdate"
+	"github.com/creativeprojects/go-selfupdate/v2"
 
 	"github.com/ProtonMail/go-crypto/openpgp"
 	"github.com/ProtonMail/go-crypto/openpgp/armor"

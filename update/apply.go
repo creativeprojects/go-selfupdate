@@ -9,7 +9,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/creativeprojects/go-selfupdate/internal"
+	"github.com/creativeprojects/go-selfupdate/v2/internal"
 )
 
 var (

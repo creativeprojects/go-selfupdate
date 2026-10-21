@@ -5,7 +5,7 @@ import (
 	"context"
 	"io"
 
-	"github.com/creativeprojects/go-selfupdate"
+	"github.com/creativeprojects/go-selfupdate/v2"
 )
 
 // Source is a selfupdate.Source in memory used for unit tests

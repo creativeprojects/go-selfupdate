@@ -23,7 +23,7 @@ package http
 import (
 	"time"
 
-	"github.com/creativeprojects/go-selfupdate"
+	"github.com/creativeprojects/go-selfupdate/v2"
 )
 
 type Asset struct {

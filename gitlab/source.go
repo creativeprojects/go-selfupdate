@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/creativeprojects/go-selfupdate"
-	"github.com/creativeprojects/go-selfupdate/internal"
+	"github.com/creativeprojects/go-selfupdate/v2"
+	"github.com/creativeprojects/go-selfupdate/v2/internal"
 	gitlab "gitlab.com/gitlab-org/api/client-go"
 )
 

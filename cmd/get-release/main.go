@@ -13,8 +13,8 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/creativeprojects/go-selfupdate"
-	"github.com/creativeprojects/go-selfupdate/cmd"
+	"github.com/creativeprojects/go-selfupdate/v2"
+	"github.com/creativeprojects/go-selfupdate/v2/cmd"
 )
 
 func main() {

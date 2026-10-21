@@ -317,7 +317,7 @@ gpg --armor --detach-sign foo.zip
 The PGP validator lives in the `pgp` sub-package, so applications not using it don't need to import the PGP libraries:
 
 ```go
-import "github.com/creativeprojects/go-selfupdate/pgp"
+import "github.com/creativeprojects/go-selfupdate/v2/pgp"
 
 updater, _ := selfupdate.NewUpdater(selfupdate.Config{
 	Validator: new(pgp.Validator).WithArmoredKeyRing(publicKey),

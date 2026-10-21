@@ -6,8 +6,8 @@ import (
 	"log"
 	"runtime"
 
-	"github.com/creativeprojects/go-selfupdate"
-	"github.com/creativeprojects/go-selfupdate/github"
+	"github.com/creativeprojects/go-selfupdate/v2"
+	"github.com/creativeprojects/go-selfupdate/v2/github"
 )
 
 // keep this function here, this is the example from the README

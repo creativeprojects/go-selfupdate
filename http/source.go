@@ -28,7 +28,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/creativeprojects/go-selfupdate"
+	"github.com/creativeprojects/go-selfupdate/v2"
 	yaml "go.yaml.in/yaml/v3"
 )
 

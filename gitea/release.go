@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"code.gitea.io/sdk/gitea"
-	"github.com/creativeprojects/go-selfupdate"
+	"github.com/creativeprojects/go-selfupdate/v2"
 )
 
 type Release struct {

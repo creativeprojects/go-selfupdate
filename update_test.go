@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/creativeprojects/go-selfupdate"
-	"github.com/creativeprojects/go-selfupdate/github"
-	"github.com/creativeprojects/go-selfupdate/memory"
+	"github.com/creativeprojects/go-selfupdate/v2"
+	"github.com/creativeprojects/go-selfupdate/v2/github"
+	"github.com/creativeprojects/go-selfupdate/v2/memory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

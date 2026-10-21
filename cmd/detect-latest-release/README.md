@@ -3,7 +3,7 @@ This command line tool is a small wrapper of [`selfupdate.DetectLatest()`](https
 Please install using `go get`.
 
 ```
-$ go get -u github.com/creativeprojects/go-selfupdate/cmd/detect-latest-release
+$ go get -u github.com/creativeprojects/go-selfupdate/v2/cmd/detect-latest-release
 ```
 
 To know the usage, please try the command without any argument.
