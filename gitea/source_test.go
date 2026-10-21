@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"github.com/creativeprojects/go-selfupdate/v2"
+	"github.com/creativeprojects/go-selfupdate/v2/internal/sourcetest"
+	"github.com/creativeprojects/go-selfupdate/v2/memory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -16,7 +18,7 @@ func TestGiteaTokenEnv(t *testing.T) {
 		t.Skip("because $GITEA_TOKEN is not set")
 	}
 
-	if _, err := NewSource(context.Background(), Config{BaseURL: "https://git.lbsfilm.at"}); err != nil {
+	if _, err := NewSource(context.Background(), Config{BaseURL: sourcetest.NewGiteaServer(t, sourcetest.Fixture()).URL}); err != nil {
 		t.Error("Failed to initialize Gitea source with URL")
 	}
 	if _, err := NewSource(context.Background(), Config{APIToken: token}); err != nil {
@@ -25,15 +27,15 @@ func TestGiteaTokenEnv(t *testing.T) {
 }
 
 func TestGiteaTokenIsNotSet(t *testing.T) {
-	t.Setenv("GITHUB_TOKEN", "")
+	t.Setenv("GITEA_TOKEN", "")
 
-	if _, err := NewSource(context.Background(), Config{BaseURL: "https://git.lbsfilm.at"}); err != nil {
+	if _, err := NewSource(context.Background(), Config{BaseURL: sourcetest.NewGiteaServer(t, sourcetest.Fixture()).URL}); err != nil {
 		t.Error("Failed to initialize Gitea source with URL")
 	}
 }
 
 func TestGiteaListReleasesContextCancelled(t *testing.T) {
-	source, err := NewSource(context.Background(), Config{BaseURL: "https://git.lbsfilm.at"})
+	source, err := NewSource(context.Background(), Config{BaseURL: sourcetest.NewGiteaServer(t, sourcetest.Fixture()).URL})
 	require.NoError(t, err)
 
 	ctx, cancelFn := context.WithCancel(context.Background())
@@ -44,7 +46,7 @@ func TestGiteaListReleasesContextCancelled(t *testing.T) {
 }
 
 func TestGiteaDownloadReleaseAssetContextCancelled(t *testing.T) {
-	source, err := NewSource(context.Background(), Config{BaseURL: "https://git.lbsfilm.at"})
+	source, err := NewSource(context.Background(), Config{BaseURL: sourcetest.NewGiteaServer(t, sourcetest.Fixture()).URL})
 	require.NoError(t, err)
 
 	ctx, cancelFn := context.WithCancel(context.Background())
@@ -55,9 +57,22 @@ func TestGiteaDownloadReleaseAssetContextCancelled(t *testing.T) {
 }
 
 func TestGiteaDownloadReleaseAssetWithNilRelease(t *testing.T) {
-	source, err := NewSource(context.Background(), Config{BaseURL: "https://git.lbsfilm.at"})
+	source, err := NewSource(context.Background(), Config{BaseURL: sourcetest.NewGiteaServer(t, sourcetest.Fixture()).URL})
 	require.NoError(t, err)
 
 	_, err = source.DownloadReleaseAsset(context.Background(), nil, 11)
 	assert.ErrorIs(t, err, selfupdate.ErrInvalidRelease)
+}
+
+// TestGiteaSource runs the shared source test suite against a fake Gitea API.
+func TestGiteaSource(t *testing.T) {
+	sourcetest.Run(t, func(t *testing.T, data *memory.Source) selfupdate.Source {
+		server := sourcetest.NewGiteaServer(t, data)
+		source, err := NewSource(context.Background(), Config{BaseURL: server.URL})
+		require.NoError(t, err)
+		return source
+	}, sourcetest.Options{
+		// the Gitea release has no URL (see FIXME in NewRelease)
+		NoReleaseURL: true,
+	})
 }

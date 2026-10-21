@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"github.com/creativeprojects/go-selfupdate/v2"
+	"github.com/creativeprojects/go-selfupdate/v2/internal/sourcetest"
+	"github.com/creativeprojects/go-selfupdate/v2/memory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -88,4 +90,20 @@ func TestGitLabDownloadReleaseAssetNotFound(t *testing.T) {
 		ValidationAssetID: 12,
 	}, 13)
 	assert.ErrorIs(t, err, selfupdate.ErrAssetNotFound)
+}
+
+// TestGitLabSource runs the shared source test suite against a fake GitLab API.
+func TestGitLabSource(t *testing.T) {
+	sourcetest.Run(t, func(t *testing.T, data *memory.Source) selfupdate.Source {
+		server := sourcetest.NewGitLabServer(t, data)
+		source, err := NewSource(Config{BaseURL: server.URL})
+		require.NoError(t, err)
+		return source
+	}, sourcetest.Options{
+		// the GitLab API has no release ID, no draft or pre-release flag, and no size on asset links
+		NoReleaseID:  true,
+		NoDraft:      true,
+		NoPrerelease: true,
+		NoAssetSize:  true,
+	})
 }

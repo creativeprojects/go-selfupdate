@@ -61,8 +61,11 @@ func (s *Source) ListReleases(ctx context.Context, repository selfupdate.Reposit
 		return nil, err
 	}
 
-	rels, _, err := s.api.Releases.ListReleases(pid, nil, gitlab.WithContext(ctx))
+	rels, resp, err := s.api.Releases.ListReleases(pid, nil, gitlab.WithContext(ctx))
 	if err != nil {
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			return nil, selfupdate.ErrRepositoryNotFound
+		}
 		return nil, err
 	}
 	releases := make([]selfupdate.SourceRelease, len(rels))
@@ -79,10 +82,10 @@ func (s *Source) GetLatestRelease(ctx context.Context, repository selfupdate.Rep
 	}
 
 	rel, resp, err := s.api.Releases.GetLatestRelease(pid, nil, gitlab.WithContext(ctx))
-	if resp.StatusCode == http.StatusNotFound {
-		return nil, selfupdate.ErrRepositoryNotFound
-	}
 	if err != nil {
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			return nil, selfupdate.ErrRepositoryNotFound
+		}
 		return nil, err
 	}
 	return NewRelease(rel), nil

@@ -2,6 +2,7 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -147,6 +148,10 @@ func (s *Source) DownloadReleaseAsset(ctx context.Context, rel *selfupdate.Relea
 	client := http.DefaultClient
 	rc, _, err := s.api.Repositories.DownloadReleaseAsset(ctx, owner, repo, assetID, client)
 	if err != nil {
+		var errorResponse *github.ErrorResponse
+		if errors.As(err, &errorResponse) && errorResponse.Response != nil && errorResponse.Response.StatusCode == http.StatusNotFound {
+			err = selfupdate.ErrAssetNotFound
+		}
 		return nil, fmt.Errorf("failed to call GitHub Releases API for getting the asset ID %d on repository '%s/%s': %w", assetID, owner, repo, err)
 	}
 	return rc, nil

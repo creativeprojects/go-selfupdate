@@ -10,6 +10,9 @@ import (
 
 // Source is a selfupdate.Source in memory used for unit tests
 type Source struct {
+	// Repository restricts the source to a single repository: any other repository is reported as not found.
+	// All repositories are accepted when nil.
+	Repository    selfupdate.Repository
 	LatestRelease selfupdate.SourceRelease
 	Releases      []selfupdate.SourceRelease
 	Files         map[int64][]byte
@@ -17,33 +20,27 @@ type Source struct {
 	NotFound      bool // set to true for a repository not found
 }
 
-// ListReleases returns a list of releases. repository parameter is not used.
+// ListReleases returns a list of releases.
 func (s *Source) ListReleases(ctx context.Context, repository selfupdate.Repository) ([]selfupdate.SourceRelease, error) {
-	if _, _, err := repository.GetSlug(); err != nil {
+	if err := s.check(ctx, repository); err != nil {
 		return nil, err
-	}
-	if s.NotFound {
-		return nil, selfupdate.ErrRepositoryNotFound
 	}
 	return s.Releases, nil
 }
 
 func (s *Source) GetLatestRelease(ctx context.Context, repository selfupdate.Repository) (selfupdate.SourceRelease, error) {
-	if _, _, err := repository.GetSlug(); err != nil {
+	if err := s.check(ctx, repository); err != nil {
 		return nil, err
-	}
-	if s.NotFound {
-		return nil, selfupdate.ErrRepositoryNotFound
 	}
 	return s.LatestRelease, nil
 }
 
-// DownloadReleaseAsset returns a file from its ID. repository parameter is not used.
+// DownloadReleaseAsset returns a file from its ID.
 func (s *Source) DownloadReleaseAsset(ctx context.Context, rel *selfupdate.Release, assetID int64) (io.ReadCloser, error) {
 	if rel == nil {
 		return nil, selfupdate.ErrInvalidRelease
 	}
-	if _, _, err := rel.Repository.GetSlug(); err != nil {
+	if err := s.check(ctx, rel.Repository); err != nil {
 		return nil, err
 	}
 	content, ok := s.Files[assetID]
@@ -56,6 +53,30 @@ func (s *Source) DownloadReleaseAsset(ctx context.Context, rel *selfupdate.Relea
 		buffer = newErrorReader(buffer, 4)
 	}
 	return io.NopCloser(buffer), nil
+}
+
+// check fails like a remote source would: on a cancelled context, an invalid slug or an unknown repository.
+func (s *Source) check(ctx context.Context, repository selfupdate.Repository) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+	owner, repo, err := repository.GetSlug()
+	if err != nil {
+		return err
+	}
+	if s.NotFound {
+		return selfupdate.ErrRepositoryNotFound
+	}
+	if s.Repository != nil {
+		expectedOwner, expectedRepo, err := s.Repository.GetSlug()
+		if err != nil {
+			return err
+		}
+		if owner != expectedOwner || repo != expectedRepo {
+			return selfupdate.ErrRepositoryNotFound
+		}
+	}
+	return nil
 }
 
 // Verify interface

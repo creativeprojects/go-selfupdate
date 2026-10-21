@@ -30,6 +30,8 @@ import (
 	"testing"
 
 	"github.com/creativeprojects/go-selfupdate/v2"
+	"github.com/creativeprojects/go-selfupdate/v2/internal/sourcetest"
+	"github.com/creativeprojects/go-selfupdate/v2/memory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -171,4 +173,14 @@ func TestHttpListAndDownloadReleaseAsset(t *testing.T) {
 
 	// Stop as we're done.
 	server.Stop()
+}
+
+// TestHttpSource runs the shared source test suite against a fake HTTP repository.
+func TestHttpSource(t *testing.T) {
+	sourcetest.Run(t, func(t *testing.T, data *memory.Source) selfupdate.Source {
+		server := sourcetest.NewHTTPServer(t, data)
+		source, err := NewSource(Config{BaseURL: server.URL})
+		require.NoError(t, err)
+		return source
+	}, sourcetest.Options{})
 }

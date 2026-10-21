@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"github.com/creativeprojects/go-selfupdate/v2"
+	"github.com/creativeprojects/go-selfupdate/v2/internal/sourcetest"
+	"github.com/creativeprojects/go-selfupdate/v2/memory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -74,4 +76,14 @@ func TestGitHubDownloadReleaseAssetWithNilRelease(t *testing.T) {
 
 	_, err = source.DownloadReleaseAsset(context.Background(), nil, 11)
 	assert.ErrorIs(t, err, selfupdate.ErrInvalidRelease)
+}
+
+// TestGitHubSource runs the shared source test suite against a fake GitHub API.
+func TestGitHubSource(t *testing.T) {
+	sourcetest.Run(t, func(t *testing.T, data *memory.Source) selfupdate.Source {
+		server := sourcetest.NewGitHubServer(t, data)
+		source, err := NewSource(Config{EnterpriseBaseURL: server.URL})
+		require.NoError(t, err)
+		return source
+	}, sourcetest.Options{})
 }

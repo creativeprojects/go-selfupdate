@@ -104,8 +104,11 @@ func (s *Source) DownloadReleaseAsset(ctx context.Context, rel *selfupdate.Relea
 		return nil, err
 	}
 	s.api.SetContext(ctx)
-	attachment, _, err := s.api.GetReleaseAttachment(owner, repo, rel.ReleaseID, assetID)
+	attachment, res, err := s.api.GetReleaseAttachment(owner, repo, rel.ReleaseID, assetID)
 	if err != nil {
+		if res != nil && res.StatusCode == http.StatusNotFound {
+			err = selfupdate.ErrAssetNotFound
+		}
 		return nil, fmt.Errorf("failed to call Gitea Releases API for getting the asset ID %d on repository '%s/%s': %w", assetID, owner, repo, err)
 	}
 
