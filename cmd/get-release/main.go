@@ -77,17 +77,10 @@ func main() {
 
 	cmd := getCommand(repo)
 	cmdPath := filepath.Join(build.Default.GOPATH, "bin", cmd)
-	if _, err := os.Stat(cmdPath); err != nil {
-		// When executable is not existing yet
-		if err := installFrom(ctx, latest.AssetURL, relExe, cmdPath); err != nil {
-			fmt.Fprintf(os.Stderr, "Error while installing the release binary from %s: %s\n", latest.AssetURL, err)
-			os.Exit(1)
-		}
-	} else {
-		if err := updater.UpdateTo(ctx, selfupdate.UpdateToOpt{Rel: latest, RelExe: relExe, CmdPath: cmdPath}); err != nil {
-			fmt.Fprintf(os.Stderr, "Error while replacing the binary with %s: %s\n", latest.AssetURL, err)
-			os.Exit(1)
-		}
+
+	if err := updater.UpdateTo(ctx, selfupdate.UpdateToOpt{Rel: latest, RelExe: relExe, CmdPath: cmdPath}); err != nil {
+		fmt.Fprintf(os.Stderr, "Error while installing the release binary from %s: %s\n", latest.AssetURL, err)
+		os.Exit(1)
 	}
 
 	fmt.Printf(`Command was updated to the latest version %s: %s
@@ -113,37 +106,4 @@ func getCommand(pkg string) string {
 	pkg = strings.TrimSuffix(pkg, "/")
 	_, cmd := filepath.Split(pkg)
 	return cmd
-}
-
-func installFrom(ctx context.Context, url, relExe, path string) error {
-	// req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
-	// if err != nil {
-	// 	return fmt.Errorf("failed to create request to download release binary from %s: %s", url, err)
-	// }
-	// res, err := http.DefaultClient.Do(req)
-	// if err != nil {
-	// 	return fmt.Errorf("failed to download release binary from %s: %s", url, err)
-	// }
-	// defer res.Body.Close()
-	// if res.StatusCode != http.StatusOK {
-	// 	return fmt.Errorf("failed to download release binary from %s: Invalid response ", url)
-	// }
-	// executable, err := selfupdate.DecompressCommand(selfupdate.DecompressCommandOpt{
-	// 	Src:    res.Body,
-	// 	Url:    url,
-	// 	RelExe: relExe,
-	// 	Os:     runtime.GOOS,
-	// 	Arch:   runtime.GOARCH,
-	// })
-	// if err != nil {
-	// 	return fmt.Errorf("failed to decompress downloaded asset from %s: %s", url, err)
-	// }
-	// bin, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE, 0755)
-	// if err != nil {
-	// 	return err
-	// }
-	// if _, err := io.Copy(bin, executable); err != nil {
-	// 	return fmt.Errorf("failed to write binary to %s: %s", path, err)
-	// }
-	return nil
 }
