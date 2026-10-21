@@ -22,11 +22,11 @@ package http
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"slices"
 
 	"github.com/creativeprojects/go-selfupdate/v2"
 	yaml "go.yaml.in/yaml/v3"
@@ -96,13 +96,7 @@ func (s *Source) uriRelative(uri, owner, repo string) string {
 	return uri
 }
 
-// ListReleases returns all available releases
-func (s *Source) ListReleases(ctx context.Context, repository selfupdate.Repository) ([]selfupdate.SourceRelease, error) {
-	owner, repo, err := repository.GetSlug()
-	if err != nil {
-		return nil, err
-	}
-
+func (s *Source) getManifest(ctx context.Context, owner, repo string) (*Manifest, error) {
 	// Make repository URI.
 	uri, err := url.JoinPath(s.baseURL, owner, repo, "manifest.yaml")
 	if err != nil {
@@ -143,6 +137,21 @@ func (s *Source) ListReleases(ctx context.Context, repository selfupdate.Reposit
 		return nil, err
 	}
 
+	return manifest, nil
+}
+
+// ListReleases returns all available releases
+func (s *Source) ListReleases(ctx context.Context, repository selfupdate.Repository) ([]selfupdate.SourceRelease, error) {
+	owner, repo, err := repository.GetSlug()
+	if err != nil {
+		return nil, err
+	}
+
+	manifest, err := s.getManifest(ctx, owner, repo)
+	if err != nil {
+		return nil, err
+	}
+
 	// Make a release array.
 	releases := make([]selfupdate.SourceRelease, len(manifest.Releases))
 	for i, release := range manifest.Releases {
@@ -160,7 +169,23 @@ func (s *Source) ListReleases(ctx context.Context, repository selfupdate.Reposit
 }
 
 func (s *Source) GetLatestRelease(ctx context.Context, repository selfupdate.Repository) (selfupdate.SourceRelease, error) {
-	return nil, errors.New("not implemented")
+	owner, repo, err := repository.GetSlug()
+	if err != nil {
+		return nil, err
+	}
+
+	manifest, err := s.getManifest(ctx, owner, repo)
+	if err != nil {
+		return nil, err
+	}
+
+	index := slices.IndexFunc(manifest.Releases, func(release *Release) bool {
+		return release.ID == manifest.LastReleaseID
+	})
+	if index == -1 {
+		return nil, selfupdate.ErrReleaseNotFound
+	}
+	return manifest.Releases[index], nil
 }
 
 // DownloadReleaseAsset downloads an asset from a release.

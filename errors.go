@@ -12,6 +12,7 @@ var (
 	ErrNotSupported                = errors.New("operation not supported")
 	ErrRepositoryNotFound          = errors.New("repository not found")
 	ErrInvalidRelease              = errors.New("invalid release (nil argument)")
+	ErrReleaseNotFound             = errors.New("latest release not found")
 	ErrAssetNotFound               = errors.New("asset not found")
 	ErrValidationAssetNotFound     = errors.New("validation file not found")
 	ErrValidatorNotFound           = errors.New("file did not match a configured validator")
