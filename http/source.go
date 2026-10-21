@@ -128,6 +128,9 @@ func (s *Source) ListReleases(ctx context.Context, repository selfupdate.Reposit
 	}
 	if res.StatusCode != http.StatusOK {
 		res.Body.Close()
+		if res.StatusCode == http.StatusNotFound {
+			return nil, selfupdate.ErrRepositoryNotFound
+		}
 		return nil, fmt.Errorf("HTTP request failed with status code %d", res.StatusCode)
 	}
 

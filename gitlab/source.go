@@ -78,7 +78,10 @@ func (s *Source) GetLatestRelease(ctx context.Context, repository selfupdate.Rep
 		return nil, err
 	}
 
-	rel, _, err := s.api.Releases.GetLatestRelease(pid, nil, gitlab.WithContext(ctx))
+	rel, resp, err := s.api.Releases.GetLatestRelease(pid, nil, gitlab.WithContext(ctx))
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, selfupdate.ErrRepositoryNotFound
+	}
 	if err != nil {
 		return nil, err
 	}
