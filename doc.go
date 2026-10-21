@@ -13,10 +13,10 @@
 //   - Supports private repositories
 //   - Supports hash and signature validation
 //
-// Create an [Updater] with [NewUpdater] and a [Source] from one of the
-// provider packages (github, gitlab, gitea or http), then call
-// [Updater.DetectLatest] and [Updater.UpdateTo], or [Updater.UpdateSelf]
-// to do both at once.
+// There is no default source: [Config.Source] must be set to one from the
+// provider packages (github, gitlab, gitea or http). Create an [Updater]
+// with [NewUpdater], then call [Updater.DetectLatest] and [Updater.UpdateTo],
+// or [Updater.UpdateSelf] to do both at once.
 //
 // Released binaries and git tags must follow the naming rules described in the README:
 //

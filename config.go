@@ -2,7 +2,8 @@ package selfupdate
 
 // Config represents the configuration of self-update.
 type Config struct {
-	// Source where to load the releases from (example: GitHubSource).
+	// Source where to load the releases from, for example a github.Source.
+	// There is no default: NewUpdater returns an error when it is nil.
 	Source Source
 	// Validator represents types which enable additional validation of downloaded release.
 	Validator Validator

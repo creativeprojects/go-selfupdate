@@ -17,7 +17,7 @@ import (
 	"github.com/creativeprojects/go-selfupdate/v2/internal"
 )
 
-// Config is an object to pass to NewGiteaSource
+// Config is an object to pass to NewSource
 type Config struct {
 	// APIToken represents Gitea API token. If it's not empty, it will be used for authentication for the API
 	APIToken string

@@ -18,6 +18,11 @@ Self-Update library for Github, Gitea and Gitlab hosted applications in Go
   * [Package functions](#package-functions)
   * [Methods on Source interface](#methods-on-source-interface)
   * [Methods on Updater struct](#methods-on-updater-struct)
+* [Upgrade from v1 to v2](#upgrade-from-v1-to-v2)
+  * [No default source](#no-default-source)
+  * [Sources and PGP are sub-packages](#sources-and-pgp-are-sub-packages)
+  * [Updater methods take an options struct](#updater-methods-take-an-options-struct)
+  * [New method on the Source interface](#new-method-on-the-source-interface)
 * [Naming Rules of Released Binaries](#naming-rules-of-released-binaries)
 * [Naming Rules of Versions (=Git Tags)](#naming-rules-of-versions-git-tags)
 * [Structure of Releases](#structure-of-releases)
@@ -53,10 +58,13 @@ the source provider and replaces itself.
 - Support private repositories
 - Support hash, signature validation
 
-Three source providers are available:
-- GitHub
-- Gitea
-- Gitlab
+Four source providers are available, each in its own package:
+- GitHub (`github`)
+- Gitea (`gitea`)
+- GitLab (`gitlab`)
+- HTTP repository (`http`)
+
+There is no default source: create one and pass it to `NewUpdater` in the `Config`.
 
 This library started as a fork of https://github.com/rhysd/go-github-selfupdate. A few things have changed from the original implementation:
 - don't expose an external `semver.Version` type, but provide the same functionality through the API: `LessThan`, `Equal` and `GreaterThan`
@@ -69,11 +77,21 @@ This library started as a fork of https://github.com/rhysd/go-github-selfupdate.
 
 # Example
 
-Here's an example how to use the library for an application to update itself
+Here's an example how to use the library for an application to update itself from its GitHub releases.
+The source comes from the `github` sub-package (`github.com/creativeprojects/go-selfupdate/v2/github`):
 
 ```go
 func update(version string) error {
-	latest, found, err := selfupdate.DetectLatest(
+	source, err := github.NewSource(github.Config{})
+	if err != nil {
+		return fmt.Errorf("error occurred while creating GitHub source: %w", err)
+	}
+	updater, err := selfupdate.NewUpdater(selfupdate.Config{Source: source})
+	if err != nil {
+		return fmt.Errorf("error occurred while creating updater: %w", err)
+	}
+
+	latest, found, err := updater.DetectLatest(
 		context.Background(),
 		selfupdate.DetectLatestOpt{Repository: selfupdate.ParseSlug("creativeprojects/resticprofile")},
 	)
@@ -96,7 +114,7 @@ func update(version string) error {
 
 	// In the new release, the binary file can have any name — this is set by the selfupdate.UpdateToOpt.RelExe.
 	// If it's the same as the old one, then selfupdate.UpdateToOpt.RelExe should be empty.
-	if err := selfupdate.UpdateTo(context.Background(), selfupdate.UpdateToOpt{Rel: latest, CmdPath: cmdPath}); err != nil {
+	if err := updater.UpdateTo(context.Background(), selfupdate.UpdateToOpt{Rel: latest, CmdPath: cmdPath}); err != nil {
 		return fmt.Errorf("error occurred while updating binary: %w", err)
 	}
 	log.Printf("Successfully updated to version %s", latest.Version())
@@ -169,6 +187,44 @@ All methods are now accepting a `context` as their first parameter. You can use 
 | UpdateSelf(current string, slug string) (*Release, error) | UpdateSelf(ctx context.Context, current string, repository Repository) (*Release, error) |
 | UpdateTo(rel *Release, cmdPath string) error | UpdateTo(ctx context.Context, rel *Release, cmdPath string) error |
 
+
+# Upgrade from v1 to v2
+
+## No default source
+
+The package level functions `DetectLatest`, `DetectVersion`, `UpdateTo`, `UpdateCommand` and `UpdateSelf`
+(and `DefaultUpdater`) are gone: they were silently using a GitHub source.
+Create an `Updater` with `NewUpdater` and give it a `Source` explicitly.
+
+## Sources and PGP are sub-packages
+
+| v1 | v2 |
+|----|----|
+| `selfupdate.NewGitHubSource(selfupdate.GitHubConfig{})` | `github.NewSource(github.Config{})` |
+| `selfupdate.NewGiteaSource(selfupdate.GiteaConfig{})` | `gitea.NewSource(ctx, gitea.Config{})` |
+| `selfupdate.NewGitLabSource(selfupdate.GitLabConfig{})` | `gitlab.NewSource(gitlab.Config{})` |
+| `selfupdate.NewHttpSource(selfupdate.HttpConfig{})` | `http.NewSource(http.Config{})` |
+| `selfupdate.PGPValidator` | `pgp.Validator` |
+| `selfupdate.NewChecksumWithPGPValidator(...)` | `pgp.NewChecksumValidator(...)` |
+
+The import paths are `github.com/creativeprojects/go-selfupdate/v2/github`, `/gitea`, `/gitlab`, `/http` and `/pgp`.
+
+## Updater methods take an options struct
+
+| v1 | v2 |
+|----|----|
+| `DetectLatest(ctx, repository)` | `DetectLatest(ctx, DetectLatestOpt{Repository: repository})` |
+| `DetectVersion(ctx, repository, version)` | `DetectVersion(ctx, DetectVersionOpt{Repository: repository, Version: version})` |
+| `UpdateTo(ctx, rel, cmdPath)` | `UpdateTo(ctx, UpdateToOpt{Rel: rel, CmdPath: cmdPath})` |
+| `UpdateCommand(ctx, cmdPath, current, repository)` | `UpdateCommand(ctx, UpdateCommandOpt{CmdPath: cmdPath, Current: current, Repository: repository})` |
+| `UpdateSelf(ctx, current, repository)` | `UpdateSelf(ctx, UpdateSelfOpt{Current: current, Repository: repository})` |
+
+The `RelExe` field of `UpdateToOpt`, `UpdateCommandOpt` and `UpdateSelfOpt` names the executable inside the new release
+when it differs from the name of the current one.
+
+## New method on the Source interface
+
+A `Source` must also implement `GetLatestRelease(ctx context.Context, repository Repository) (SourceRelease, error)`.
 
 # Naming Rules of Released Binaries
 
@@ -356,11 +412,14 @@ Default is empty, which means no fallback.
 
 # Other providers than Github
 
-This library can be easily extended by providing a new source and release implementation for any git provider
-Currently implemented are 
-- Github (default)
-- Gitea
-- Gitlab
+This library can be easily extended by providing a new source and release implementation for any git provider.
+Currently implemented are:
+- GitHub (`github` package)
+- Gitea (`gitea` package)
+- GitLab (`gitlab` package)
+- HTTP repository (`http` package)
+
+None of them is the default: `NewUpdater` returns an error when the `Config` has no `Source`.
 
 # GitLab
 
@@ -383,7 +442,7 @@ See [goreleaser documentation](https://goreleaser.com/scm/gitlab/#generic-packag
 
 ```go
 func update() error {
-	source, err := selfupdate.NewGitLabSource(selfupdate.GitLabConfig{
+	source, err := gitlab.NewSource(gitlab.Config{
 		BaseURL: "https://private.instance.on.gitlab.com/",
 	})
 	if err != nil {
@@ -428,7 +487,7 @@ func update() error {
 
 Support for http based repositories landed in version 1.4.0.
 
-The HttpSource is designed to work with repositories built using [goreleaser-http-repo-builder](https://github.com/GRMrGecko/goreleaser-http-repo-builder?tab=readme-ov-file). This provides a simple way to add self-update support to software that is not open source, allowing you to host your own updates. It requires that you still use the owner/project url style, and you can set custom headers to be used with requests to authenticate.
+The `http` source is designed to work with repositories built using [goreleaser-http-repo-builder](https://github.com/GRMrGecko/goreleaser-http-repo-builder?tab=readme-ov-file). This provides a simple way to add self-update support to software that is not open source, allowing you to host your own updates. It requires that you still use the owner/project url style, and you can set custom headers to be used with requests to authenticate.
 
 ## Example:
 
@@ -436,7 +495,7 @@ If your repository is at example.com/repo/project, then you'd use the following 
 
 ```go
 func update() error {
-	source, err := selfupdate.NewHttpSource(selfupdate.HttpConfig{
+	source, err := http.NewSource(http.Config{
 		BaseURL: "https://example.com/",
 	})
 	if err != nil {

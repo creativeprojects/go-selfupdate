@@ -46,7 +46,7 @@ type Manifest struct {
 	Releases      []*Release `yaml:"releases"`
 }
 
-// Config is an object to pass to NewHttpSource
+// Config is an object to pass to NewSource
 type Config struct {
 	// BaseURL is a base URL of your update server. This parameter has NO default value.
 	BaseURL string

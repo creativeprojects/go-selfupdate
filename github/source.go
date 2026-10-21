@@ -37,7 +37,7 @@ type Source struct {
 // NewSource creates a new github.Source from a config object.
 // It initializes a GitHub API client.
 // If you set your API token to the $GITHUB_TOKEN environment variable, the client will use it.
-// You can pass an empty GitHubSource{} to use the default configuration
+// You can pass an empty Config{} to use the default configuration (github.com).
 // The function will return an error if the GitHub Enterprise URLs in the config object cannot be parsed
 func NewSource(config Config) (*Source, error) {
 	var opts []github.ClientOptionsFunc

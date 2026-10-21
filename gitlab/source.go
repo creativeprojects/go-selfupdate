@@ -34,11 +34,11 @@ type Source struct {
 	baseURL string
 }
 
-// NewSource creates a new GitLabSource from a config object.
+// NewSource creates a new gitlab.Source from a config object.
 // It initializes a GitLab API client.
 // If you set your API token to the $GITLAB_TOKEN environment variable, the client will use it.
-// You can pass an empty GitLabSource{} to use the default configuration
-// The function will return an error if the GitLab Enterprise URLs in the config object cannot be parsed
+// You can pass an empty Config{} to use the default configuration (gitlab.com).
+// The function will return an error if the base URL in the config object cannot be parsed
 func NewSource(config Config) (*Source, error) {
 	token := config.APIToken
 	if token == "" {
