@@ -1,20 +1,24 @@
-package selfupdate
+package selfupdate_test
 
 import (
 	"context"
 	"fmt"
+	"io"
 	stdlog "log"
 	"os"
 	"strconv"
 	"strings"
 	"testing"
 
+	"github.com/creativeprojects/go-selfupdate"
+	"github.com/creativeprojects/go-selfupdate/github"
+	"github.com/creativeprojects/go-selfupdate/memory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 var (
-	testGithubRepository = NewRepositorySlug("creativeprojects", "resticprofile")
+	testGithubRepository = selfupdate.NewRepositorySlug("creativeprojects", "resticprofile")
 )
 
 func skipRateLimitExceeded(t *testing.T, err error) {
@@ -30,10 +34,10 @@ func TestDetectReleaseWithVersionPrefix(t *testing.T) {
 	testData := []struct {
 		run     bool
 		name    string
-		updater *Updater
+		updater *selfupdate.Updater
 	}{
-		{true, "Mock", newMockUpdater(t, Config{Source: mockMemorySource(t)})},
-		{!testing.Short(), "GitHub", DefaultUpdater()},
+		{true, "Mock", newMockUpdater(t, selfupdate.Config{Source: mockMemorySource(t)})},
+		{!testing.Short(), "GitHub", newGitHubUpdater(t, selfupdate.Config{})},
 	}
 
 	for _, testItem := range testData {
@@ -41,7 +45,7 @@ func TestDetectReleaseWithVersionPrefix(t *testing.T) {
 			continue
 		}
 		t.Run(testItem.name, func(t *testing.T) {
-			r, ok, err := testItem.updater.DetectLatest(context.Background(), DetectLatestOpt{testGithubRepository})
+			r, ok, err := testItem.updater.DetectLatest(context.Background(), selfupdate.DetectLatestOpt{testGithubRepository})
 			skipRateLimitExceeded(t, err)
 			require.NoError(t, err)
 			assert.True(t, ok, "Failed to detect latest")
@@ -64,13 +68,13 @@ func TestDetectReleaseWithVersionPrefix(t *testing.T) {
 
 func TestDetectVersionExisting(t *testing.T) {
 	testVersion := "v0.14.0"
-	gitHub, _ := NewUpdater(Config{Validator: &ChecksumValidator{UniqueFilename: "checksums.txt"}})
+	gitHub := newGitHubUpdater(t, selfupdate.Config{Validator: &selfupdate.ChecksumValidator{UniqueFilename: "checksums.txt"}})
 	testData := []struct {
 		run     bool
 		name    string
-		updater *Updater
+		updater *selfupdate.Updater
 	}{
-		{true, "Mock", newMockUpdater(t, Config{Source: mockMemorySource(t), Validator: &ChecksumValidator{UniqueFilename: "checksums.txt"}})},
+		{true, "Mock", newMockUpdater(t, selfupdate.Config{Source: mockMemorySource(t), Validator: &selfupdate.ChecksumValidator{UniqueFilename: "checksums.txt"}})},
 		{!testing.Short(), "GitHub", gitHub},
 	}
 
@@ -79,7 +83,7 @@ func TestDetectVersionExisting(t *testing.T) {
 			continue
 		}
 		t.Run(testItem.name, func(t *testing.T) {
-			r, ok, err := testItem.updater.DetectVersion(context.Background(), DetectVersionOpt{testGithubRepository, testVersion})
+			r, ok, err := testItem.updater.DetectVersion(context.Background(), selfupdate.DetectVersionOpt{testGithubRepository, testVersion})
 			skipRateLimitExceeded(t, err)
 			require.NoError(t, err)
 			assert.Truef(t, ok, "Failed to detect %s", testVersion)
@@ -91,13 +95,13 @@ func TestDetectVersionExisting(t *testing.T) {
 
 func TestDetectVersionExistingWithNoValidationFile(t *testing.T) {
 	testVersion := "v0.14.0"
-	gitHub, _ := NewUpdater(Config{Validator: &ChecksumValidator{UniqueFilename: "notfound.txt"}})
+	gitHub := newGitHubUpdater(t, selfupdate.Config{Validator: &selfupdate.ChecksumValidator{UniqueFilename: "notfound.txt"}})
 	testData := []struct {
 		run     bool
 		name    string
-		updater *Updater
+		updater *selfupdate.Updater
 	}{
-		{true, "Mock", newMockUpdater(t, Config{Source: mockMemorySource(t), Validator: &ChecksumValidator{UniqueFilename: "notfound.txt"}})},
+		{true, "Mock", newMockUpdater(t, selfupdate.Config{Source: mockMemorySource(t), Validator: &selfupdate.ChecksumValidator{UniqueFilename: "notfound.txt"}})},
 		{!testing.Short(), "GitHub", gitHub},
 	}
 
@@ -106,9 +110,9 @@ func TestDetectVersionExistingWithNoValidationFile(t *testing.T) {
 			continue
 		}
 		t.Run(testItem.name, func(t *testing.T) {
-			_, _, err := testItem.updater.DetectVersion(context.Background(), DetectVersionOpt{testGithubRepository, testVersion})
+			_, _, err := testItem.updater.DetectVersion(context.Background(), selfupdate.DetectVersionOpt{testGithubRepository, testVersion})
 			skipRateLimitExceeded(t, err)
-			assert.ErrorIs(t, err, ErrValidationAssetNotFound)
+			assert.ErrorIs(t, err, selfupdate.ErrValidationAssetNotFound)
 		})
 	}
 }
@@ -117,10 +121,10 @@ func TestDetectVersionNotExisting(t *testing.T) {
 	testData := []struct {
 		run     bool
 		name    string
-		updater *Updater
+		updater *selfupdate.Updater
 	}{
-		{true, "Mock", newMockUpdater(t, Config{Source: mockMemorySource(t)})},
-		{!testing.Short(), "GitHub", DefaultUpdater()},
+		{true, "Mock", newMockUpdater(t, selfupdate.Config{Source: mockMemorySource(t)})},
+		{!testing.Short(), "GitHub", newGitHubUpdater(t, selfupdate.Config{})},
 	}
 
 	for _, testItem := range testData {
@@ -128,7 +132,7 @@ func TestDetectVersionNotExisting(t *testing.T) {
 			continue
 		}
 		t.Run(testItem.name, func(t *testing.T) {
-			r, ok, err := testItem.updater.DetectVersion(context.Background(), DetectVersionOpt{testGithubRepository, "foobar"})
+			r, ok, err := testItem.updater.DetectVersion(context.Background(), selfupdate.DetectVersionOpt{testGithubRepository, "foobar"})
 			skipRateLimitExceeded(t, err)
 			require.NoError(t, err)
 			assert.False(t, ok, "Failed to correctly detect foobar")
@@ -147,11 +151,11 @@ func TestDetectPrerelease(t *testing.T) {
 	}
 	for _, testFixture := range testFixtures {
 		t.Run(strconv.FormatBool(testFixture.prerelease), func(t *testing.T) {
-			updater := newMockUpdater(t, Config{
+			updater := newMockUpdater(t, selfupdate.Config{
 				Source:     mockMemorySource(t),
 				Prerelease: testFixture.prerelease,
 			})
-			r, ok, err := updater.DetectLatest(context.Background(), DetectLatestOpt{RepositorySlug{owner: "owner", repo: "repo"}})
+			r, ok, err := updater.DetectLatest(context.Background(), selfupdate.DetectLatestOpt{selfupdate.NewRepositorySlug("owner", "repo")})
 			require.NotNil(t, r)
 			assert.True(t, ok)
 			assert.NoError(t, err)
@@ -174,11 +178,11 @@ func TestDetectReleasesForVariousArchives(t *testing.T) {
 		{"rhysd-test/test-release-tar-xz", "release-"},
 	} {
 		t.Run(tc.slug, func(t *testing.T) {
-			source, err := NewGitHubSource(GitHubConfig{})
+			source, err := github.NewSource(github.Config{})
 			require.NoError(t, err, "failed to create source")
-			updater, err := NewUpdater(Config{Source: source, Arch: "amd64"})
+			updater, err := selfupdate.NewUpdater(selfupdate.Config{Source: source, Arch: "amd64"})
 			require.NoError(t, err, "failed to create updater")
-			r, ok, err := updater.DetectLatest(context.Background(), DetectLatestOpt{ParseSlug(tc.slug)})
+			r, ok, err := updater.DetectLatest(context.Background(), selfupdate.DetectLatestOpt{selfupdate.ParseSlug(tc.slug)})
 			skipRateLimitExceeded(t, err)
 
 			assert.NoError(t, err, "fetch failed")
@@ -206,24 +210,24 @@ func TestDetectReleaseButNoAsset(t *testing.T) {
 	testData := []struct {
 		run     bool
 		name    string
-		updater *Updater
+		updater *selfupdate.Updater
 	}{
-		{true, "Mock", newMockUpdater(t, Config{Source: NewMockSource(
-			[]SourceRelease{
-				&GitHubRelease{
-					name:    "first",
-					tagName: "v1.0",
-					assets:  nil,
+		{true, "Mock", newMockUpdater(t, selfupdate.Config{Source: newMemorySource(
+			[]selfupdate.SourceRelease{
+				&memory.Release{
+					Name:    "first",
+					TagName: "v1.0",
+					Assets:  nil,
 				},
-				&GitHubRelease{
-					name:    "second",
-					tagName: "v2.0",
-					assets:  nil,
+				&memory.Release{
+					Name:    "second",
+					TagName: "v2.0",
+					Assets:  nil,
 				},
 			},
 			nil,
 		)})},
-		{!testing.Short(), "GitHub", DefaultUpdater()},
+		{!testing.Short(), "GitHub", newGitHubUpdater(t, selfupdate.Config{})},
 	}
 
 	for _, testItem := range testData {
@@ -231,7 +235,7 @@ func TestDetectReleaseButNoAsset(t *testing.T) {
 			continue
 		}
 		t.Run(testItem.name, func(t *testing.T) {
-			_, ok, err := testItem.updater.DetectLatest(context.Background(), DetectLatestOpt{ParseSlug("rhysd/clever-f.vim")})
+			_, ok, err := testItem.updater.DetectLatest(context.Background(), selfupdate.DetectLatestOpt{selfupdate.ParseSlug("rhysd/clever-f.vim")})
 			skipRateLimitExceeded(t, err)
 			require.NoError(t, err)
 			assert.False(t, ok, "When no asset found, result should be marked as 'not found'")
@@ -243,10 +247,10 @@ func TestNonExistingRepo(t *testing.T) {
 	testData := []struct {
 		run     bool
 		name    string
-		updater *Updater
+		updater *selfupdate.Updater
 	}{
-		{true, "Mock", newMockUpdater(t, Config{Source: NewMockSource(nil, nil)})},
-		{!testing.Short(), "GitHub", DefaultUpdater()},
+		{true, "Mock", newMockUpdater(t, selfupdate.Config{Source: newMemorySource(nil, nil)})},
+		{!testing.Short(), "GitHub", newGitHubUpdater(t, selfupdate.Config{})},
 	}
 
 	for _, testItem := range testData {
@@ -254,7 +258,7 @@ func TestNonExistingRepo(t *testing.T) {
 			continue
 		}
 		t.Run(testItem.name, func(t *testing.T) {
-			_, ok, err := testItem.updater.DetectLatest(context.Background(), DetectLatestOpt{ParseSlug("rhysd/non-existing-repo")})
+			_, ok, err := testItem.updater.DetectLatest(context.Background(), selfupdate.DetectLatestOpt{selfupdate.ParseSlug("rhysd/non-existing-repo")})
 			skipRateLimitExceeded(t, err)
 			require.NoError(t, err)
 			assert.False(t, ok, "Release for non-existing repo should not be found")
@@ -266,10 +270,10 @@ func TestNoReleaseFound(t *testing.T) {
 	testData := []struct {
 		run     bool
 		name    string
-		updater *Updater
+		updater *selfupdate.Updater
 	}{
-		{true, "Mock", newMockUpdater(t, Config{Source: NewMockSource(nil, nil)})},
-		{!testing.Short(), "GitHub", DefaultUpdater()},
+		{true, "Mock", newMockUpdater(t, selfupdate.Config{Source: newMemorySource(nil, nil)})},
+		{!testing.Short(), "GitHub", newGitHubUpdater(t, selfupdate.Config{})},
 	}
 
 	for _, testItem := range testData {
@@ -277,7 +281,7 @@ func TestNoReleaseFound(t *testing.T) {
 			continue
 		}
 		t.Run(testItem.name, func(t *testing.T) {
-			_, ok, err := testItem.updater.DetectLatest(context.Background(), DetectLatestOpt{ParseSlug("rhysd/misc")})
+			_, ok, err := testItem.updater.DetectLatest(context.Background(), selfupdate.DetectLatestOpt{selfupdate.ParseSlug("rhysd/misc")})
 			skipRateLimitExceeded(t, err)
 			require.NoError(t, err)
 			assert.False(t, ok, "Repo having no release should not be found")
@@ -288,8 +292,8 @@ func TestNoReleaseFound(t *testing.T) {
 func TestFindAssetFromRelease(t *testing.T) {
 	type findReleaseAndAssetFixture struct {
 		name            string
-		config          Config
-		release         SourceRelease
+		config          selfupdate.Config
+		release         selfupdate.SourceRelease
 		targetVersion   string
 		expectedAsset   string
 		expectedVersion string
@@ -311,18 +315,18 @@ func TestFindAssetFromRelease(t *testing.T) {
 	testData := []findReleaseAndAssetFixture{
 		{
 			name:          "empty fixture",
-			config:        Config{},
+			config:        selfupdate.Config{},
 			release:       nil,
 			targetVersion: "",
 			expectedFound: false,
 		},
 		{
 			name: "find asset, no filters",
-			release: &GitHubRelease{
-				name:    rel1,
-				tagName: v1,
-				assets: []SourceAsset{
-					&GitHubAsset{name: asset1, url: url1},
+			release: &memory.Release{
+				Name:    rel1,
+				TagName: v1,
+				Assets: []selfupdate.SourceAsset{
+					&memory.Asset{Name: asset1, URL: url1},
 				},
 			},
 			targetVersion:   "1.0.0",
@@ -332,11 +336,11 @@ func TestFindAssetFromRelease(t *testing.T) {
 		},
 		{
 			name: "find asset, no target version",
-			release: &GitHubRelease{
-				name:    rel1,
-				tagName: v1,
-				assets: []SourceAsset{
-					&GitHubAsset{name: asset1, url: url1},
+			release: &memory.Release{
+				Name:    rel1,
+				TagName: v1,
+				Assets: []selfupdate.SourceAsset{
+					&memory.Asset{Name: asset1, URL: url1},
 				},
 			},
 			targetVersion:   "",
@@ -346,13 +350,13 @@ func TestFindAssetFromRelease(t *testing.T) {
 		},
 		{
 			name: "don't find prerelease",
-			release: &GitHubRelease{
-				name:    rel1,
-				tagName: v1,
-				assets: []SourceAsset{
-					&GitHubAsset{name: asset1, url: url1},
+			release: &memory.Release{
+				Name:    rel1,
+				TagName: v1,
+				Assets: []selfupdate.SourceAsset{
+					&memory.Asset{Name: asset1, URL: url1},
 				},
-				prerelease: true,
+				Prerelease: true,
 			},
 			targetVersion:   "",
 			expectedAsset:   asset1,
@@ -361,13 +365,13 @@ func TestFindAssetFromRelease(t *testing.T) {
 		},
 		{
 			name: "find named prerelease",
-			release: &GitHubRelease{
-				name:    rel1,
-				tagName: v1,
-				assets: []SourceAsset{
-					&GitHubAsset{name: asset1, url: url1},
+			release: &memory.Release{
+				Name:    rel1,
+				TagName: v1,
+				Assets: []selfupdate.SourceAsset{
+					&memory.Asset{Name: asset1, URL: url1},
 				},
-				prerelease: true,
+				Prerelease: true,
 			},
 			targetVersion:   "1.0.0",
 			expectedAsset:   asset1,
@@ -376,14 +380,14 @@ func TestFindAssetFromRelease(t *testing.T) {
 		},
 		{
 			name:   "find prerelease",
-			config: Config{Prerelease: true},
-			release: &GitHubRelease{
-				name:    rel1,
-				tagName: v1,
-				assets: []SourceAsset{
-					&GitHubAsset{name: asset1, url: url1},
+			config: selfupdate.Config{Prerelease: true},
+			release: &memory.Release{
+				Name:    rel1,
+				TagName: v1,
+				Assets: []selfupdate.SourceAsset{
+					&memory.Asset{Name: asset1, URL: url1},
 				},
-				prerelease: true,
+				Prerelease: true,
 			},
 			targetVersion:   "",
 			expectedAsset:   asset1,
@@ -392,11 +396,11 @@ func TestFindAssetFromRelease(t *testing.T) {
 		},
 		{
 			name: "don't find asset with wrong extension, no filters",
-			release: &GitHubRelease{
-				name:    rel11,
-				tagName: v11,
-				assets: []SourceAsset{
-					&GitHubAsset{name: wrongAsset1, url: url11},
+			release: &memory.Release{
+				Name:    rel11,
+				TagName: v11,
+				Assets: []selfupdate.SourceAsset{
+					&memory.Asset{Name: wrongAsset1, URL: url11},
 				},
 			},
 			targetVersion: "1.1.0",
@@ -404,11 +408,11 @@ func TestFindAssetFromRelease(t *testing.T) {
 		},
 		{
 			name: "find asset with different name, no filters",
-			release: &GitHubRelease{
-				name:    rel11,
-				tagName: v11,
-				assets: []SourceAsset{
-					&GitHubAsset{name: asset1, url: url11},
+			release: &memory.Release{
+				Name:    rel11,
+				TagName: v11,
+				Assets: []selfupdate.SourceAsset{
+					&memory.Asset{Name: asset1, URL: url11},
 				},
 			},
 			targetVersion:   "1.1.0",
@@ -418,11 +422,11 @@ func TestFindAssetFromRelease(t *testing.T) {
 		},
 		{
 			name: "find asset, no filters (2)",
-			release: &GitHubRelease{
-				name:    rel11,
-				tagName: v11,
-				assets: []SourceAsset{
-					&GitHubAsset{name: asset11, url: url11},
+			release: &memory.Release{
+				Name:    rel11,
+				TagName: v11,
+				Assets: []selfupdate.SourceAsset{
+					&memory.Asset{Name: asset11, URL: url11},
 				},
 			},
 			targetVersion:   "1.1.0",
@@ -432,64 +436,64 @@ func TestFindAssetFromRelease(t *testing.T) {
 		},
 		{
 			name: "find asset, match filter",
-			release: &GitHubRelease{
-				name:    rel11,
-				tagName: v11,
-				assets: []SourceAsset{
-					&GitHubAsset{name: asset11, url: url11},
-					&GitHubAsset{name: asset1, url: url1},
+			release: &memory.Release{
+				Name:    rel11,
+				TagName: v11,
+				Assets: []selfupdate.SourceAsset{
+					&memory.Asset{Name: asset11, URL: url11},
+					&memory.Asset{Name: asset1, URL: url1},
 				},
 			},
 			targetVersion:   "1.1.0",
-			config:          Config{Filters: []string{"11"}},
+			config:          selfupdate.Config{Filters: []string{"11"}},
 			expectedAsset:   asset11,
 			expectedVersion: "1.1.0",
 			expectedFound:   true,
 		},
 		{
 			name: "find asset, match another filter",
-			release: &GitHubRelease{
-				name:    rel11,
-				tagName: v11,
-				assets: []SourceAsset{
-					&GitHubAsset{name: asset11, url: url11},
-					&GitHubAsset{name: asset1, url: url1},
+			release: &memory.Release{
+				Name:    rel11,
+				TagName: v11,
+				Assets: []selfupdate.SourceAsset{
+					&memory.Asset{Name: asset11, URL: url11},
+					&memory.Asset{Name: asset1, URL: url1},
 				},
 			},
 			targetVersion:   "1.1.0",
-			config:          Config{Filters: []string{"([^1])1{1}([^1])"}},
+			config:          selfupdate.Config{Filters: []string{"([^1])1{1}([^1])"}},
 			expectedAsset:   asset1,
 			expectedVersion: "1.1.0",
 			expectedFound:   true,
 		},
 		{
 			name: "find asset, match any filter",
-			release: &GitHubRelease{
-				name:    rel11,
-				tagName: v11,
-				assets: []SourceAsset{
-					&GitHubAsset{name: asset11, url: url11},
-					&GitHubAsset{name: asset2, url: url2},
+			release: &memory.Release{
+				Name:    rel11,
+				TagName: v11,
+				Assets: []selfupdate.SourceAsset{
+					&memory.Asset{Name: asset11, URL: url11},
+					&memory.Asset{Name: asset2, URL: url2},
 				},
 			},
 			targetVersion:   "1.1.0",
-			config:          Config{Filters: []string{"([^1])1{1}([^1])", "([^1])2{1}([^1])"}},
+			config:          selfupdate.Config{Filters: []string{"([^1])1{1}([^1])", "([^1])2{1}([^1])"}},
 			expectedAsset:   asset2,
 			expectedVersion: "1.1.0",
 			expectedFound:   true,
 		},
 		{
 			name: "find asset, match no filter",
-			release: &GitHubRelease{
-				name:    rel11,
-				tagName: v11,
-				assets: []SourceAsset{
-					&GitHubAsset{name: asset11, url: url11},
-					&GitHubAsset{name: asset2, url: url2},
+			release: &memory.Release{
+				Name:    rel11,
+				TagName: v11,
+				Assets: []selfupdate.SourceAsset{
+					&memory.Asset{Name: asset11, URL: url11},
+					&memory.Asset{Name: asset2, URL: url2},
 				},
 			},
 			targetVersion: "",
-			config:        Config{Filters: []string{"another", "binary"}},
+			config:        selfupdate.Config{Filters: []string{"another", "binary"}},
 			expectedFound: false,
 		},
 	}
@@ -497,7 +501,7 @@ func TestFindAssetFromRelease(t *testing.T) {
 	for _, fixture := range testData {
 		t.Run(fixture.name, func(t *testing.T) {
 			updater := newMockUpdater(t, fixture.config)
-			asset, ver, found := updater.findAssetFromRelease(fixture.release, []string{".gz"}, fixture.targetVersion)
+			asset, ver, found := updater.FindAssetFromRelease(fixture.release, []string{".gz"}, fixture.targetVersion)
 			if fixture.expectedFound {
 				if !found {
 					t.Fatalf("expected to find an asset for this fixture: %q", fixture.name)
@@ -517,8 +521,8 @@ func TestFindAssetFromRelease(t *testing.T) {
 }
 
 func TestFindReleaseAndAsset(t *testing.T) {
-	SetLogger(stdlog.New(os.Stderr, "", 0))
-	defer SetLogger(&emptyLogger{})
+	selfupdate.SetLogger(stdlog.New(os.Stderr, "", 0))
+	defer selfupdate.SetLogger(stdlog.New(io.Discard, "", 0))
 
 	tag2 := "v2.0.0"
 	rel2 := "rel2"
@@ -541,7 +545,7 @@ func TestFindReleaseAndAsset(t *testing.T) {
 		arch              string
 		arm               uint8
 		universalArch     string
-		releases          []SourceRelease
+		releases          []selfupdate.SourceRelease
 		version           string
 		filters           []string
 		found             bool
@@ -551,16 +555,16 @@ func TestFindReleaseAndAsset(t *testing.T) {
 			name: "no match",
 			os:   "darwin",
 			arch: "amd64",
-			releases: []SourceRelease{
-				&GitHubRelease{
-					name:    rel2,
-					tagName: tag2,
-					assets: []SourceAsset{
-						&GitHubAsset{
-							name: assetLinux386,
+			releases: []selfupdate.SourceRelease{
+				&memory.Release{
+					Name:    rel2,
+					TagName: tag2,
+					Assets: []selfupdate.SourceAsset{
+						&memory.Asset{
+							Name: assetLinux386,
 						},
-						&GitHubAsset{
-							name: assetLinuxAMD64,
+						&memory.Asset{
+							Name: assetLinuxAMD64,
 						},
 					},
 				},
@@ -574,16 +578,16 @@ func TestFindReleaseAndAsset(t *testing.T) {
 			name: "simple match",
 			os:   "linux",
 			arch: "amd64",
-			releases: []SourceRelease{
-				&GitHubRelease{
-					name:    rel2,
-					tagName: tag2,
-					assets: []SourceAsset{
-						&GitHubAsset{
-							name: assetLinux386,
+			releases: []selfupdate.SourceRelease{
+				&memory.Release{
+					Name:    rel2,
+					TagName: tag2,
+					Assets: []selfupdate.SourceAsset{
+						&memory.Asset{
+							Name: assetLinux386,
 						},
-						&GitHubAsset{
-							name: assetLinuxAMD64,
+						&memory.Asset{
+							Name: assetLinuxAMD64,
 						},
 					},
 				},
@@ -597,16 +601,16 @@ func TestFindReleaseAndAsset(t *testing.T) {
 			name: "simple match case insensitive",
 			os:   "linux",
 			arch: "amd64",
-			releases: []SourceRelease{
-				&GitHubRelease{
-					name:    rel2,
-					tagName: tag2,
-					assets: []SourceAsset{
-						&GitHubAsset{
-							name: assetLinux386,
+			releases: []selfupdate.SourceRelease{
+				&memory.Release{
+					Name:    rel2,
+					TagName: tag2,
+					Assets: []selfupdate.SourceAsset{
+						&memory.Asset{
+							Name: assetLinux386,
 						},
-						&GitHubAsset{
-							name: "asset_Linux_AMD64.tgz",
+						&memory.Asset{
+							Name: "asset_Linux_AMD64.tgz",
 						},
 					},
 				},
@@ -620,25 +624,25 @@ func TestFindReleaseAndAsset(t *testing.T) {
 			name: "match default arm",
 			os:   "linux",
 			arch: "arm",
-			releases: []SourceRelease{
-				&GitHubRelease{
-					name:    rel2,
-					tagName: tag2,
-					assets: []SourceAsset{
-						&GitHubAsset{
-							name: assetLinuxARM,
+			releases: []selfupdate.SourceRelease{
+				&memory.Release{
+					Name:    rel2,
+					TagName: tag2,
+					Assets: []selfupdate.SourceAsset{
+						&memory.Asset{
+							Name: assetLinuxARM,
 						},
-						&GitHubAsset{
-							name: assetLinuxARM64,
+						&memory.Asset{
+							Name: assetLinuxARM64,
 						},
-						&GitHubAsset{
-							name: assetLinuxARMv5,
+						&memory.Asset{
+							Name: assetLinuxARMv5,
 						},
-						&GitHubAsset{
-							name: assetLinuxARMv6,
+						&memory.Asset{
+							Name: assetLinuxARMv6,
 						},
-						&GitHubAsset{
-							name: assetLinuxARMv7,
+						&memory.Asset{
+							Name: assetLinuxARMv7,
 						},
 					},
 				},
@@ -653,25 +657,25 @@ func TestFindReleaseAndAsset(t *testing.T) {
 			os:   "linux",
 			arch: "arm",
 			arm:  6,
-			releases: []SourceRelease{
-				&GitHubRelease{
-					name:    rel2,
-					tagName: tag2,
-					assets: []SourceAsset{
-						&GitHubAsset{
-							name: assetLinuxARM,
+			releases: []selfupdate.SourceRelease{
+				&memory.Release{
+					Name:    rel2,
+					TagName: tag2,
+					Assets: []selfupdate.SourceAsset{
+						&memory.Asset{
+							Name: assetLinuxARM,
 						},
-						&GitHubAsset{
-							name: assetLinuxARM64,
+						&memory.Asset{
+							Name: assetLinuxARM64,
 						},
-						&GitHubAsset{
-							name: assetLinuxARMv5,
+						&memory.Asset{
+							Name: assetLinuxARMv5,
 						},
-						&GitHubAsset{
-							name: assetLinuxARMv6,
+						&memory.Asset{
+							Name: assetLinuxARMv6,
 						},
-						&GitHubAsset{
-							name: assetLinuxARMv7,
+						&memory.Asset{
+							Name: assetLinuxARMv7,
 						},
 					},
 				},
@@ -686,19 +690,19 @@ func TestFindReleaseAndAsset(t *testing.T) {
 			os:   "linux",
 			arch: "arm",
 			arm:  7,
-			releases: []SourceRelease{
-				&GitHubRelease{
-					name:    rel2,
-					tagName: tag2,
-					assets: []SourceAsset{
-						&GitHubAsset{
-							name: assetLinuxARM,
+			releases: []selfupdate.SourceRelease{
+				&memory.Release{
+					Name:    rel2,
+					TagName: tag2,
+					Assets: []selfupdate.SourceAsset{
+						&memory.Asset{
+							Name: assetLinuxARM,
 						},
-						&GitHubAsset{
-							name: assetLinuxARM64,
+						&memory.Asset{
+							Name: assetLinuxARM64,
 						},
-						&GitHubAsset{
-							name: assetLinuxARMv5,
+						&memory.Asset{
+							Name: assetLinuxARMv5,
 						},
 					},
 				},
@@ -713,16 +717,16 @@ func TestFindReleaseAndAsset(t *testing.T) {
 			os:   "linux",
 			arch: "arm",
 			arm:  5,
-			releases: []SourceRelease{
-				&GitHubRelease{
-					name:    rel2,
-					tagName: tag2,
-					assets: []SourceAsset{
-						&GitHubAsset{
-							name: assetLinuxARM,
+			releases: []selfupdate.SourceRelease{
+				&memory.Release{
+					Name:    rel2,
+					TagName: tag2,
+					Assets: []selfupdate.SourceAsset{
+						&memory.Asset{
+							Name: assetLinuxARM,
 						},
-						&GitHubAsset{
-							name: assetLinuxARM64,
+						&memory.Asset{
+							Name: assetLinuxARM64,
 						},
 					},
 				},
@@ -737,16 +741,16 @@ func TestFindReleaseAndAsset(t *testing.T) {
 			os:   "linux",
 			arch: "arm",
 			arm:  6,
-			releases: []SourceRelease{
-				&GitHubRelease{
-					name:    rel2,
-					tagName: tag2,
-					assets: []SourceAsset{
-						&GitHubAsset{
-							name: assetLinuxARMv7,
+			releases: []selfupdate.SourceRelease{
+				&memory.Release{
+					Name:    rel2,
+					TagName: tag2,
+					Assets: []selfupdate.SourceAsset{
+						&memory.Asset{
+							Name: assetLinuxARMv7,
 						},
-						&GitHubAsset{
-							name: assetLinuxARM64,
+						&memory.Asset{
+							Name: assetLinuxARM64,
 						},
 					},
 				},
@@ -760,16 +764,16 @@ func TestFindReleaseAndAsset(t *testing.T) {
 			name: "match x86_64 for adm64",
 			os:   "linux",
 			arch: "amd64",
-			releases: []SourceRelease{
-				&GitHubRelease{
-					name:    rel2,
-					tagName: tag2,
-					assets: []SourceAsset{
-						&GitHubAsset{
-							name: assetLinux386,
+			releases: []selfupdate.SourceRelease{
+				&memory.Release{
+					Name:    rel2,
+					TagName: tag2,
+					Assets: []selfupdate.SourceAsset{
+						&memory.Asset{
+							Name: assetLinux386,
 						},
-						&GitHubAsset{
-							name: assetLinuxX86,
+						&memory.Asset{
+							Name: assetLinuxX86,
 						},
 					},
 				},
@@ -784,13 +788,13 @@ func TestFindReleaseAndAsset(t *testing.T) {
 			os:            "linux", // universal binary is for darwin only
 			arch:          "amd64",
 			universalArch: "all",
-			releases: []SourceRelease{
-				&GitHubRelease{
-					name:    rel2,
-					tagName: tag2,
-					assets: []SourceAsset{
-						&GitHubAsset{
-							name: assetLinuxAll,
+			releases: []selfupdate.SourceRelease{
+				&memory.Release{
+					Name:    rel2,
+					TagName: tag2,
+					Assets: []selfupdate.SourceAsset{
+						&memory.Asset{
+							Name: assetLinuxAll,
 						},
 					},
 				},
@@ -804,19 +808,19 @@ func TestFindReleaseAndAsset(t *testing.T) {
 			os:            "darwin", // universal binary is for darwin only
 			arch:          "amd64",
 			universalArch: "all",
-			releases: []SourceRelease{
-				&GitHubRelease{
-					name:    rel2,
-					tagName: tag2,
-					assets: []SourceAsset{
-						&GitHubAsset{
-							name: assetDarwinAMD64,
+			releases: []selfupdate.SourceRelease{
+				&memory.Release{
+					Name:    rel2,
+					TagName: tag2,
+					Assets: []selfupdate.SourceAsset{
+						&memory.Asset{
+							Name: assetDarwinAMD64,
 						},
-						&GitHubAsset{
-							name: assetDarwinARM64,
+						&memory.Asset{
+							Name: assetDarwinARM64,
 						},
-						&GitHubAsset{
-							name: assetDarwinAll,
+						&memory.Asset{
+							Name: assetDarwinAll,
 						},
 					},
 				},
@@ -831,19 +835,19 @@ func TestFindReleaseAndAsset(t *testing.T) {
 			os:            "darwin", // universal binary is for darwin only
 			arch:          "arm64",
 			universalArch: "all",
-			releases: []SourceRelease{
-				&GitHubRelease{
-					name:    rel2,
-					tagName: tag2,
-					assets: []SourceAsset{
-						&GitHubAsset{
-							name: assetDarwinAMD64,
+			releases: []selfupdate.SourceRelease{
+				&memory.Release{
+					Name:    rel2,
+					TagName: tag2,
+					Assets: []selfupdate.SourceAsset{
+						&memory.Asset{
+							Name: assetDarwinAMD64,
 						},
-						&GitHubAsset{
-							name: assetDarwinARM64,
+						&memory.Asset{
+							Name: assetDarwinARM64,
 						},
-						&GitHubAsset{
-							name: assetDarwinAll,
+						&memory.Asset{
+							Name: assetDarwinAll,
 						},
 					},
 				},
@@ -858,13 +862,13 @@ func TestFindReleaseAndAsset(t *testing.T) {
 			os:            "darwin", // universal binary is for darwin only
 			arch:          "arm64",
 			universalArch: "all",
-			releases: []SourceRelease{
-				&GitHubRelease{
-					name:    rel2,
-					tagName: tag2,
-					assets: []SourceAsset{
-						&GitHubAsset{
-							name: assetDarwinAll,
+			releases: []selfupdate.SourceRelease{
+				&memory.Release{
+					Name:    rel2,
+					TagName: tag2,
+					Assets: []selfupdate.SourceAsset{
+						&memory.Asset{
+							Name: assetDarwinAll,
 						},
 					},
 				},
@@ -879,13 +883,13 @@ func TestFindReleaseAndAsset(t *testing.T) {
 			os:            "darwin",
 			arch:          "arm64",
 			universalArch: "",
-			releases: []SourceRelease{
-				&GitHubRelease{
-					name:    rel2,
-					tagName: tag2,
-					assets: []SourceAsset{
-						&GitHubAsset{
-							name: assetDarwinAll,
+			releases: []selfupdate.SourceRelease{
+				&memory.Release{
+					Name:    rel2,
+					TagName: tag2,
+					Assets: []selfupdate.SourceAsset{
+						&memory.Asset{
+							Name: assetDarwinAll,
 						},
 					},
 				},
@@ -900,7 +904,8 @@ func TestFindReleaseAndAsset(t *testing.T) {
 		t.Run(testItem.name, func(t *testing.T) {
 			t.Parallel()
 
-			updater, err := NewUpdater(Config{
+			updater, err := selfupdate.NewUpdater(selfupdate.Config{
+				Source:        &memory.Source{},
 				Filters:       testItem.filters,
 				OS:            testItem.os,
 				Arch:          testItem.arch,
@@ -908,7 +913,7 @@ func TestFindReleaseAndAsset(t *testing.T) {
 				UniversalArch: testItem.universalArch,
 			})
 			require.NoError(t, err)
-			_, asset, _, found := updater.findReleaseAndAsset(testItem.releases, testItem.version)
+			_, asset, _, found := updater.FindReleaseAndAsset(testItem.releases, testItem.version)
 			assert.Equal(t, testItem.found, found)
 			if found {
 				assert.Equal(t, testItem.expectedAssetName, asset.GetName())
@@ -920,15 +925,15 @@ func TestFindReleaseAndAsset(t *testing.T) {
 func TestBuildMultistepValidationChain(t *testing.T) {
 	testVersion := "v0.14.0"
 	source := mockSignedSourceRepository(t)
-	checksumValidator := &ChecksumValidator{UniqueFilename: "checksums.txt"}
+	checksumValidator := &selfupdate.ChecksumValidator{UniqueFilename: "checksums.txt"}
 
 	t.Run("ValidConfig", func(t *testing.T) {
-		updater, _ := NewUpdater(Config{
+		updater, _ := selfupdate.NewUpdater(selfupdate.Config{
 			Source:    source,
 			Validator: newChecksumWithSignatureValidator("checksums.txt"),
 		})
 
-		release, found, err := updater.DetectVersion(context.Background(), DetectVersionOpt{testGithubRepository, testVersion})
+		release, found, err := updater.DetectVersion(context.Background(), selfupdate.DetectVersionOpt{testGithubRepository, testVersion})
 		require.True(t, found)
 		assert.NoError(t, err)
 		assert.Equal(t, 2, len(release.ValidationChain))
@@ -937,36 +942,48 @@ func TestBuildMultistepValidationChain(t *testing.T) {
 	})
 
 	t.Run("LoopConfig", func(t *testing.T) {
-		updater, _ := NewUpdater(Config{
+		updater, _ := selfupdate.NewUpdater(selfupdate.Config{
 			Source: source,
-			Validator: new(PatternValidator).
+			Validator: new(selfupdate.PatternValidator).
 				Add("*", checksumValidator),
 		})
 
-		_, _, err := updater.DetectVersion(context.Background(), DetectVersionOpt{testGithubRepository, testVersion})
+		_, _, err := updater.DetectVersion(context.Background(), selfupdate.DetectVersionOpt{testGithubRepository, testVersion})
 		assert.NoError(t, err)
 	})
 
 	t.Run("InvalidLoopConfig", func(t *testing.T) {
-		updater, _ := NewUpdater(Config{
+		updater, _ := selfupdate.NewUpdater(selfupdate.Config{
 			Source: source,
-			Validator: new(PatternValidator).
+			Validator: new(selfupdate.PatternValidator).
 				Add("*.*z*", checksumValidator).
-				Add("*", new(SHAValidator)),
+				Add("*", new(selfupdate.SHAValidator)),
 		})
 
-		_, _, err := updater.DetectVersion(context.Background(), DetectVersionOpt{testGithubRepository, testVersion})
+		_, _, err := updater.DetectVersion(context.Background(), selfupdate.DetectVersionOpt{testGithubRepository, testVersion})
 		assert.EqualError(t, err, "validation file not found: \"checksums.txt.sha256\"")
 	})
 }
 
-func newMockUpdater(t *testing.T, config Config) *Updater {
+func newMockUpdater(t *testing.T, config selfupdate.Config) *selfupdate.Updater {
 	t.Helper()
 
 	if config.Source == nil {
 		config.Source = mockMemorySource(t)
 	}
-	updater, err := NewUpdater(config)
+	updater, err := selfupdate.NewUpdater(config)
+	require.NoError(t, err)
+	return updater
+}
+
+// newGitHubUpdater creates an updater reading from the real GitHub API, for tests not running in short mode
+func newGitHubUpdater(t *testing.T, config selfupdate.Config) *selfupdate.Updater {
+	t.Helper()
+
+	source, err := github.NewSource(github.Config{})
+	require.NoError(t, err)
+	config.Source = source
+	updater, err := selfupdate.NewUpdater(config)
 	require.NoError(t, err)
 	return updater
 }

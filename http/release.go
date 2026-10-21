@@ -23,7 +23,7 @@ package http
 import (
 	"time"
 
-	"github.com/creativeprojects/go-selfupdate/types"
+	"github.com/creativeprojects/go-selfupdate"
 )
 
 type Asset struct {
@@ -49,7 +49,7 @@ func (a *Asset) GetBrowserDownloadURL() string {
 	return a.URL
 }
 
-var _ types.SourceAsset = &Asset{}
+var _ selfupdate.SourceAsset = &Asset{}
 
 type Release struct {
 	ID           int64     `yaml:"id"`
@@ -95,12 +95,12 @@ func (r *Release) GetURL() string {
 	return r.URL
 }
 
-func (r *Release) GetAssets() []types.SourceAsset {
-	assets := make([]types.SourceAsset, len(r.Assets))
+func (r *Release) GetAssets() []selfupdate.SourceAsset {
+	assets := make([]selfupdate.SourceAsset, len(r.Assets))
 	for i, asset := range r.Assets {
 		assets[i] = asset
 	}
 	return assets
 }
 
-var _ types.SourceRelease = &Release{}
+var _ selfupdate.SourceRelease = &Release{}

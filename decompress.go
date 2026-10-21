@@ -13,7 +13,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/creativeprojects/go-selfupdate/types"
 	"github.com/ulikunitz/xz"
 )
 
@@ -50,8 +49,8 @@ type DecompressCommandOpt struct {
 // '.tar.gz', '.tar.xz', '.tgz', '.gz', '.bz2' and '.xz' are supported.
 //
 // These wrapped errors can be returned:
-//   - types.ErrCannotDecompressFile
-//   - types.ErrExecutableNotFoundInArchive
+//   - ErrCannotDecompressFile
+//   - ErrExecutableNotFoundInArchive
 func DecompressCommand(opt DecompressCommandOpt) (io.Reader, error) {
 	for _, fileType := range fileTypes {
 		if strings.HasSuffix(opt.Url, fileType.ext) {
@@ -69,13 +68,13 @@ func unzip(src io.Reader, relExe, os, arch string) (io.Reader, error) {
 	// So we need to read the HTTP response into a buffer at first.
 	buf, err := io.ReadAll(src)
 	if err != nil {
-		return nil, fmt.Errorf("%w zip file: %v", types.ErrCannotDecompressFile, err)
+		return nil, fmt.Errorf("%w zip file: %v", ErrCannotDecompressFile, err)
 	}
 
 	r := bytes.NewReader(buf)
 	z, err := zip.NewReader(r, r.Size())
 	if err != nil {
-		return nil, fmt.Errorf("%w zip file: %s", types.ErrCannotDecompressFile, err)
+		return nil, fmt.Errorf("%w zip file: %s", ErrCannotDecompressFile, err)
 	}
 
 	for _, file := range z.File {
@@ -86,7 +85,7 @@ func unzip(src io.Reader, relExe, os, arch string) (io.Reader, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("%w in zip file: %q", types.ErrExecutableNotFoundInArchive, relExe)
+	return nil, fmt.Errorf("%w in zip file: %q", ErrExecutableNotFoundInArchive, relExe)
 }
 
 func untar(src io.Reader, relExe, os, arch string) (io.Reader, error) {
@@ -94,7 +93,7 @@ func untar(src io.Reader, relExe, os, arch string) (io.Reader, error) {
 
 	gz, err := gzip.NewReader(src)
 	if err != nil {
-		return nil, fmt.Errorf("%w tar.gz file: %s", types.ErrCannotDecompressFile, err)
+		return nil, fmt.Errorf("%w tar.gz file: %s", ErrCannotDecompressFile, err)
 	}
 
 	return unarchiveTar(gz, relExe, os, arch)
@@ -105,12 +104,12 @@ func gunzip(src io.Reader, relExe, os, arch string) (io.Reader, error) {
 
 	r, err := gzip.NewReader(src)
 	if err != nil {
-		return nil, fmt.Errorf("%w gzip file: %s", types.ErrCannotDecompressFile, err)
+		return nil, fmt.Errorf("%w gzip file: %s", ErrCannotDecompressFile, err)
 	}
 
 	target := r.Name
 	if !matchExecutableName(relExe, os, arch, target) {
-		return nil, fmt.Errorf("%w: expected %q but found %q", types.ErrExecutableNotFoundInArchive, relExe, target)
+		return nil, fmt.Errorf("%w: expected %q but found %q", ErrExecutableNotFoundInArchive, relExe, target)
 	}
 
 	log.Printf("Executable file %q was found in gzip file", target)
@@ -122,7 +121,7 @@ func untarxz(src io.Reader, relExe, os, arch string) (io.Reader, error) {
 
 	xzip, err := xz.NewReader(src)
 	if err != nil {
-		return nil, fmt.Errorf("%w tar.xz file: %s", types.ErrCannotDecompressFile, err)
+		return nil, fmt.Errorf("%w tar.xz file: %s", ErrCannotDecompressFile, err)
 	}
 
 	return unarchiveTar(xzip, relExe, os, arch)
@@ -133,7 +132,7 @@ func unxz(src io.Reader, relExe, os, arch string) (io.Reader, error) {
 
 	xzip, err := xz.NewReader(src)
 	if err != nil {
-		return nil, fmt.Errorf("%w xzip file: %s", types.ErrCannotDecompressFile, err)
+		return nil, fmt.Errorf("%w xzip file: %s", ErrCannotDecompressFile, err)
 	}
 
 	log.Printf("Decompressed file from xzip is assumed to be an executable: %s", relExe)
@@ -171,7 +170,7 @@ func unarchiveTar(src io.Reader, relExe, os, arch string) (io.Reader, error) {
 			break
 		}
 		if err != nil {
-			return nil, fmt.Errorf("%w tar file: %s", types.ErrCannotDecompressFile, err)
+			return nil, fmt.Errorf("%w tar file: %s", ErrCannotDecompressFile, err)
 		}
 		_, target := filepath.Split(h.Name)
 		if matchExecutableName(relExe, os, arch, target) {
@@ -179,5 +178,5 @@ func unarchiveTar(src io.Reader, relExe, os, arch string) (io.Reader, error) {
 			return t, nil
 		}
 	}
-	return nil, fmt.Errorf("%w in tar: %q", types.ErrExecutableNotFoundInArchive, relExe)
+	return nil, fmt.Errorf("%w in tar: %q", ErrExecutableNotFoundInArchive, relExe)
 }

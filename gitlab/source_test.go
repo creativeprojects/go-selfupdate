@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/creativeprojects/go-selfupdate/types"
+	"github.com/creativeprojects/go-selfupdate"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -53,7 +53,7 @@ func TestGitLabListReleasesContextCancelled(t *testing.T) {
 	ctx, cancelFn := context.WithCancel(context.Background())
 	cancelFn()
 
-	_, err = source.ListReleases(ctx, types.ParseSlug("creativeprojects/resticprofile"))
+	_, err = source.ListReleases(ctx, selfupdate.ParseSlug("creativeprojects/resticprofile"))
 	assert.ErrorIs(t, err, context.Canceled)
 }
 
@@ -64,7 +64,7 @@ func TestGitLabDownloadReleaseAssetContextCancelled(t *testing.T) {
 	ctx, cancelFn := context.WithCancel(context.Background())
 	cancelFn()
 
-	_, err = source.DownloadReleaseAsset(ctx, &types.Release{
+	_, err = source.DownloadReleaseAsset(ctx, &selfupdate.Release{
 		AssetID:  11,
 		AssetURL: "http://localhost/",
 	}, 11)
@@ -76,16 +76,16 @@ func TestGitLabDownloadReleaseAssetWithNilRelease(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = source.DownloadReleaseAsset(context.Background(), nil, 11)
-	assert.ErrorIs(t, err, types.ErrInvalidRelease)
+	assert.ErrorIs(t, err, selfupdate.ErrInvalidRelease)
 }
 
 func TestGitLabDownloadReleaseAssetNotFound(t *testing.T) {
 	source, err := NewSource(Config{})
 	require.NoError(t, err)
 
-	_, err = source.DownloadReleaseAsset(context.Background(), &types.Release{
+	_, err = source.DownloadReleaseAsset(context.Background(), &selfupdate.Release{
 		AssetID:           11,
 		ValidationAssetID: 12,
 	}, 13)
-	assert.ErrorIs(t, err, types.ErrAssetNotFound)
+	assert.ErrorIs(t, err, selfupdate.ErrAssetNotFound)
 }

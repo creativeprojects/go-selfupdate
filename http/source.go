@@ -28,7 +28,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/creativeprojects/go-selfupdate/types"
+	"github.com/creativeprojects/go-selfupdate"
 	yaml "go.yaml.in/yaml/v3"
 )
 
@@ -97,7 +97,7 @@ func (s *Source) uriRelative(uri, owner, repo string) string {
 }
 
 // ListReleases returns all available releases
-func (s *Source) ListReleases(ctx context.Context, repository types.Repository) ([]types.SourceRelease, error) {
+func (s *Source) ListReleases(ctx context.Context, repository selfupdate.Repository) ([]selfupdate.SourceRelease, error) {
 	owner, repo, err := repository.GetSlug()
 	if err != nil {
 		return nil, err
@@ -141,7 +141,7 @@ func (s *Source) ListReleases(ctx context.Context, repository types.Repository) 
 	}
 
 	// Make a release array.
-	releases := make([]types.SourceRelease, len(manifest.Releases))
+	releases := make([]selfupdate.SourceRelease, len(manifest.Releases))
 	for i, release := range manifest.Releases {
 		// Update URLs to relative path with repository.
 		release.URL = s.uriRelative(release.URL, owner, repo)
@@ -156,15 +156,15 @@ func (s *Source) ListReleases(ctx context.Context, repository types.Repository) 
 	return releases, nil
 }
 
-func (s *Source) GetLatestRelease(ctx context.Context, repository types.Repository) (types.SourceRelease, error) {
+func (s *Source) GetLatestRelease(ctx context.Context, repository selfupdate.Repository) (selfupdate.SourceRelease, error) {
 	return nil, errors.New("Not implemented")
 }
 
 // DownloadReleaseAsset downloads an asset from a release.
 // It returns an io.ReadCloser: it is your responsibility to Close it.
-func (s *Source) DownloadReleaseAsset(ctx context.Context, rel *types.Release, assetID int64) (io.ReadCloser, error) {
+func (s *Source) DownloadReleaseAsset(ctx context.Context, rel *selfupdate.Release, assetID int64) (io.ReadCloser, error) {
 	if rel == nil {
-		return nil, types.ErrInvalidRelease
+		return nil, selfupdate.ErrInvalidRelease
 	}
 
 	// Determine download url based on asset id.
@@ -175,7 +175,7 @@ func (s *Source) DownloadReleaseAsset(ctx context.Context, rel *types.Release, a
 		downloadURL = rel.ValidationAssetURL
 	}
 	if downloadURL == "" {
-		return nil, fmt.Errorf("asset ID %d: %w", assetID, types.ErrAssetNotFound)
+		return nil, fmt.Errorf("asset ID %d: %w", assetID, selfupdate.ErrAssetNotFound)
 	}
 
 	// Setup HTTP client.
@@ -204,4 +204,4 @@ func (s *Source) DownloadReleaseAsset(ctx context.Context, rel *types.Release, a
 }
 
 // Verify interface
-var _ types.Source = &Source{}
+var _ selfupdate.Source = &Source{}

@@ -1,4 +1,4 @@
-package types
+package selfupdate
 
 // Config represents the configuration of self-update.
 type Config struct {

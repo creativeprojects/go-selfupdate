@@ -7,13 +7,23 @@ import (
 	"runtime"
 
 	"github.com/creativeprojects/go-selfupdate"
+	"github.com/creativeprojects/go-selfupdate/github"
 )
 
 // keep this function here, this is the example from the README
 //
 //nolint:unused
 func update(version string) error {
-	latest, found, err := selfupdate.DetectLatest(
+	source, err := github.NewSource(github.Config{})
+	if err != nil {
+		return fmt.Errorf("error occurred while creating GitHub source: %w", err)
+	}
+	updater, err := selfupdate.NewUpdater(selfupdate.Config{Source: source})
+	if err != nil {
+		return fmt.Errorf("error occurred while creating updater: %w", err)
+	}
+
+	latest, found, err := updater.DetectLatest(
 		context.Background(),
 		selfupdate.DetectLatestOpt{Repository: selfupdate.ParseSlug("creativeprojects/resticprofile")},
 	)
@@ -36,7 +46,7 @@ func update(version string) error {
 
 	// In the new release, the binary file can have any name — this is set by the selfupdate.UpdateToOpt.RelExe.
 	// If it's the same as the old one, then selfupdate.UpdateToOpt.RelExe should be empty.
-	if err := selfupdate.UpdateTo(context.Background(), selfupdate.UpdateToOpt{Rel: latest, CmdPath: cmdPath}); err != nil {
+	if err := updater.UpdateTo(context.Background(), selfupdate.UpdateToOpt{Rel: latest, CmdPath: cmdPath}); err != nil {
 		return fmt.Errorf("error occurred while updating binary: %w", err)
 	}
 	log.Printf("Successfully updated to version %s", latest.Version())

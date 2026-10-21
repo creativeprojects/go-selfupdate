@@ -13,7 +13,6 @@ import (
 
 	"github.com/creativeprojects/go-selfupdate"
 	"github.com/creativeprojects/go-selfupdate/memory"
-	"github.com/creativeprojects/go-selfupdate/types"
 
 	"github.com/ProtonMail/go-crypto/openpgp"
 	"github.com/stretchr/testify/assert"
@@ -37,13 +36,13 @@ func TestUpdateWithSignedChecksums(t *testing.T) {
 	require.NoError(t, openpgp.ArmoredDetachSign(signature, entity, strings.NewReader(checksums), nil))
 
 	source := &memory.Source{
-		Releases: []types.SourceRelease{
+		Releases: []selfupdate.SourceRelease{
 			&memory.Release{
 				ReleaseID:   1,
 				Name:        "v1.0.0",
 				TagName:     "v1.0.0",
 				PublishedAt: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
-				Assets: []types.SourceAsset{
+				Assets: []selfupdate.SourceAsset{
 					&memory.Asset{ID: archiveID, Name: assetName, Size: len(archive)},
 					&memory.Asset{ID: checksumsID, Name: "checksums.txt", Size: len(checksums)},
 					&memory.Asset{ID: signatureID, Name: "checksums.txt.asc", Size: signature.Len()},
@@ -57,7 +56,7 @@ func TestUpdateWithSignedChecksums(t *testing.T) {
 		},
 	}
 
-	updater, err := selfupdate.NewUpdater(types.Config{
+	updater, err := selfupdate.NewUpdater(selfupdate.Config{
 		Source:    source,
 		Validator: NewChecksumValidator("checksums.txt", keyRing),
 		OS:        "linux",
@@ -65,7 +64,7 @@ func TestUpdateWithSignedChecksums(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	release, found, err := updater.DetectLatest(context.Background(), selfupdate.DetectLatestOpt{Repository: types.NewRepositorySlug("owner", "new_version")})
+	release, found, err := updater.DetectLatest(context.Background(), selfupdate.DetectLatestOpt{Repository: selfupdate.NewRepositorySlug("owner", "new_version")})
 	require.NoError(t, err)
 	require.True(t, found)
 	require.Len(t, release.ValidationChain, 2)

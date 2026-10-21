@@ -9,7 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/creativeprojects/go-selfupdate/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -83,7 +82,7 @@ func TestDecompressInvalidArchive(t *testing.T) {
 		ext := getArchiveFileExt(testCase.name)
 		url := "https://github.com/foo/bar/releases/download/v1.2.3/bar" + ext
 		_, err = DecompressCommand(DecompressCommandOpt{f, url, "bar", runtime.GOOS, runtime.GOOS})
-		assert.ErrorIs(t, err, types.ErrCannotDecompressFile)
+		assert.ErrorIs(t, err, ErrCannotDecompressFile)
 		if !strings.Contains(err.Error(), testCase.msg) {
 			t.Fatal("Unexpected error:", err)
 		}
@@ -108,7 +107,7 @@ func TestTargetNotFound(t *testing.T) {
 			ext := getArchiveFileExt(testCase.name)
 			url := "https://github.com/foo/bar/releases/download/v1.2.3/bar" + ext
 			_, err = DecompressCommand(DecompressCommandOpt{f, url, "bar", runtime.GOOS, runtime.GOOS})
-			assert.ErrorIs(t, err, types.ErrExecutableNotFoundInArchive)
+			assert.ErrorIs(t, err, ErrExecutableNotFoundInArchive)
 		})
 	}
 }
@@ -193,7 +192,7 @@ func TestErrorFromReader(t *testing.T) {
 			reader, err := DecompressCommand(DecompressCommandOpt{&bogusReader{}, "foo." + extension, "foo." + extension, runtime.GOOS, runtime.GOARCH})
 			if err != nil {
 				t.Log(err)
-				assert.ErrorIs(t, err, types.ErrCannotDecompressFile)
+				assert.ErrorIs(t, err, ErrCannotDecompressFile)
 			} else {
 				// bz2 does not return an error straight away: it only fails when you start reading from the output reader
 				_, err = io.ReadAll(reader)

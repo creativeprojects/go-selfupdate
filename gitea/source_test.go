@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/creativeprojects/go-selfupdate/types"
+	"github.com/creativeprojects/go-selfupdate"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -39,7 +39,7 @@ func TestGiteaListReleasesContextCancelled(t *testing.T) {
 	ctx, cancelFn := context.WithCancel(context.Background())
 	cancelFn()
 
-	_, err = source.ListReleases(ctx, types.ParseSlug("creativeprojects/resticprofile"))
+	_, err = source.ListReleases(ctx, selfupdate.ParseSlug("creativeprojects/resticprofile"))
 	assert.ErrorIs(t, err, context.Canceled)
 }
 
@@ -50,7 +50,7 @@ func TestGiteaDownloadReleaseAssetContextCancelled(t *testing.T) {
 	ctx, cancelFn := context.WithCancel(context.Background())
 	cancelFn()
 
-	_, err = source.DownloadReleaseAsset(ctx, &types.Release{Repository: types.ParseSlug("creativeprojects/resticprofile")}, 11)
+	_, err = source.DownloadReleaseAsset(ctx, &selfupdate.Release{Repository: selfupdate.ParseSlug("creativeprojects/resticprofile")}, 11)
 	assert.ErrorIs(t, err, context.Canceled)
 }
 
@@ -59,5 +59,5 @@ func TestGiteaDownloadReleaseAssetWithNilRelease(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = source.DownloadReleaseAsset(context.Background(), nil, 11)
-	assert.ErrorIs(t, err, types.ErrInvalidRelease)
+	assert.ErrorIs(t, err, selfupdate.ErrInvalidRelease)
 }

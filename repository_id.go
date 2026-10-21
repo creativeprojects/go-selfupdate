@@ -1,4 +1,4 @@
-package types
+package selfupdate
 
 type RepositoryID int
 

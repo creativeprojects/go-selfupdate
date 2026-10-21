@@ -1,4 +1,4 @@
-package selfupdate
+package selfupdate_test
 
 import (
 	"bytes"
@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/creativeprojects/go-selfupdate"
 	"github.com/creativeprojects/go-selfupdate/memory"
-	"github.com/creativeprojects/go-selfupdate/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -22,7 +22,7 @@ func mockMemorySource(t *testing.T) *memory.Source {
 	zipData, err := os.ReadFile("testdata/new_version.zip")
 	require.NoError(t, err)
 
-	releases := []types.SourceRelease{
+	releases := []selfupdate.SourceRelease{
 		&memory.Release{
 			Name:         "v0.1.0",
 			TagName:      "v0.1.0",
@@ -30,7 +30,7 @@ func mockMemorySource(t *testing.T) *memory.Source {
 			Prerelease:   true,
 			PublishedAt:  time.Date(2001, 1, 1, 0, 0, 0, 0, time.UTC),
 			ReleaseNotes: "first stable",
-			Assets: []types.SourceAsset{
+			Assets: []selfupdate.SourceAsset{
 				&memory.Asset{
 					ID:   1,
 					Name: "resticprofile_0.1.0_linux_amd64.tar.gz",
@@ -64,7 +64,7 @@ func mockMemorySource(t *testing.T) *memory.Source {
 			Prerelease:   false,
 			PublishedAt:  time.Date(2010, 1, 1, 0, 0, 0, 0, time.UTC),
 			ReleaseNotes: "latest stable",
-			Assets: []types.SourceAsset{
+			Assets: []selfupdate.SourceAsset{
 				&memory.Asset{
 					ID:   4,
 					Name: "resticprofile_0.14.0_linux_amd64.tar.gz",
@@ -98,7 +98,7 @@ func mockMemorySource(t *testing.T) *memory.Source {
 			Prerelease:   false,
 			PublishedAt:  time.Date(2011, 1, 1, 0, 0, 0, 0, time.UTC),
 			ReleaseNotes: "release candidate",
-			Assets: []types.SourceAsset{
+			Assets: []selfupdate.SourceAsset{
 				&memory.Asset{
 					ID:   11,
 					Name: "resticprofile_1.0.0-rc_linux_amd64.tar.gz",
@@ -132,7 +132,7 @@ func mockMemorySource(t *testing.T) *memory.Source {
 			Prerelease:   false,
 			PublishedAt:  time.Date(2011, 2, 1, 0, 0, 0, 0, time.UTC),
 			ReleaseNotes: "final v1",
-			Assets: []types.SourceAsset{
+			Assets: []selfupdate.SourceAsset{
 				&memory.Asset{
 					ID:   14,
 					Name: "resticprofile_1.0.0_linux_amd64.tar.gz",
@@ -166,7 +166,7 @@ func mockMemorySource(t *testing.T) *memory.Source {
 			Prerelease:   true,
 			PublishedAt:  time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC),
 			ReleaseNotes: "beta",
-			Assets: []types.SourceAsset{
+			Assets: []selfupdate.SourceAsset{
 				&memory.Asset{
 					ID:   21,
 					Name: "resticprofile_2.0.0-beta_linux_amd64.tar.gz",
@@ -200,7 +200,7 @@ func mockMemorySource(t *testing.T) *memory.Source {
 			Draft:        true,
 			PublishedAt:  time.Date(2020, 2, 1, 0, 0, 0, 0, time.UTC),
 			ReleaseNotes: "almost there",
-			Assets: []types.SourceAsset{
+			Assets: []selfupdate.SourceAsset{
 				&memory.Asset{
 					ID:   24,
 					Name: "resticprofile_2.0.0_linux_amd64.tar.gz",
@@ -305,7 +305,7 @@ func mockSignedSourceRepository(t *testing.T) *memory.Source {
 // signatureValidator stands in for a signature validator in multistep
 // validation tests: it checks a SHA256 hash stored in a ".asc" file.
 type signatureValidator struct {
-	types.SHAValidator
+	selfupdate.SHAValidator
 }
 
 func (v *signatureValidator) GetValidationAssetName(releaseFilename string) string {
@@ -313,9 +313,17 @@ func (v *signatureValidator) GetValidationAssetName(releaseFilename string) stri
 }
 
 // newChecksumWithSignatureValidator mirrors pgp.NewChecksumValidator using signatureValidator
-func newChecksumWithSignatureValidator(checksumsFilename string) types.Validator {
-	return new(types.PatternValidator).
+func newChecksumWithSignatureValidator(checksumsFilename string) selfupdate.Validator {
+	return new(selfupdate.PatternValidator).
 		Add(checksumsFilename, new(signatureValidator)).
-		Add("*", &types.ChecksumValidator{UniqueFilename: checksumsFilename}).
+		Add("*", &selfupdate.ChecksumValidator{UniqueFilename: checksumsFilename}).
 		SkipValidation("*.asc")
+}
+
+// newMemorySource creates a *memory.Source from a list of releases and their files
+func newMemorySource(releases []selfupdate.SourceRelease, files map[int64][]byte) *memory.Source {
+	return &memory.Source{
+		Releases: releases,
+		Files:    files,
+	}
 }

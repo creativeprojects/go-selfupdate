@@ -9,8 +9,8 @@ import (
 	"os"
 
 	"code.gitea.io/sdk/gitea"
+	"github.com/creativeprojects/go-selfupdate"
 	"github.com/creativeprojects/go-selfupdate/internal"
-	"github.com/creativeprojects/go-selfupdate/types"
 )
 
 // Config is an object to pass to NewGiteaSource
@@ -59,7 +59,7 @@ func NewSource(ctx context.Context, config Config) (*Source, error) {
 }
 
 // ListReleases returns all available releases
-func (s *Source) ListReleases(ctx context.Context, repository types.Repository) ([]types.SourceRelease, error) {
+func (s *Source) ListReleases(ctx context.Context, repository selfupdate.Repository) ([]selfupdate.SourceRelease, error) {
 	owner, repo, err := repository.GetSlug()
 	if err != nil {
 		return nil, err
@@ -76,14 +76,14 @@ func (s *Source) ListReleases(ctx context.Context, repository types.Repository) 
 		log.Printf("API returned an error response: %s", err)
 		return nil, err
 	}
-	releases := make([]types.SourceRelease, len(rels))
+	releases := make([]selfupdate.SourceRelease, len(rels))
 	for i, rel := range rels {
 		releases[i] = NewRelease(rel)
 	}
 	return releases, nil
 }
 
-func (s *Source) GetLatestRelease(ctx context.Context, repository types.Repository) (types.SourceRelease, error) {
+func (s *Source) GetLatestRelease(ctx context.Context, repository selfupdate.Repository) (selfupdate.SourceRelease, error) {
 	owner, repo, err := repository.GetSlug()
 	if err != nil {
 		return nil, err
@@ -105,9 +105,9 @@ func (s *Source) GetLatestRelease(ctx context.Context, repository types.Reposito
 
 // DownloadReleaseAsset downloads an asset from a release.
 // It returns an io.ReadCloser: it is your responsibility to Close it.
-func (s *Source) DownloadReleaseAsset(ctx context.Context, rel *types.Release, assetID int64) (io.ReadCloser, error) {
+func (s *Source) DownloadReleaseAsset(ctx context.Context, rel *selfupdate.Release, assetID int64) (io.ReadCloser, error) {
 	if rel == nil {
-		return nil, types.ErrInvalidRelease
+		return nil, selfupdate.ErrInvalidRelease
 	}
 	owner, repo, err := rel.GetSlug()
 	if err != nil {
@@ -147,4 +147,4 @@ func (s *Source) DownloadReleaseAsset(ctx context.Context, rel *types.Release, a
 }
 
 // Verify interface
-var _ types.Source = &Source{}
+var _ selfupdate.Source = &Source{}

@@ -7,17 +7,16 @@ import (
 	"strings"
 
 	"github.com/Masterminds/semver/v3"
-	"github.com/creativeprojects/go-selfupdate/types"
 )
 
 var reVersion = regexp.MustCompile(`\d+\.\d+\.\d+`)
 
 type DetectLatestOpt struct {
-	Repository types.Repository
+	Repository Repository
 }
 
 type DetectVersionOpt struct {
-	Repository types.Repository
+	Repository Repository
 	Version    string
 }
 
@@ -28,13 +27,13 @@ type DetectVersionOpt struct {
 // '-' can also be used as a separator. File can be compressed with zip, gzip, xz, bzip2, tar&gzip or tar&xz.
 // So the asset can have a file extension for the corresponding compression format such as '.zip'.
 // On Windows, '.exe' also can be contained such as 'foo_windows_amd64.exe.zip'.
-func (up *Updater) DetectLatest(ctx context.Context, opt DetectLatestOpt) (release *types.Release, found bool, err error) {
+func (up *Updater) DetectLatest(ctx context.Context, opt DetectLatestOpt) (release *Release, found bool, err error) {
 	return up.DetectVersion(ctx, DetectVersionOpt{opt.Repository, ""})
 }
 
 // DetectVersion tries to get the given version from the source provider.
 // And version indicates the required version.
-func (up *Updater) DetectVersion(ctx context.Context, opt DetectVersionOpt) (release *types.Release, found bool, err error) {
+func (up *Updater) DetectVersion(ctx context.Context, opt DetectVersionOpt) (release *Release, found bool, err error) {
 	rels, err := up.source.ListReleases(ctx, opt.Repository)
 	if err != nil {
 		return nil, false, err
@@ -49,11 +48,11 @@ func (up *Updater) DetectVersion(ctx context.Context, opt DetectVersionOpt) (rel
 }
 
 func (up *Updater) validateReleaseAsset(
-	repository types.Repository,
-	rel types.SourceRelease,
-	asset types.SourceAsset,
+	repository Repository,
+	rel SourceRelease,
+	asset SourceAsset,
 	ver *semver.Version,
-) (release *types.Release, found bool, err error) {
+) (release *Release, found bool, err error) {
 	log.Printf("Successfully fetched release %s, name: %s, URL: %s, asset: %s",
 		rel.GetTagName(),
 		rel.GetName(),
@@ -61,7 +60,7 @@ func (up *Updater) validateReleaseAsset(
 		asset.GetBrowserDownloadURL(),
 	)
 
-	release = &types.Release{
+	release = &Release{
 		version:            ver,
 		Repository:         repository,
 		AssetURL:           asset.GetBrowserDownloadURL(),
@@ -88,7 +87,7 @@ func (up *Updater) validateReleaseAsset(
 			release.ValidationAssetID = validationAsset.GetID()
 			release.ValidationAssetURL = validationAsset.GetBrowserDownloadURL()
 		} else {
-			err = fmt.Errorf("%w: %q", types.ErrValidationAssetNotFound, validationName)
+			err = fmt.Errorf("%w: %q", ErrValidationAssetNotFound, validationName)
 		}
 
 		for err == nil {
@@ -106,12 +105,12 @@ func (up *Updater) validateReleaseAsset(
 				break
 			}
 
-			if rv, ok := up.validator.(types.RecursiveValidator); ok && rv.MustContinueValidation(validationAsset.GetName()) {
+			if rv, ok := up.validator.(RecursiveValidator); ok && rv.MustContinueValidation(validationAsset.GetName()) {
 				validationName = up.validator.GetValidationAssetName(validationAsset.GetName())
 				if validationName != validationAsset.GetName() {
 					validationAsset, ok = findValidationAsset(rel, validationName)
 					if !ok {
-						err = fmt.Errorf("%w: %q", types.ErrValidationAssetNotFound, validationName)
+						err = fmt.Errorf("%w: %q", ErrValidationAssetNotFound, validationName)
 					}
 					continue
 				}
@@ -128,7 +127,7 @@ func (up *Updater) validateReleaseAsset(
 }
 
 // findValidationAsset returns the source asset used for validation
-func findValidationAsset(rel types.SourceRelease, validationName string) (types.SourceAsset, bool) {
+func findValidationAsset(rel SourceRelease, validationName string) (SourceAsset, bool) {
 	for _, asset := range rel.GetAssets() {
 		if asset.GetName() == validationName {
 			return asset, true
@@ -138,7 +137,7 @@ func findValidationAsset(rel types.SourceRelease, validationName string) (types.
 }
 
 // findReleaseAndAsset returns the release and asset matching the target version, or latest if target version is empty
-func (up *Updater) findReleaseAndAsset(rels []types.SourceRelease, targetVersion string) (types.SourceRelease, SourceAsset, *semver.Version, bool) {
+func (up *Updater) findReleaseAndAsset(rels []SourceRelease, targetVersion string) (SourceRelease, SourceAsset, *semver.Version, bool) {
 	// we put the detected arch at the end of the list: that's fine for ARM so far,
 	// as the additional arch are more accurate than the generic one
 	for _, arch := range getAdditionalArch(up.arch, up.arm, up.universalArch) {
@@ -151,11 +150,11 @@ func (up *Updater) findReleaseAndAsset(rels []types.SourceRelease, targetVersion
 	return nil, nil, nil, false
 }
 
-func (up *Updater) findReleaseAndAssetForArch(arch string, rels []types.SourceRelease, targetVersion string,
-) (types.SourceRelease, types.SourceAsset, *semver.Version, bool) {
+func (up *Updater) findReleaseAndAssetForArch(arch string, rels []SourceRelease, targetVersion string,
+) (SourceRelease, SourceAsset, *semver.Version, bool) {
 	var ver *semver.Version
-	var asset types.SourceAsset
-	var release types.SourceRelease
+	var asset SourceAsset
+	var release SourceRelease
 
 	log.Printf("Searching for a possible candidate for os %q and arch %q", up.os, arch)
 
@@ -181,7 +180,7 @@ func (up *Updater) findReleaseAndAssetForArch(arch string, rels []types.SourceRe
 	return release, asset, ver, true
 }
 
-func (up *Updater) findAssetFromRelease(rel types.SourceRelease, suffixes []string, targetVersion string) (SourceAsset, *semver.Version, bool) {
+func (up *Updater) findAssetFromRelease(rel SourceRelease, suffixes []string, targetVersion string) (SourceAsset, *semver.Version, bool) {
 	if rel == nil {
 		log.Print("No source release information")
 		return nil, nil, false

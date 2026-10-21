@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/creativeprojects/go-selfupdate/types"
+	"github.com/creativeprojects/go-selfupdate"
 
 	"github.com/ProtonMail/go-crypto/openpgp"
 	"github.com/ProtonMail/go-crypto/openpgp/armor"
@@ -17,7 +17,7 @@ import (
 func TestValidatorAssetNames(t *testing.T) {
 	filename := "asset"
 	for _, test := range []struct {
-		validator      types.Validator
+		validator      selfupdate.Validator
 		validationName string
 	}{
 		{
@@ -108,7 +108,7 @@ func TestNewChecksumValidator(t *testing.T) {
 	keyRing, _ := getTestKeyRing(t)
 
 	validator := NewChecksumValidator("checksums", keyRing)
-	assert.Implements(t, (*types.RecursiveValidator)(nil), validator)
+	assert.Implements(t, (*selfupdate.RecursiveValidator)(nil), validator)
 	assert.Equal(t, "checksums", validator.GetValidationAssetName("anything"))
 	assert.Equal(t, "checksums.asc", validator.GetValidationAssetName("checksums"))
 }

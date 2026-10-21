@@ -3,7 +3,7 @@ package gitlab
 import (
 	"time"
 
-	"github.com/creativeprojects/go-selfupdate/types"
+	"github.com/creativeprojects/go-selfupdate"
 	gitlab "gitlab.com/gitlab-org/api/client-go"
 )
 
@@ -14,7 +14,7 @@ type Release struct {
 	url         string
 	publishedAt time.Time
 	description string
-	assets      []types.SourceAsset
+	assets      []selfupdate.SourceAsset
 }
 
 func NewRelease(from *gitlab.Release) *Release {
@@ -25,7 +25,7 @@ func NewRelease(from *gitlab.Release) *Release {
 		url:         from.Commit.WebURL,
 		publishedAt: *from.ReleasedAt,
 		description: from.Description,
-		assets:      make([]types.SourceAsset, len(from.Assets.Links)),
+		assets:      make([]selfupdate.SourceAsset, len(from.Assets.Links)),
 	}
 	for i, fromLink := range from.Assets.Links {
 		release.assets[i] = NewAsset(fromLink)
@@ -65,7 +65,7 @@ func (r *Release) GetURL() string {
 	return r.url
 }
 
-func (r *Release) GetAssets() []types.SourceAsset {
+func (r *Release) GetAssets() []selfupdate.SourceAsset {
 	return r.assets
 }
 
@@ -101,6 +101,6 @@ func (a *Asset) GetBrowserDownloadURL() string {
 
 // Verify interface
 var (
-	_ types.SourceRelease = &Release{}
-	_ types.SourceAsset   = &Asset{}
+	_ selfupdate.SourceRelease = &Release{}
+	_ selfupdate.SourceAsset   = &Asset{}
 )

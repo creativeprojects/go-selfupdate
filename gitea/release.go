@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"code.gitea.io/sdk/gitea"
-	"github.com/creativeprojects/go-selfupdate/types"
+	"github.com/creativeprojects/go-selfupdate"
 )
 
 type Release struct {
@@ -16,7 +16,7 @@ type Release struct {
 	prerelease   bool
 	publishedAt  time.Time
 	releaseNotes string
-	assets       []types.SourceAsset
+	assets       []selfupdate.SourceAsset
 }
 
 func NewRelease(from *gitea.Release) *Release {
@@ -29,7 +29,7 @@ func NewRelease(from *gitea.Release) *Release {
 		releaseNotes: from.Note,
 		draft:        from.IsDraft,
 		prerelease:   from.IsPrerelease,
-		assets:       make([]types.SourceAsset, len(from.Attachments)),
+		assets:       make([]selfupdate.SourceAsset, len(from.Attachments)),
 	}
 
 	for i, fromAsset := range from.Attachments {
@@ -71,7 +71,7 @@ func (r *Release) GetURL() string {
 	return r.url
 }
 
-func (r *Release) GetAssets() []types.SourceAsset {
+func (r *Release) GetAssets() []selfupdate.SourceAsset {
 	return r.assets
 }
 
@@ -109,6 +109,6 @@ func (a *Asset) GetBrowserDownloadURL() string {
 
 // Verify interface
 var (
-	_ types.SourceRelease = &Release{}
-	_ types.SourceAsset   = &Asset{}
+	_ selfupdate.SourceRelease = &Release{}
+	_ selfupdate.SourceAsset   = &Asset{}
 )

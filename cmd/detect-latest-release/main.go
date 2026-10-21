@@ -66,7 +66,7 @@ func main() {
 		fmt.Printf("slug %q on domain %q\n", slug, domain)
 	}
 
-	source, err := cmd.GetSource(cvsType, domain)
+	source, err := cmd.GetSource(context.Background(), cvsType, domain)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

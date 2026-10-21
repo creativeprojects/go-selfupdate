@@ -6,13 +6,12 @@ import (
 	"runtime"
 
 	"github.com/creativeprojects/go-selfupdate/internal"
-	"github.com/creativeprojects/go-selfupdate/types"
 )
 
 // Updater is responsible for managing the context of self-update.
 type Updater struct {
-	source        types.Source
-	validator     types.Validator
+	source        Source
+	validator     Validator
 	filters       []*regexp.Regexp
 	os            string
 	arch          string
@@ -23,15 +22,12 @@ type Updater struct {
 	oldSavePath   string
 }
 
-// keep the default updater instance in cache
-var defaultUpdater *Updater
-
 // NewUpdater creates a new updater instance.
 // Returns an error if the source is not specified in the config.
-func NewUpdater(config types.Config) (*Updater, error) {
+func NewUpdater(config Config) (*Updater, error) {
 	source := config.Source
 	if source == nil {
-		return nil, types.ErrInvalidSource
+		return nil, ErrInvalidSource
 	}
 
 	filtersRe := make([]*regexp.Regexp, 0, len(config.Filters))

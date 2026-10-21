@@ -5,26 +5,26 @@ import (
 	"context"
 	"io"
 
-	"github.com/creativeprojects/go-selfupdate/types"
+	"github.com/creativeprojects/go-selfupdate"
 )
 
-// Source is a types.Source in memory used for unit tests
+// Source is a selfupdate.Source in memory used for unit tests
 type Source struct {
-	LatestRelease types.SourceRelease
-	Releases      []types.SourceRelease
+	LatestRelease selfupdate.SourceRelease
+	Releases      []selfupdate.SourceRelease
 	Files         map[int64][]byte
 	ReadError     bool // set to true to simulate a read error in DownloadReleaseAsset
 }
 
 // ListReleases returns a list of releases. repository parameter is not used.
-func (s *Source) ListReleases(ctx context.Context, repository types.Repository) ([]types.SourceRelease, error) {
+func (s *Source) ListReleases(ctx context.Context, repository selfupdate.Repository) ([]selfupdate.SourceRelease, error) {
 	if _, _, err := repository.GetSlug(); err != nil {
 		return nil, err
 	}
 	return s.Releases, nil
 }
 
-func (s *Source) GetLatestRelease(ctx context.Context, repository types.Repository) (types.SourceRelease, error) {
+func (s *Source) GetLatestRelease(ctx context.Context, repository selfupdate.Repository) (selfupdate.SourceRelease, error) {
 	if _, _, err := repository.GetSlug(); err != nil {
 		return nil, err
 	}
@@ -32,16 +32,16 @@ func (s *Source) GetLatestRelease(ctx context.Context, repository types.Reposito
 }
 
 // DownloadReleaseAsset returns a file from its ID. repository parameter is not used.
-func (s *Source) DownloadReleaseAsset(ctx context.Context, rel *types.Release, assetID int64) (io.ReadCloser, error) {
+func (s *Source) DownloadReleaseAsset(ctx context.Context, rel *selfupdate.Release, assetID int64) (io.ReadCloser, error) {
 	if rel == nil {
-		return nil, types.ErrInvalidRelease
+		return nil, selfupdate.ErrInvalidRelease
 	}
 	if _, _, err := rel.Repository.GetSlug(); err != nil {
 		return nil, err
 	}
 	content, ok := s.Files[assetID]
 	if !ok {
-		return nil, types.ErrAssetNotFound
+		return nil, selfupdate.ErrAssetNotFound
 	}
 	var buffer io.Reader = bytes.NewBuffer(content)
 	if s.ReadError {
@@ -52,4 +52,4 @@ func (s *Source) DownloadReleaseAsset(ctx context.Context, rel *types.Release, a
 }
 
 // Verify interface
-var _ types.Source = &Source{}
+var _ selfupdate.Source = &Source{}

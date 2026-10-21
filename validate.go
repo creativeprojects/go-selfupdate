@@ -1,4 +1,4 @@
-package types
+package selfupdate
 
 import (
 	"bytes"
@@ -9,7 +9,6 @@ import (
 	"encoding/hex"
 	"encoding/pem"
 	"fmt"
-	"log"
 	"math/big"
 	"path"
 )

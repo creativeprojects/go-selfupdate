@@ -54,13 +54,13 @@ func main() {
 		fmt.Printf("slug %q on domain %q\n", slug, domain)
 	}
 
-	source, err := cmd.GetSource(cvsType, domain)
+	ctx := context.Background()
+	source, err := cmd.GetSource(ctx, cvsType, domain)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
-	ctx := context.Background()
 	updater, err := selfupdate.NewUpdater(selfupdate.Config{
 		Source: source,
 	})

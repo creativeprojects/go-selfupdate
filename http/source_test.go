@@ -30,7 +30,6 @@ import (
 	"testing"
 
 	"github.com/creativeprojects/go-selfupdate"
-	"github.com/creativeprojects/go-selfupdate/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -49,7 +48,7 @@ func NewHTTPRepoTestServer() *HTTPRepoTestServer {
 
 	// Setup handlers.
 	mux := http.NewServeMux()
-	fs := http.FileServer(http.Dir("./testdata/http_repo"))
+	fs := http.FileServer(http.Dir("../testdata/http_repo"))
 	mux.Handle("/repo/creativeprojects/resticprofile/", http.StripPrefix("/repo/creativeprojects/resticprofile", fs))
 
 	// Setup server config.
@@ -86,7 +85,7 @@ func TestHttpListReleasesContextCancelled(t *testing.T) {
 	cancelFn()
 
 	// Attempt to list releases and verify result.
-	_, err = source.ListReleases(ctx, types.ParseSlug("creativeprojects/resticprofile"))
+	_, err = source.ListReleases(ctx, selfupdate.ParseSlug("creativeprojects/resticprofile"))
 	assert.ErrorIs(t, err, context.Canceled)
 }
 
@@ -101,7 +100,7 @@ func TestHttpDownloadReleaseAssetContextCancelled(t *testing.T) {
 	cancelFn()
 
 	// Attempt to download release and verify result.
-	_, err = source.DownloadReleaseAsset(ctx, &types.Release{
+	_, err = source.DownloadReleaseAsset(ctx, &selfupdate.Release{
 		AssetID:  11,
 		AssetURL: httpTestBaseURL,
 	}, 11)
@@ -116,7 +115,7 @@ func TestHttpDownloadReleaseAssetWithNilRelease(t *testing.T) {
 
 	// Attempt to download release without specifying the release and verify result.
 	_, err = source.DownloadReleaseAsset(context.Background(), nil, 11)
-	assert.ErrorIs(t, err, types.ErrInvalidRelease)
+	assert.ErrorIs(t, err, selfupdate.ErrInvalidRelease)
 }
 
 // Verify we're able to list releases and download an asset.
@@ -129,7 +128,7 @@ func TestHttpListAndDownloadReleaseAsset(t *testing.T) {
 	require.NoError(t, err)
 
 	// List releases
-	releases, err := source.ListReleases(context.Background(), types.ParseSlug("creativeprojects/resticprofile"))
+	releases, err := source.ListReleases(context.Background(), selfupdate.ParseSlug("creativeprojects/resticprofile"))
 	require.NoError(t, err)
 
 	// Confirm the manifest parsed the correct number of releases.
@@ -143,7 +142,7 @@ func TestHttpListAndDownloadReleaseAsset(t *testing.T) {
 	assert.Equal(t, assets[1].GetName(), "example_linux_amd64.tar.gz", "the release asset is not valid")
 
 	// Get updater with source.
-	updater, err := selfupdate.NewUpdater(types.Config{
+	updater, err := selfupdate.NewUpdater(selfupdate.Config{
 		Source: source,
 		OS:     "linux",
 		Arch:   "amd64",
@@ -151,7 +150,7 @@ func TestHttpListAndDownloadReleaseAsset(t *testing.T) {
 	require.NoError(t, err)
 
 	// Find the latest release.
-	release, found, err := updater.DetectLatest(context.Background(), selfupdate.DetectLatestOpt{Repository: types.NewRepositorySlug("creativeprojects", "resticprofile")})
+	release, found, err := updater.DetectLatest(context.Background(), selfupdate.DetectLatestOpt{Repository: selfupdate.NewRepositorySlug("creativeprojects", "resticprofile")})
 	require.NoError(t, err)
 	assert.Equal(t, found, true, "no release found")
 

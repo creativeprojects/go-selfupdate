@@ -3,7 +3,7 @@ package github
 import (
 	"time"
 
-	"github.com/creativeprojects/go-selfupdate/types"
+	"github.com/creativeprojects/go-selfupdate"
 	"github.com/google/go-github/v86/github"
 )
 
@@ -16,7 +16,7 @@ type Release struct {
 	prerelease   bool
 	publishedAt  time.Time
 	releaseNotes string
-	assets       []types.SourceAsset
+	assets       []selfupdate.SourceAsset
 }
 
 func NewRelease(from *github.RepositoryRelease) *Release {
@@ -29,7 +29,7 @@ func NewRelease(from *github.RepositoryRelease) *Release {
 		releaseNotes: from.GetBody(),
 		draft:        from.GetDraft(),
 		prerelease:   from.GetPrerelease(),
-		assets:       make([]types.SourceAsset, len(from.Assets)),
+		assets:       make([]selfupdate.SourceAsset, len(from.Assets)),
 	}
 	for i, fromAsset := range from.Assets {
 		release.assets[i] = NewGitHubAsset(fromAsset)
@@ -69,7 +69,7 @@ func (r *Release) GetURL() string {
 	return r.url
 }
 
-func (r *Release) GetAssets() []types.SourceAsset {
+func (r *Release) GetAssets() []selfupdate.SourceAsset {
 	return r.assets
 }
 
@@ -107,6 +107,6 @@ func (a *Asset) GetBrowserDownloadURL() string {
 
 // Verify interface
 var (
-	_ types.SourceRelease = &Release{}
-	_ types.SourceAsset   = &Asset{}
+	_ selfupdate.SourceRelease = &Release{}
+	_ selfupdate.SourceAsset   = &Asset{}
 )

@@ -1,11 +1,16 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"strings"
 
 	"github.com/creativeprojects/go-selfupdate"
+	"github.com/creativeprojects/go-selfupdate/gitea"
+	"github.com/creativeprojects/go-selfupdate/github"
+	"github.com/creativeprojects/go-selfupdate/gitlab"
+	"github.com/creativeprojects/go-selfupdate/http"
 )
 
 // SplitDomainSlug tries to make sense of the repository string
@@ -51,52 +56,52 @@ func SplitDomainSlug(repo string) (domain, slug string, err error) {
 	return domain, slug, nil
 }
 
-func GetSource(cvsType, domain string) (selfupdate.Source, error) {
+func GetSource(ctx context.Context, cvsType, domain string) (selfupdate.Source, error) {
 	if cvsType != "auto" && cvsType != "" {
-		source, err := getSourceFromName(cvsType, domain)
+		source, err := getSourceFromName(ctx, cvsType, domain)
 		if err != nil {
 			return nil, err
 		}
 		return source, nil
 	}
 
-	source, err := getSourceFromURL(domain)
+	source, err := getSourceFromURL(ctx, domain)
 	if err != nil {
 		return nil, err
 	}
 	return source, nil
 }
 
-func getSourceFromName(name, domain string) (selfupdate.Source, error) {
+func getSourceFromName(ctx context.Context, name, domain string) (selfupdate.Source, error) {
 	switch name {
 	case "gitea":
-		return selfupdate.NewGiteaSource(selfupdate.GiteaConfig{BaseURL: domain})
+		return gitea.NewSource(ctx, gitea.Config{BaseURL: domain})
 
 	case "gitlab":
-		return selfupdate.NewGitLabSource(selfupdate.GitLabConfig{BaseURL: domain})
+		return gitlab.NewSource(gitlab.Config{BaseURL: domain})
 
 	case "http":
-		return selfupdate.NewHttpSource(selfupdate.HttpConfig{BaseURL: domain})
+		return http.NewSource(http.Config{BaseURL: domain})
 
 	default:
 		return newGitHubSource(domain)
 	}
 }
 
-func getSourceFromURL(domain string) (selfupdate.Source, error) {
+func getSourceFromURL(ctx context.Context, domain string) (selfupdate.Source, error) {
 	if strings.Contains(domain, "gitea") {
-		return selfupdate.NewGiteaSource(selfupdate.GiteaConfig{BaseURL: domain})
+		return gitea.NewSource(ctx, gitea.Config{BaseURL: domain})
 	}
 	if strings.Contains(domain, "gitlab") {
-		return selfupdate.NewGitLabSource(selfupdate.GitLabConfig{BaseURL: domain})
+		return gitlab.NewSource(gitlab.Config{BaseURL: domain})
 	}
 	return newGitHubSource(domain)
 }
 
-func newGitHubSource(domain string) (*selfupdate.GitHubSource, error) {
-	config := selfupdate.GitHubConfig{}
+func newGitHubSource(domain string) (*github.Source, error) {
+	config := github.Config{}
 	if domain != "" && !strings.HasSuffix(domain, "://github.com") {
 		config.EnterpriseBaseURL = domain
 	}
-	return selfupdate.NewGitHubSource(config)
+	return github.NewSource(config)
 }

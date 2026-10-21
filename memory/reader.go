@@ -5,9 +5,8 @@ import (
 	"io"
 )
 
-var (
-	errTestRead = errors.New("read error")
-)
+// ErrRead is returned when reading an asset from a Source created with ReadError set.
+var ErrRead = errors.New("read error")
 
 // errorReader is a reader that will throw an error after reading n characters
 type errorReader struct {
@@ -29,7 +28,7 @@ func (r *errorReader) Read(p []byte) (int, error) {
 		return r.Read(p)
 	}
 	read, _ := r.r.Read(p[0 : r.failAfter-1])
-	return read, errTestRead
+	return read, ErrRead
 }
 
 // Verify interface

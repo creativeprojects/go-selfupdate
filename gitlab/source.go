@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/creativeprojects/go-selfupdate"
 	"github.com/creativeprojects/go-selfupdate/internal"
-	"github.com/creativeprojects/go-selfupdate/types"
 	gitlab "gitlab.com/gitlab-org/api/client-go"
 )
 
@@ -55,7 +55,7 @@ func NewSource(config Config) (*Source, error) {
 }
 
 // ListReleases returns all available releases
-func (s *Source) ListReleases(ctx context.Context, repository types.Repository) ([]types.SourceRelease, error) {
+func (s *Source) ListReleases(ctx context.Context, repository selfupdate.Repository) ([]selfupdate.SourceRelease, error) {
 	pid, err := repository.Get()
 	if err != nil {
 		return nil, err
@@ -65,14 +65,14 @@ func (s *Source) ListReleases(ctx context.Context, repository types.Repository) 
 	if err != nil {
 		return nil, fmt.Errorf("list releases: %w", err)
 	}
-	releases := make([]types.SourceRelease, len(rels))
+	releases := make([]selfupdate.SourceRelease, len(rels))
 	for i, rel := range rels {
 		releases[i] = NewRelease(rel)
 	}
 	return releases, nil
 }
 
-func (s *Source) GetLatestRelease(ctx context.Context, repository types.Repository) (types.SourceRelease, error) {
+func (s *Source) GetLatestRelease(ctx context.Context, repository selfupdate.Repository) (selfupdate.SourceRelease, error) {
 	pid, err := repository.Get()
 	if err != nil {
 		return nil, err
@@ -87,9 +87,9 @@ func (s *Source) GetLatestRelease(ctx context.Context, repository types.Reposito
 
 // DownloadReleaseAsset downloads an asset from a release.
 // It returns an io.ReadCloser: it is your responsibility to Close it.
-func (s *Source) DownloadReleaseAsset(ctx context.Context, rel *types.Release, assetID int64) (io.ReadCloser, error) {
+func (s *Source) DownloadReleaseAsset(ctx context.Context, rel *selfupdate.Release, assetID int64) (io.ReadCloser, error) {
 	if rel == nil {
-		return nil, types.ErrInvalidRelease
+		return nil, selfupdate.ErrInvalidRelease
 	}
 	var downloadURL string
 	if rel.AssetID == assetID {
@@ -98,7 +98,7 @@ func (s *Source) DownloadReleaseAsset(ctx context.Context, rel *types.Release, a
 		downloadURL = rel.ValidationAssetURL
 	}
 	if downloadURL == "" {
-		return nil, fmt.Errorf("asset ID %d: %w", assetID, types.ErrAssetNotFound)
+		return nil, fmt.Errorf("asset ID %d: %w", assetID, selfupdate.ErrAssetNotFound)
 	}
 
 	log.Printf("downloading %q", downloadURL)
@@ -130,4 +130,4 @@ func (s *Source) DownloadReleaseAsset(ctx context.Context, rel *types.Release, a
 }
 
 // Verify interface
-var _ types.Source = &Source{}
+var _ selfupdate.Source = &Source{}

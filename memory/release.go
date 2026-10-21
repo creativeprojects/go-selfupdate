@@ -3,7 +3,7 @@ package memory
 import (
 	"time"
 
-	"github.com/creativeprojects/go-selfupdate/types"
+	"github.com/creativeprojects/go-selfupdate"
 )
 
 type Release struct {
@@ -15,7 +15,7 @@ type Release struct {
 	Prerelease   bool
 	PublishedAt  time.Time
 	ReleaseNotes string
-	Assets       []types.SourceAsset
+	Assets       []selfupdate.SourceAsset
 }
 
 func (r *Release) GetID() int64 {
@@ -50,7 +50,7 @@ func (r *Release) GetURL() string {
 	return r.URL
 }
 
-func (r *Release) GetAssets() []types.SourceAsset {
+func (r *Release) GetAssets() []selfupdate.SourceAsset {
 	return r.Assets
 }
 
@@ -79,6 +79,6 @@ func (a *Asset) GetBrowserDownloadURL() string {
 
 // Verify interface
 var (
-	_ types.SourceRelease = &Release{}
-	_ types.SourceAsset   = &Asset{}
+	_ selfupdate.SourceRelease = &Release{}
+	_ selfupdate.SourceAsset   = &Asset{}
 )

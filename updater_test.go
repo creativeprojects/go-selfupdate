@@ -1,8 +1,11 @@
-package selfupdate
+package selfupdate_test
 
 import (
 	"strings"
 	"testing"
+
+	"github.com/creativeprojects/go-selfupdate"
+	"github.com/creativeprojects/go-selfupdate/memory"
 )
 
 func TestCompileRegexForFiltering(t *testing.T) {
@@ -10,16 +13,17 @@ func TestCompileRegexForFiltering(t *testing.T) {
 		"^hello$",
 		"^(\\d\\.)+\\d$",
 	}
-	up, err := NewUpdater(Config{
+	up, err := selfupdate.NewUpdater(selfupdate.Config{
+		Source:  &memory.Source{},
 		Filters: filters,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(up.filters) != 2 {
-		t.Fatalf("Wanted 2 regexes but got %d", len(up.filters))
+	if len(up.Filters()) != 2 {
+		t.Fatalf("Wanted 2 regexes but got %d", len(up.Filters()))
 	}
-	for i, r := range up.filters {
+	for i, r := range up.Filters() {
 		want := filters[i]
 		got := r.String()
 		if want != got {
@@ -29,7 +33,8 @@ func TestCompileRegexForFiltering(t *testing.T) {
 }
 
 func TestFilterRegexIsBroken(t *testing.T) {
-	_, err := NewUpdater(Config{
+	_, err := selfupdate.NewUpdater(selfupdate.Config{
+		Source:  &memory.Source{},
 		Filters: []string{"(foo"},
 	})
 	if err == nil {
