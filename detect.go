@@ -11,10 +11,6 @@ import (
 
 var reVersion = regexp.MustCompile(`\d+\.\d+\.\d+`)
 
-type DetectLatestOpt struct {
-	Repository Repository
-}
-
 type DetectVersionOpt struct {
 	Repository Repository
 	Version    string
@@ -28,8 +24,8 @@ type DetectVersionOpt struct {
 // '-' can also be used as a separator. File can be compressed with zip, gzip, xz, bzip2, tar&gzip or tar&xz.
 // So the asset can have a file extension for the corresponding compression format such as '.zip'.
 // On Windows, '.exe' also can be contained such as 'foo_windows_amd64.exe.zip'.
-func (up *Updater) DetectLatest(ctx context.Context, opt DetectLatestOpt) (release *Release, err error) {
-	latest, err := up.source.GetLatestRelease(ctx, opt.Repository)
+func (up *Updater) DetectLatest(ctx context.Context, repository Repository) (release *Release, err error) {
+	latest, err := up.source.GetLatestRelease(ctx, repository)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +37,7 @@ func (up *Updater) DetectLatest(ctx context.Context, opt DetectLatestOpt) (relea
 	if !found {
 		return nil, ErrAssetNotFound
 	}
-	return up.validateReleaseAsset(opt.Repository, rel, asset, ver)
+	return up.validateReleaseAsset(repository, rel, asset, ver)
 }
 
 // DetectVersion tries to get the given version from the source provider.

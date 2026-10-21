@@ -64,7 +64,7 @@ func TestUpdateWithSignedChecksums(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	release, err := updater.DetectLatest(context.Background(), selfupdate.DetectLatestOpt{Repository: selfupdate.NewRepositorySlug("owner", "new_version")})
+	release, err := updater.DetectLatest(context.Background(), selfupdate.NewRepositorySlug("owner", "new_version"))
 	require.NoError(t, err)
 	require.NotNil(t, release)
 	require.Len(t, release.ValidationChain, 2)

@@ -84,7 +84,7 @@ func (up *Updater) UpdateCommand(ctx context.Context, opt UpdateCommandOpt) (*Re
 		opt.CmdPath = p
 	}
 
-	rel, err := up.DetectLatest(ctx, DetectLatestOpt{opt.Repository})
+	rel, err := up.DetectLatest(ctx, opt.Repository)
 	if errors.Is(err, ErrReleaseNotFound) {
 		log.Print("No release detected. Current version is considered up-to-date")
 		return &Release{version: version}, nil

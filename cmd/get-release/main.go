@@ -69,7 +69,7 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	latest, err := updater.DetectLatest(ctx, selfupdate.DetectLatestOpt{Repository: selfupdate.ParseSlug(slug)})
+	latest, err := updater.DetectLatest(ctx, selfupdate.ParseSlug(slug))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

@@ -45,7 +45,7 @@ func TestDetectReleaseWithVersionPrefix(t *testing.T) {
 			continue
 		}
 		t.Run(testItem.name, func(t *testing.T) {
-			r, err := testItem.updater.DetectLatest(context.Background(), selfupdate.DetectLatestOpt{testGithubRepository})
+			r, err := testItem.updater.DetectLatest(context.Background(), testGithubRepository)
 			skipRateLimitExceeded(t, err)
 			require.NoError(t, err)
 			require.NotNil(t, r, "No release returned")
@@ -221,7 +221,7 @@ func TestDetectReleaseButNoAsset(t *testing.T) {
 		nil,
 	)})
 
-	release, err := updater.DetectLatest(context.Background(), selfupdate.DetectLatestOpt{repository})
+	release, err := updater.DetectLatest(context.Background(), repository)
 	assert.ErrorIs(t, err, selfupdate.ErrAssetNotFound)
 	assert.Nil(t, release)
 
@@ -246,7 +246,7 @@ func TestNonExistingRepo(t *testing.T) {
 			continue
 		}
 		t.Run(testItem.name, func(t *testing.T) {
-			_, err := testItem.updater.DetectLatest(context.Background(), selfupdate.DetectLatestOpt{selfupdate.ParseSlug("creativeprojects/non-existing-repo")})
+			_, err := testItem.updater.DetectLatest(context.Background(), selfupdate.ParseSlug("creativeprojects/non-existing-repo"))
 			skipRateLimitExceeded(t, err)
 			require.ErrorIs(t, err, selfupdate.ErrRepositoryNotFound)
 		})
@@ -268,7 +268,7 @@ func TestNoReleaseFound(t *testing.T) {
 			continue
 		}
 		t.Run(testItem.name, func(t *testing.T) {
-			rel, err := testItem.updater.DetectLatest(context.Background(), selfupdate.DetectLatestOpt{selfupdate.ParseSlug("rhysd/misc")})
+			rel, err := testItem.updater.DetectLatest(context.Background(), selfupdate.ParseSlug("rhysd/misc"))
 			skipRateLimitExceeded(t, err)
 			require.ErrorIs(t, err, selfupdate.ErrReleaseNotFound)
 			assert.Nil(t, rel, "Should have not found any release")

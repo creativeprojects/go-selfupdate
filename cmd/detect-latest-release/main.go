@@ -91,7 +91,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	latest, err := updater.DetectLatest(context.Background(), selfupdate.DetectLatestOpt{Repository: selfupdate.ParseSlug(slug)})
+	latest, err := updater.DetectLatest(context.Background(), selfupdate.ParseSlug(slug))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

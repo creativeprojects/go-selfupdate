@@ -24,7 +24,7 @@ func update(version string) error {
 
 	latest, err := updater.DetectLatest(
 		context.Background(),
-		selfupdate.DetectLatestOpt{Repository: selfupdate.ParseSlug("creativeprojects/resticprofile")},
+		selfupdate.ParseSlug("creativeprojects/resticprofile"),
 	)
 	if err != nil {
 		return err
