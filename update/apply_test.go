@@ -86,6 +86,42 @@ func TestApplyOldSavePath(t *testing.T) {
 	cleanup(oldfName)
 }
 
+func TestApplyNewFile(t *testing.T) {
+	t.Parallel()
+
+	fName := t.Name()
+	defer cleanup(fName)
+	// no old file: the target doesn't exist yet
+
+	err := Apply(bytes.NewReader(newFile), Options{
+		TargetPath: fName,
+	})
+	validateUpdate(t, fName, err)
+
+	assert.NoFileExists(t, fmt.Sprintf(".%s.old", fName))
+	assert.NoFileExists(t, fmt.Sprintf(".%s.new", fName))
+}
+
+func TestApplyNewFileOldSavePath(t *testing.T) {
+	t.Parallel()
+
+	fName := t.Name()
+	defer cleanup(fName)
+	// no old file: the target doesn't exist yet
+
+	oldfName := "NewFileOldSavePath"
+	defer cleanup(oldfName)
+
+	err := Apply(bytes.NewReader(newFile), Options{
+		TargetPath:  fName,
+		OldSavePath: oldfName,
+	})
+	validateUpdate(t, fName, err)
+
+	// there was nothing to save
+	assert.NoFileExists(t, oldfName)
+}
+
 func TestVerifyChecksum(t *testing.T) {
 	t.Parallel()
 

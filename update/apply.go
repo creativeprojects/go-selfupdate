@@ -26,7 +26,7 @@ var (
 //
 // 3. Creates a new file, /path/to/.target.new with the TargetMode with the contents of the updated file
 //
-// 4. Renames /path/to/target to /path/to/.target.old
+// 4. Renames /path/to/target to /path/to/.target.old, if the target exists
 //
 // 5. Renames /path/to/.target.new to /path/to/target
 //
@@ -35,6 +35,9 @@ var (
 //
 // 7. If the final rename fails, attempts to roll back by renaming /path/to/.target.old
 // back to /path/to/target.
+//
+// If the target file does not exist, Apply creates it: steps 4, 6 and 7 are skipped since there is
+// no previous file to move aside, remove or restore.
 //
 // If the roll back operation fails, the file system is left in an inconsistent state (between steps 5 and 6) where
 // there is no new executable file and the old executable file could not be moved to its original location. In this
@@ -95,6 +98,12 @@ func Apply(update io.Reader, opts Options) error {
 	updateDir := filepath.Dir(opts.TargetPath)
 	filename := filepath.Base(opts.TargetPath)
 
+	// a missing target is not an error: the new file is created in its place
+	targetExists, err := fileExists(opts.TargetPath)
+	if err != nil {
+		return err
+	}
+
 	// Copy the contents of newbinary to a new executable file
 	newPath := filepath.Join(updateDir, fmt.Sprintf(".%s.new", filename))
 	fp, err := openFile(newPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, opts.TargetMode)
@@ -119,21 +128,28 @@ func Apply(update io.Reader, opts Options) error {
 		oldPath = filepath.Join(updateDir, fmt.Sprintf(".%s.old", filename))
 	}
 
-	// delete any existing old exec file - this is necessary on Windows for two reasons:
-	// 1. after a successful update, Windows can't remove the .old file because the process is still running
-	// 2. windows rename operations fail if the destination file already exists
-	_ = os.Remove(oldPath)
+	if targetExists {
+		// delete any existing old exec file - this is necessary on Windows for two reasons:
+		// 1. after a successful update, Windows can't remove the .old file because the process is still running
+		// 2. windows rename operations fail if the destination file already exists
+		_ = os.Remove(oldPath)
 
-	// move the existing executable to a new file in the same directory
-	err = os.Rename(opts.TargetPath, oldPath)
-	if err != nil {
-		return err
+		// move the existing executable to a new file in the same directory
+		err = os.Rename(opts.TargetPath, oldPath)
+		if err != nil {
+			return err
+		}
 	}
 
 	// move the new executable in to become the new program
 	err = os.Rename(newPath, opts.TargetPath)
 
 	if err != nil {
+		if !targetExists {
+			// nothing to roll back: there was no file at the target path to begin with
+			return err
+		}
+
 		// move unsuccessful
 		//
 		// The filesystem is now in a bad state. We have successfully
@@ -150,7 +166,7 @@ func Apply(update io.Reader, opts Options) error {
 	}
 
 	// move successful, remove the old binary if needed
-	if removeOld {
+	if targetExists && removeOld {
 		errRemove := os.Remove(oldPath)
 
 		// windows has trouble with removing old binaries, so hide it instead
@@ -160,6 +176,18 @@ func Apply(update io.Reader, opts Options) error {
 	}
 
 	return nil
+}
+
+// fileExists reports whether a file (or symlink) exists at path
+func fileExists(path string) (bool, error) {
+	_, err := os.Lstat(path)
+	if err == nil {
+		return true, nil
+	}
+	if errors.Is(err, os.ErrNotExist) {
+		return false, nil
+	}
+	return false, err
 }
 
 // RollbackError takes an error value returned by Apply and returns the error, if any,
