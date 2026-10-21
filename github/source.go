@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -72,11 +71,8 @@ func (s *Source) ListReleases(ctx context.Context, repository selfupdate.Reposit
 	rels, res, err := s.api.Repositories.ListReleases(ctx, owner, repo, nil)
 	if err != nil {
 		if res != nil && res.StatusCode == http.StatusNotFound {
-			// repository not found or release not found. It's not an error here.
-			log.Print("Repository or release not found")
-			return nil, nil
+			return nil, selfupdate.ErrRepositoryNotFound
 		}
-		log.Printf("API returned an error response: %s", err)
 		return nil, err
 	}
 	releases := make([]selfupdate.SourceRelease, len(rels))
@@ -94,11 +90,8 @@ func (s *Source) GetLatestRelease(ctx context.Context, repository selfupdate.Rep
 	rel, res, err := s.api.Repositories.GetLatestRelease(ctx, owner, repo)
 	if err != nil {
 		if res != nil && res.StatusCode == http.StatusNotFound {
-			// repository not found or release not found. It's not an error here.
-			log.Print("Repository or release not found")
-			return nil, nil
+			return nil, selfupdate.ErrRepositoryNotFound
 		}
-		log.Printf("API returned an error response: %s", err)
 		return nil, err
 	}
 	return NewRelease(rel), nil

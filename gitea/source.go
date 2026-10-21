@@ -42,10 +42,6 @@ func NewSource(ctx context.Context, config Config) (*Source, error) {
 		return nil, fmt.Errorf("gitea base url must be set")
 	}
 
-	if ctx == nil {
-		ctx = context.Background()
-	}
-
 	client, err := gitea.NewClient(config.BaseURL, gitea.SetContext(ctx), gitea.SetToken(token))
 	if err != nil {
 		return nil, fmt.Errorf("error connecting to gitea: %w", err)
@@ -69,11 +65,8 @@ func (s *Source) ListReleases(ctx context.Context, repository selfupdate.Reposit
 	rels, res, err := s.api.ListReleases(owner, repo, gitea.ListReleasesOptions{})
 	if err != nil {
 		if res != nil && res.StatusCode == http.StatusNotFound {
-			// repository not found or release not found. It's not an error here.
-			log.Print("Repository or release not found")
-			return nil, nil
+			return nil, selfupdate.ErrRepositoryNotFound
 		}
-		log.Printf("API returned an error response: %s", err)
 		return nil, err
 	}
 	releases := make([]selfupdate.SourceRelease, len(rels))
@@ -93,11 +86,8 @@ func (s *Source) GetLatestRelease(ctx context.Context, repository selfupdate.Rep
 	rel, res, err := s.api.GetLatestRelease(owner, repo)
 	if err != nil {
 		if res != nil && res.StatusCode == http.StatusNotFound {
-			// repository not found or release not found. It's not an error here.
-			log.Print("Repository or release not found")
-			return nil, nil
+			return nil, selfupdate.ErrRepositoryNotFound
 		}
-		log.Printf("API returned an error response: %s", err)
 		return nil, err
 	}
 	return NewRelease(rel), nil

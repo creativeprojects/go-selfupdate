@@ -10,6 +10,7 @@ var (
 	ErrIncorrectParameterRepo      = errors.New("incorrect parameter \"repo\"")
 	ErrInvalidSource               = errors.New("invalid or missing source in configuration")
 	ErrNotSupported                = errors.New("operation not supported")
+	ErrRepositoryNotFound          = errors.New("repository not found")
 	ErrInvalidRelease              = errors.New("invalid release (nil argument)")
 	ErrAssetNotFound               = errors.New("asset not found")
 	ErrValidationAssetNotFound     = errors.New("validation file not found")

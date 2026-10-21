@@ -327,3 +327,10 @@ func newMemorySource(releases []selfupdate.SourceRelease, files map[int64][]byte
 		Files:    files,
 	}
 }
+
+// newRepositoryNotFoundSource creates a *memory.Source always returning an unknown repository error
+func newRepositoryNotFoundSource() *memory.Source {
+	return &memory.Source{
+		NotFound: true,
+	}
+}

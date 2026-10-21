@@ -157,7 +157,7 @@ func (s *Source) ListReleases(ctx context.Context, repository selfupdate.Reposit
 }
 
 func (s *Source) GetLatestRelease(ctx context.Context, repository selfupdate.Repository) (selfupdate.SourceRelease, error) {
-	return nil, errors.New("Not implemented")
+	return nil, errors.New("not implemented")
 }
 
 // DownloadReleaseAsset downloads an asset from a release.

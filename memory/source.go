@@ -14,6 +14,7 @@ type Source struct {
 	Releases      []selfupdate.SourceRelease
 	Files         map[int64][]byte
 	ReadError     bool // set to true to simulate a read error in DownloadReleaseAsset
+	NotFound      bool // set to true for a repository not found
 }
 
 // ListReleases returns a list of releases. repository parameter is not used.
@@ -21,12 +22,18 @@ func (s *Source) ListReleases(ctx context.Context, repository selfupdate.Reposit
 	if _, _, err := repository.GetSlug(); err != nil {
 		return nil, err
 	}
+	if s.NotFound {
+		return nil, selfupdate.ErrRepositoryNotFound
+	}
 	return s.Releases, nil
 }
 
 func (s *Source) GetLatestRelease(ctx context.Context, repository selfupdate.Repository) (selfupdate.SourceRelease, error) {
 	if _, _, err := repository.GetSlug(); err != nil {
 		return nil, err
+	}
+	if s.NotFound {
+		return nil, selfupdate.ErrRepositoryNotFound
 	}
 	return s.LatestRelease, nil
 }

@@ -249,7 +249,7 @@ func TestNonExistingRepo(t *testing.T) {
 		name    string
 		updater *selfupdate.Updater
 	}{
-		{true, "Mock", newMockUpdater(t, selfupdate.Config{Source: newMemorySource(nil, nil)})},
+		{true, "Mock", newMockUpdater(t, selfupdate.Config{Source: newRepositoryNotFoundSource()})},
 		{!testing.Short(), "GitHub", newGitHubUpdater(t, selfupdate.Config{})},
 	}
 
@@ -258,10 +258,9 @@ func TestNonExistingRepo(t *testing.T) {
 			continue
 		}
 		t.Run(testItem.name, func(t *testing.T) {
-			_, ok, err := testItem.updater.DetectLatest(context.Background(), selfupdate.DetectLatestOpt{selfupdate.ParseSlug("rhysd/non-existing-repo")})
+			_, _, err := testItem.updater.DetectLatest(context.Background(), selfupdate.DetectLatestOpt{selfupdate.ParseSlug("creativeprojects/non-existing-repo")})
 			skipRateLimitExceeded(t, err)
-			require.NoError(t, err)
-			assert.False(t, ok, "Release for non-existing repo should not be found")
+			require.ErrorIs(t, err, selfupdate.ErrRepositoryNotFound)
 		})
 	}
 }
@@ -284,7 +283,7 @@ func TestNoReleaseFound(t *testing.T) {
 			_, ok, err := testItem.updater.DetectLatest(context.Background(), selfupdate.DetectLatestOpt{selfupdate.ParseSlug("rhysd/misc")})
 			skipRateLimitExceeded(t, err)
 			require.NoError(t, err)
-			assert.False(t, ok, "Repo having no release should not be found")
+			assert.False(t, ok, "Should have not found any release")
 		})
 	}
 }

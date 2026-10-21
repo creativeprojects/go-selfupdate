@@ -63,7 +63,7 @@ func (s *Source) ListReleases(ctx context.Context, repository selfupdate.Reposit
 
 	rels, _, err := s.api.Releases.ListReleases(pid, nil, gitlab.WithContext(ctx))
 	if err != nil {
-		return nil, fmt.Errorf("list releases: %w", err)
+		return nil, err
 	}
 	releases := make([]selfupdate.SourceRelease, len(rels))
 	for i, rel := range rels {
@@ -80,7 +80,7 @@ func (s *Source) GetLatestRelease(ctx context.Context, repository selfupdate.Rep
 
 	rel, _, err := s.api.Releases.GetLatestRelease(pid, nil, gitlab.WithContext(ctx))
 	if err != nil {
-		return nil, fmt.Errorf("list releases: %w", err)
+		return nil, err
 	}
 	return NewRelease(rel), nil
 }
