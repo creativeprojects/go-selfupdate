@@ -32,9 +32,13 @@ func (s *Source) ListReleases(ctx context.Context, repository selfupdate.Reposit
 	return s.Releases, nil
 }
 
+// GetLatestRelease returns LatestRelease, or ErrReleaseNotFound when it is not set.
 func (s *Source) GetLatestRelease(ctx context.Context, repository selfupdate.Repository) (selfupdate.SourceRelease, error) {
 	if err := s.check(ctx, repository); err != nil {
 		return nil, err
+	}
+	if s.LatestRelease == nil {
+		return nil, selfupdate.ErrReleaseNotFound
 	}
 	return s.LatestRelease, nil
 }

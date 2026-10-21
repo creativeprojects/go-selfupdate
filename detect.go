@@ -29,15 +29,19 @@ type DetectVersionOpt struct {
 // So the asset can have a file extension for the corresponding compression format such as '.zip'.
 // On Windows, '.exe' also can be contained such as 'foo_windows_amd64.exe.zip'.
 func (up *Updater) DetectLatest(ctx context.Context, opt DetectLatestOpt) (release *Release, err error) {
-	rel, err := up.source.GetLatestRelease(ctx, opt.Repository)
+	latest, err := up.source.GetLatestRelease(ctx, opt.Repository)
 	if err != nil {
+		return nil, err
+	}
+	if latest == nil {
 		return nil, ErrReleaseNotFound
 	}
-	asset, _, found := up.findAssetFromRelease(rel, up.getSuffixes(up.arch), "")
+	// targeting the tag of the release keeps it even when it's a draft or a pre-release
+	rel, asset, ver, found := up.findReleaseAndAsset([]SourceRelease{latest}, latest.GetTagName())
 	if !found {
 		return nil, ErrAssetNotFound
 	}
-	return up.validateReleaseAsset(opt.Repository, rel, asset, semver.MustParse(reVersion.FindString(rel.GetTagName())))
+	return up.validateReleaseAsset(opt.Repository, rel, asset, ver)
 }
 
 // DetectVersion tries to get the given version from the source provider.

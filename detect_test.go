@@ -132,7 +132,7 @@ func TestDetectVersionNotExisting(t *testing.T) {
 		t.Run(testItem.name, func(t *testing.T) {
 			r, err := testItem.updater.DetectVersion(context.Background(), selfupdate.DetectVersionOpt{testGithubRepository, "foobar"})
 			skipRateLimitExceeded(t, err)
-			require.NoError(t, err)
+			require.ErrorIs(t, err, selfupdate.ErrReleaseNotFound)
 			assert.Nil(t, r, "Release not detected but got a returned value for it")
 		})
 	}
@@ -152,9 +152,10 @@ func TestDetectPrerelease(t *testing.T) {
 				Source:     mockMemorySource(t),
 				Prerelease: testFixture.prerelease,
 			})
-			r, err := updater.DetectLatest(context.Background(), selfupdate.DetectLatestOpt{selfupdate.NewRepositorySlug("owner", "repo")})
+			// the pre-release flag only applies when searching the list of releases for the highest version
+			r, err := updater.DetectVersion(context.Background(), selfupdate.DetectVersionOpt{selfupdate.NewRepositorySlug("owner", "repo"), ""})
+			require.NoError(t, err)
 			require.NotNil(t, r)
-			assert.NoError(t, err)
 
 			assert.Equal(t, testFixture.prerelease, r.Prerelease)
 			assert.Equal(t, testFixture.version, r.Version())
@@ -178,10 +179,11 @@ func TestDetectReleasesForVariousArchives(t *testing.T) {
 			require.NoError(t, err, "failed to create source")
 			updater, err := selfupdate.NewUpdater(selfupdate.Config{Source: source, Arch: "amd64"})
 			require.NoError(t, err, "failed to create updater")
-			r, err := updater.DetectLatest(context.Background(), selfupdate.DetectLatestOpt{selfupdate.ParseSlug(tc.slug)})
+			// the release tagged as latest on GitHub is not 1.2.3 for every repository: search for the highest version instead
+			r, err := updater.DetectVersion(context.Background(), selfupdate.DetectVersionOpt{selfupdate.ParseSlug(tc.slug), ""})
 			skipRateLimitExceeded(t, err)
 
-			assert.NoError(t, err, "fetch failed")
+			require.NoError(t, err, "fetch failed")
 			require.NotNil(t, r, "release not detected")
 			assert.Truef(t, r.Equal("1.2.3"), "incorrect release: expected 1.2.3 but got %v", r.Version())
 
@@ -202,40 +204,31 @@ func TestDetectReleasesForVariousArchives(t *testing.T) {
 }
 
 func TestDetectReleaseButNoAsset(t *testing.T) {
-	testData := []struct {
-		run     bool
-		name    string
-		updater *selfupdate.Updater
-	}{
-		{true, "Mock", newMockUpdater(t, selfupdate.Config{Source: newMemorySource(
-			[]selfupdate.SourceRelease{
-				&memory.Release{
-					Name:    "first",
-					TagName: "v1.0",
-					Assets:  nil,
-				},
-				&memory.Release{
-					Name:    "second",
-					TagName: "v2.0",
-					Assets:  nil,
-				},
+	repository := selfupdate.NewRepositorySlug("owner", "repo")
+	updater := newMockUpdater(t, selfupdate.Config{Source: newMemorySource(
+		[]selfupdate.SourceRelease{
+			&memory.Release{
+				Name:    "first",
+				TagName: "v1.0.0",
+				Assets:  nil,
 			},
-			nil,
-		)})},
-		{!testing.Short(), "GitHub", newGitHubUpdater(t, selfupdate.Config{})},
-	}
+			&memory.Release{
+				Name:    "second",
+				TagName: "v2.0.0",
+				Assets:  nil,
+			},
+		},
+		nil,
+	)})
 
-	for _, testItem := range testData {
-		if !testItem.run {
-			continue
-		}
-		t.Run(testItem.name, func(t *testing.T) {
-			release, err := testItem.updater.DetectLatest(context.Background(), selfupdate.DetectLatestOpt{selfupdate.ParseSlug("rhysd/clever-f.vim")})
-			skipRateLimitExceeded(t, err)
-			require.NoError(t, err)
-			assert.NotNil(t, release)
-		})
-	}
+	release, err := updater.DetectLatest(context.Background(), selfupdate.DetectLatestOpt{repository})
+	assert.ErrorIs(t, err, selfupdate.ErrAssetNotFound)
+	assert.Nil(t, release)
+
+	// no release has a matching asset, so none is selected
+	release, err = updater.DetectVersion(context.Background(), selfupdate.DetectVersionOpt{repository, ""})
+	assert.ErrorIs(t, err, selfupdate.ErrReleaseNotFound)
+	assert.Nil(t, release)
 }
 
 func TestNonExistingRepo(t *testing.T) {
@@ -277,7 +270,7 @@ func TestNoReleaseFound(t *testing.T) {
 		t.Run(testItem.name, func(t *testing.T) {
 			rel, err := testItem.updater.DetectLatest(context.Background(), selfupdate.DetectLatestOpt{selfupdate.ParseSlug("rhysd/misc")})
 			skipRateLimitExceeded(t, err)
-			require.NoError(t, err)
+			require.ErrorIs(t, err, selfupdate.ErrReleaseNotFound)
 			assert.Nil(t, rel, "Should have not found any release")
 		})
 	}

@@ -17,6 +17,13 @@ func NewGitHubServer(t *testing.T, data *memory.Source) *httptest.Server {
 	t.Helper()
 
 	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v3/repos/{owner}/{repo}", func(w http.ResponseWriter, r *http.Request) {
+		if !repositoryExists(data, r.PathValue("owner"), r.PathValue("repo")) {
+			writeNotFound(w)
+			return
+		}
+		writeJSON(w, &github.Repository{Name: new(r.PathValue("repo"))})
+	})
 	mux.HandleFunc("GET /api/v3/repos/{owner}/{repo}/releases", func(w http.ResponseWriter, r *http.Request) {
 		if !repositoryExists(data, r.PathValue("owner"), r.PathValue("repo")) {
 			writeNotFound(w)

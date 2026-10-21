@@ -3,6 +3,7 @@ package selfupdate
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -84,6 +85,10 @@ func (up *Updater) UpdateCommand(ctx context.Context, opt UpdateCommandOpt) (*Re
 	}
 
 	rel, err := up.DetectLatest(ctx, DetectLatestOpt{opt.Repository})
+	if errors.Is(err, ErrReleaseNotFound) {
+		log.Print("No release detected. Current version is considered up-to-date")
+		return &Release{version: version}, nil
+	}
 	if err != nil {
 		return nil, err
 	}

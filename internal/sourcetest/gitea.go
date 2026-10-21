@@ -20,6 +20,13 @@ func NewGiteaServer(t *testing.T, data *memory.Source) *httptest.Server {
 	mux.HandleFunc("GET /api/v1/version", func(w http.ResponseWriter, _ *http.Request) {
 		writeJSON(w, map[string]string{"version": "1.24.0"})
 	})
+	mux.HandleFunc("GET /api/v1/repos/{owner}/{repo}", func(w http.ResponseWriter, r *http.Request) {
+		if !repositoryExists(data, r.PathValue("owner"), r.PathValue("repo")) {
+			writeNotFound(w)
+			return
+		}
+		writeJSON(w, &gitea.Repository{Name: r.PathValue("repo")})
+	})
 	mux.HandleFunc("GET /api/v1/repos/{owner}/{repo}/releases", func(w http.ResponseWriter, r *http.Request) {
 		if !repositoryExists(data, r.PathValue("owner"), r.PathValue("repo")) {
 			writeNotFound(w)

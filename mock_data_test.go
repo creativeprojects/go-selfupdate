@@ -277,7 +277,8 @@ func mockMemorySource(t *testing.T) *memory.Source {
 		// t.Logf("file id %d contains checksums:\n%s\n", id, string(files[id]))
 	}
 
-	return &memory.Source{Releases: releases, Files: files}
+	// v1.0.0 is the latest: v2.0.0-beta is a pre-release and v2.0.0 a draft
+	return &memory.Source{Releases: releases, LatestRelease: releases[3], Files: files}
 }
 
 // mockSignedSourceRepository creates a variant of mockSourceRepository where "checksums.txt" is "signed":
@@ -320,12 +321,17 @@ func newChecksumWithSignatureValidator(checksumsFilename string) selfupdate.Vali
 		SkipValidation("*.asc")
 }
 
-// newMemorySource creates a *memory.Source from a list of releases and their files
+// newMemorySource creates a *memory.Source from a list of releases and their files.
+// The last release of the list is the latest.
 func newMemorySource(releases []selfupdate.SourceRelease, files map[int64][]byte) *memory.Source {
-	return &memory.Source{
+	source := &memory.Source{
 		Releases: releases,
 		Files:    files,
 	}
+	if len(releases) > 0 {
+		source.LatestRelease = releases[len(releases)-1]
+	}
+	return source
 }
 
 // newRepositoryNotFoundSource creates a *memory.Source always returning an unknown repository error

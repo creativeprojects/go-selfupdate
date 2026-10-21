@@ -35,20 +35,20 @@ func TestUpdateWithSignedChecksums(t *testing.T) {
 	signature := &bytes.Buffer{}
 	require.NoError(t, openpgp.ArmoredDetachSign(signature, entity, strings.NewReader(checksums), nil))
 
-	source := &memory.Source{
-		Releases: []selfupdate.SourceRelease{
-			&memory.Release{
-				ReleaseID:   1,
-				Name:        "v1.0.0",
-				TagName:     "v1.0.0",
-				PublishedAt: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
-				Assets: []selfupdate.SourceAsset{
-					&memory.Asset{ID: archiveID, Name: assetName, Size: len(archive)},
-					&memory.Asset{ID: checksumsID, Name: "checksums.txt", Size: len(checksums)},
-					&memory.Asset{ID: signatureID, Name: "checksums.txt.asc", Size: signature.Len()},
-				},
-			},
+	sourceRelease := &memory.Release{
+		ReleaseID:   1,
+		Name:        "v1.0.0",
+		TagName:     "v1.0.0",
+		PublishedAt: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
+		Assets: []selfupdate.SourceAsset{
+			&memory.Asset{ID: archiveID, Name: assetName, Size: len(archive)},
+			&memory.Asset{ID: checksumsID, Name: "checksums.txt", Size: len(checksums)},
+			&memory.Asset{ID: signatureID, Name: "checksums.txt.asc", Size: signature.Len()},
 		},
+	}
+	source := &memory.Source{
+		Releases:      []selfupdate.SourceRelease{sourceRelease},
+		LatestRelease: sourceRelease,
 		Files: map[int64][]byte{
 			archiveID:   archive,
 			checksumsID: []byte(checksums),

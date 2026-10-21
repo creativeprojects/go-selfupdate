@@ -87,6 +87,13 @@ func Run(t *testing.T, factory Factory, options Options) {
 		assertRelease(t, data.LatestRelease, release, options)
 	})
 
+	t.Run("GetLatestReleaseEmptyRepository", func(t *testing.T) {
+		source := factory(t, &memory.Source{Repository: Repository})
+
+		_, err := source.GetLatestRelease(context.Background(), Repository)
+		assert.ErrorIs(t, err, selfupdate.ErrReleaseNotFound)
+	})
+
 	t.Run("GetLatestReleaseUnknownRepository", func(t *testing.T) {
 		source := factory(t, Fixture())
 

@@ -96,11 +96,24 @@ func (s *Source) GetLatestRelease(ctx context.Context, repository selfupdate.Rep
 	rel, res, err := s.api.Repositories.GetLatestRelease(ctx, owner, repo)
 	if err != nil {
 		if res != nil && res.StatusCode == http.StatusNotFound {
-			return nil, selfupdate.ErrRepositoryNotFound
+			return nil, s.notFoundError(ctx, owner, repo)
 		}
 		return nil, err
 	}
 	return NewRelease(rel), nil
+}
+
+// notFoundError tells a repository without any release from a missing repository:
+// the API answers 404 to both when asked for the latest release.
+func (s *Source) notFoundError(ctx context.Context, owner, repo string) error {
+	_, res, err := s.api.Repositories.Get(ctx, owner, repo)
+	if err != nil {
+		if res != nil && res.StatusCode == http.StatusNotFound {
+			return selfupdate.ErrRepositoryNotFound
+		}
+		return err
+	}
+	return selfupdate.ErrReleaseNotFound
 }
 
 // DownloadReleaseAsset downloads an asset from a release.

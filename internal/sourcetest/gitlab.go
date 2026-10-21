@@ -22,6 +22,13 @@ func NewGitLabServer(t *testing.T, data *memory.Source) *httptest.Server {
 	}
 
 	mux := http.NewServeMux()
+	mux.HandleFunc("GET /api/v4/projects/{project}", func(w http.ResponseWriter, r *http.Request) {
+		if !projectExists(r) {
+			writeNotFound(w)
+			return
+		}
+		writeJSON(w, &gitlab.Project{PathWithNamespace: r.PathValue("project")})
+	})
 	mux.HandleFunc("GET /api/v4/projects/{project}/releases", func(w http.ResponseWriter, r *http.Request) {
 		if !projectExists(r) {
 			writeNotFound(w)

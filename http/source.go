@@ -104,6 +104,14 @@ func (s *Source) uriRelative(uri, owner, repo string) string {
 	return uri
 }
 
+// resolveURLs makes the release and asset URLs absolute when the manifest holds them relative to the repository.
+func (s *Source) resolveURLs(release *Release, owner, repo string) {
+	release.URL = s.uriRelative(release.URL, owner, repo)
+	for _, asset := range release.Assets {
+		asset.URL = s.uriRelative(asset.URL, owner, repo)
+	}
+}
+
 func (s *Source) getManifest(ctx context.Context, owner, repo string) (*Manifest, error) {
 	// Make repository URI.
 	uri, err := url.JoinPath(s.baseURL, owner, repo, "manifest.yaml")
@@ -163,13 +171,7 @@ func (s *Source) ListReleases(ctx context.Context, repository selfupdate.Reposit
 	// Make a release array.
 	releases := make([]selfupdate.SourceRelease, len(manifest.Releases))
 	for i, release := range manifest.Releases {
-		// Update URLs to relative path with repository.
-		release.URL = s.uriRelative(release.URL, owner, repo)
-		for b, asset := range release.Assets {
-			release.Assets[b].URL = s.uriRelative(asset.URL, owner, repo)
-		}
-
-		// Set the release.
+		s.resolveURLs(release, owner, repo)
 		releases[i] = release
 	}
 
@@ -193,7 +195,9 @@ func (s *Source) GetLatestRelease(ctx context.Context, repository selfupdate.Rep
 	if index == -1 {
 		return nil, selfupdate.ErrReleaseNotFound
 	}
-	return manifest.Releases[index], nil
+	release := manifest.Releases[index]
+	s.resolveURLs(release, owner, repo)
+	return release, nil
 }
 
 // DownloadReleaseAsset downloads an asset from a release.

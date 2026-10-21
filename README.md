@@ -22,6 +22,7 @@ Self-Update library for Github, Gitea and Gitlab hosted applications in Go
   * [No default source](#no-default-source)
   * [Sources and PGP are sub\-packages](#sources-and-pgp-are-sub-packages)
   * [Updater methods take an options struct](#updater-methods-take-an-options-struct)
+  * [Detection methods return an error when nothing is found](#detection-methods-return-an-error-when-nothing-is-found)
   * [New method on the Source interface](#new-method-on-the-source-interface)
 * [Naming Rules of Released Binaries](#naming-rules-of-released-binaries)
 * [Naming Rules of Versions (=Git Tags)](#naming-rules-of-versions-git-tags)
@@ -91,15 +92,12 @@ func update(version string) error {
 		return fmt.Errorf("error occurred while creating updater: %w", err)
 	}
 
-	latest, found, err := updater.DetectLatest(
+	latest, err := updater.DetectLatest(
 		context.Background(),
 		selfupdate.DetectLatestOpt{Repository: selfupdate.ParseSlug("creativeprojects/resticprofile")},
 	)
 	if err != nil {
 		return fmt.Errorf("error occurred while detecting version: %w", err)
-	}
-	if !found {
-		return fmt.Errorf("latest version for %s/%s could not be found from github repository", runtime.GOOS, runtime.GOARCH)
 	}
 
 	if latest.LessOrEqual(version) {
@@ -221,6 +219,23 @@ The import paths are `github.com/creativeprojects/go-selfupdate/v2/github`, `/gi
 
 The `RelExe` field of `UpdateToOpt`, `UpdateCommandOpt` and `UpdateSelfOpt` names the executable inside the new release
 when it differs from the name of the current one.
+
+## Detection methods return an error when nothing is found
+
+`DetectLatest` and `DetectVersion` return `(*Release, error)` instead of `(*Release, bool, error)`.
+A missing release is reported as `ErrReleaseNotFound`, and a release without an asset for the current OS
+and architecture as `ErrAssetNotFound`.
+
+| v1 | v2 |
+|----|----|
+| `release, found, err := updater.DetectLatest(ctx, ...)` | `release, err := updater.DetectLatest(ctx, ...)` |
+| `if !found { ... }` | `if errors.Is(err, selfupdate.ErrReleaseNotFound) { ... }` |
+
+`UpdateCommand` and `UpdateSelf` keep the v1 behaviour: when no release is found, they return the current version
+as if it were up to date.
+
+`DetectLatest` now asks the source for the release it marks as latest, instead of picking the highest version
+from the list of releases. `DetectVersion` with an empty `Version` still searches the list for the highest version.
 
 ## New method on the Source interface
 
@@ -455,15 +470,12 @@ func update() error {
 	if err != nil {
 		log.Fatal(err)
 	}
-	release, found, err := updater.DetectLatest(
+	release, err := updater.DetectLatest(
 		context.Background(),
 		selfupdate.DetectLatestOpt{Repository: selfupdate.NewRepositorySlug("owner", "cli-tool")},
 	)
 	if err != nil {
 		log.Fatal(err)
-	}
-	if !found {
-		return errors.New("release not found")
 	}
 	fmt.Printf("found release %s\n", release.Version())
 
@@ -508,15 +520,12 @@ func update() error {
 	if err != nil {
 		log.Fatal(err)
 	}
-	release, found, err := updater.DetectLatest(
+	release, err := updater.DetectLatest(
 		context.Background(),
 		selfupdate.DetectLatestOpt{Repository: selfupdate.NewRepositorySlug("repo", "project")},
 	)
 	if err != nil {
 		log.Fatal(err)
-	}
-	if !found {
-		return errors.New("release not found")
 	}
 	fmt.Printf("found release %s\n", release.Version())
 

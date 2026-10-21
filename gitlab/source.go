@@ -90,11 +90,24 @@ func (s *Source) GetLatestRelease(ctx context.Context, repository selfupdate.Rep
 	rel, resp, err := s.api.Releases.GetLatestRelease(pid, nil, gitlab.WithContext(ctx))
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
-			return nil, selfupdate.ErrRepositoryNotFound
+			return nil, s.notFoundError(ctx, pid)
 		}
 		return nil, err
 	}
 	return NewRelease(rel), nil
+}
+
+// notFoundError tells a project without any release from a missing project:
+// the API answers 404 to both when asked for the latest release.
+func (s *Source) notFoundError(ctx context.Context, pid any) error {
+	_, resp, err := s.api.Projects.GetProject(pid, nil, gitlab.WithContext(ctx))
+	if err != nil {
+		if resp != nil && resp.StatusCode == http.StatusNotFound {
+			return selfupdate.ErrRepositoryNotFound
+		}
+		return err
+	}
+	return selfupdate.ErrReleaseNotFound
 }
 
 // DownloadReleaseAsset downloads an asset from a release.

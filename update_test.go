@@ -121,7 +121,8 @@ func TestNoReleaseFoundForUpdate(t *testing.T) {
 	require.NoError(t, err)
 
 	rel, err := updater.UpdateCommand(context.Background(), selfupdate.UpdateCommandOpt{"fake-executable", fake, finalVersion, selfupdate.ParseSlug("owner/repo")})
-	assert.NoError(t, err)
+	require.NoError(t, err)
+	require.NotNil(t, rel)
 	assert.Equal(t, finalVersion, rel.Version())
 	assert.Empty(t, rel.URL)
 	assert.Empty(t, rel.AssetURL)
