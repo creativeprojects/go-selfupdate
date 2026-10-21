@@ -14,7 +14,7 @@ type errorReader struct {
 	failAfter int
 }
 
-// newErrorReader creates a new reader that will thrown an error after reading n characters
+// newErrorReader creates a new reader that will throw an error after reading n characters
 func newErrorReader(r io.Reader, failAfterBytes int) *errorReader {
 	return &errorReader{
 		r:         r,
@@ -25,9 +25,9 @@ func newErrorReader(r io.Reader, failAfterBytes int) *errorReader {
 // Read will throw an error after reading n characters
 func (r *errorReader) Read(p []byte) (int, error) {
 	if len(p) <= r.failAfter {
-		return r.Read(p)
+		return r.r.Read(p)
 	}
-	read, _ := r.r.Read(p[0 : r.failAfter-1])
+	read, _ := r.r.Read(p[:r.failAfter])
 	return read, ErrRead
 }
 
