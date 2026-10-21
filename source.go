@@ -8,8 +8,11 @@ import (
 
 // Source interface to load the releases from
 type Source interface {
+	// ListReleases returns all releases for the given repository.
 	ListReleases(ctx context.Context, repository Repository) ([]SourceRelease, error)
+	// GetLatestRelease returns the latest release for the given repository.
 	GetLatestRelease(ctx context.Context, repository Repository) (SourceRelease, error)
+	// DownloadReleaseAsset downloads the asset with the given ID for the specified release.
 	DownloadReleaseAsset(ctx context.Context, rel *Release, assetID int64) (io.ReadCloser, error)
 }
 
@@ -22,7 +25,6 @@ type SourceRelease interface {
 	GetReleaseNotes() string
 	GetName() string
 	GetURL() string
-
 	GetAssets() []SourceAsset
 }
 

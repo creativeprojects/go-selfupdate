@@ -21,27 +21,44 @@ type DetectVersionOpt struct {
 }
 
 // DetectLatest tries to get the latest version from the source provider.
-// It fetches releases information from the source provider and find out the latest release with matching the tag names and asset names.
-// Drafts and pre-releases are ignored.
+// It fetches the release tagged as latest by the source provider.
+// Drafts and pre-releases are ignored, unless the provider tagged those as being the latest release.
+//
 // Assets would be suffixed by the OS name and the arch name such as 'foo_linux_amd64' where 'foo' is a command name.
 // '-' can also be used as a separator. File can be compressed with zip, gzip, xz, bzip2, tar&gzip or tar&xz.
 // So the asset can have a file extension for the corresponding compression format such as '.zip'.
 // On Windows, '.exe' also can be contained such as 'foo_windows_amd64.exe.zip'.
-func (up *Updater) DetectLatest(ctx context.Context, opt DetectLatestOpt) (release *Release, found bool, err error) {
-	return up.DetectVersion(ctx, DetectVersionOpt{opt.Repository, ""})
+func (up *Updater) DetectLatest(ctx context.Context, opt DetectLatestOpt) (release *Release, err error) {
+	rel, err := up.source.GetLatestRelease(ctx, opt.Repository)
+	if err != nil {
+		return nil, ErrReleaseNotFound
+	}
+	asset, _, found := up.findAssetFromRelease(rel, up.getSuffixes(up.arch), "")
+	if !found {
+		return nil, ErrAssetNotFound
+	}
+	return up.validateReleaseAsset(opt.Repository, rel, asset, semver.MustParse(reVersion.FindString(rel.GetTagName())))
 }
 
 // DetectVersion tries to get the given version from the source provider.
-// And version indicates the required version.
-func (up *Updater) DetectVersion(ctx context.Context, opt DetectVersionOpt) (release *Release, found bool, err error) {
+// It fetches releases information from the source provider to find out the specified version.
+//
+// If version is left empty, it's loading the full list of releases and picking the one with the highest version.
+// The highest version is determined based on semantic versioning, and is not necessarily the version tagged as latest by the source provider.
+//
+// Assets would be suffixed by the OS name and the arch name such as 'foo_linux_amd64' where 'foo' is a command name.
+// '-' can also be used as a separator. File can be compressed with zip, gzip, xz, bzip2, tar&gzip or tar&xz.
+// So the asset can have a file extension for the corresponding compression format such as '.zip'.
+// On Windows, '.exe' also can be contained such as 'foo_windows_amd64.exe.zip'.
+func (up *Updater) DetectVersion(ctx context.Context, opt DetectVersionOpt) (release *Release, err error) {
 	rels, err := up.source.ListReleases(ctx, opt.Repository)
 	if err != nil {
-		return nil, false, err
+		return nil, err
 	}
 
 	rel, asset, ver, found := up.findReleaseAndAsset(rels, opt.Version)
 	if !found {
-		return nil, false, nil
+		return nil, ErrReleaseNotFound
 	}
 
 	return up.validateReleaseAsset(opt.Repository, rel, asset, ver)
@@ -52,7 +69,7 @@ func (up *Updater) validateReleaseAsset(
 	rel SourceRelease,
 	asset SourceAsset,
 	ver *semver.Version,
-) (release *Release, found bool, err error) {
+) (*Release, error) {
 	log.Printf("Successfully fetched release %s, name: %s, URL: %s, asset: %s",
 		rel.GetTagName(),
 		rel.GetName(),
@@ -60,7 +77,7 @@ func (up *Updater) validateReleaseAsset(
 		asset.GetBrowserDownloadURL(),
 	)
 
-	release = &Release{
+	release := &Release{
 		version:            ver,
 		Repository:         repository,
 		AssetURL:           asset.GetBrowserDownloadURL(),
@@ -83,14 +100,13 @@ func (up *Updater) validateReleaseAsset(
 	if up.validator != nil {
 		validationName := up.validator.GetValidationAssetName(asset.GetName())
 		validationAsset, ok := findValidationAsset(rel, validationName)
-		if ok {
-			release.ValidationAssetID = validationAsset.GetID()
-			release.ValidationAssetURL = validationAsset.GetBrowserDownloadURL()
-		} else {
-			err = fmt.Errorf("%w: %q", ErrValidationAssetNotFound, validationName)
+		if !ok {
+			return nil, fmt.Errorf("%w: %q", ErrValidationAssetNotFound, validationName)
 		}
+		release.ValidationAssetID = validationAsset.GetID()
+		release.ValidationAssetURL = validationAsset.GetBrowserDownloadURL()
 
-		for err == nil {
+		for {
 			release.ValidationChain = append(release.ValidationChain, struct {
 				ValidationAssetID                       int64
 				ValidationAssetName, ValidationAssetURL string
@@ -101,8 +117,7 @@ func (up *Updater) validateReleaseAsset(
 			})
 
 			if len(release.ValidationChain) > 20 {
-				err = fmt.Errorf("failed adding validation step %q: recursive validation nesting depth exceeded", validationAsset.GetName())
-				break
+				return nil, fmt.Errorf("failed adding validation step %q: recursive validation nesting depth exceeded", validationAsset.GetName())
 			}
 
 			if rv, ok := up.validator.(RecursiveValidator); ok && rv.MustContinueValidation(validationAsset.GetName()) {
@@ -110,7 +125,7 @@ func (up *Updater) validateReleaseAsset(
 				if validationName != validationAsset.GetName() {
 					validationAsset, ok = findValidationAsset(rel, validationName)
 					if !ok {
-						err = fmt.Errorf("%w: %q", ErrValidationAssetNotFound, validationName)
+						return nil, fmt.Errorf("%w: %q", ErrValidationAssetNotFound, validationName)
 					}
 					continue
 				}
@@ -120,10 +135,7 @@ func (up *Updater) validateReleaseAsset(
 		}
 	}
 
-	if found = err == nil; !found {
-		release = nil
-	}
-	return
+	return release, nil
 }
 
 // findValidationAsset returns the source asset used for validation
@@ -159,7 +171,7 @@ func (up *Updater) findReleaseAndAssetForArch(arch string, rels []SourceRelease,
 	log.Printf("Searching for a possible candidate for os %q and arch %q", up.os, arch)
 
 	// Find the latest version from the list of releases.
-	// Returned list from GitHub API is in the order of the date when created.
+	// We go through all of them comparing the version tag, so the order of the list doesn't matter.
 	for _, rel := range rels {
 		if a, v, ok := up.findAssetFromRelease(rel, up.getSuffixes(arch), targetVersion); ok {
 			// Note: any version with suffix is less than any version without suffix.

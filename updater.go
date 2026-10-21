@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 	"runtime"
+	"strings"
 
 	"github.com/creativeprojects/go-selfupdate/v2/internal"
 )
@@ -48,12 +49,12 @@ func NewUpdater(config Config) (*Updater, error) {
 		arch = runtime.GOARCH
 	}
 	arm := config.Arm
-	if arm == 0 && arch == "arm" {
+	if arm == 0 && strings.EqualFold(arch, "arm") {
 		exe, _ := internal.GetExecutablePath()
 		arm = getGOARM(exe)
 	}
 	universalArch := ""
-	if os == "darwin" && config.UniversalArch != "" {
+	if strings.EqualFold(os, "darwin") && config.UniversalArch != "" {
 		universalArch = config.UniversalArch
 	}
 

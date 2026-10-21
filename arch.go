@@ -2,6 +2,7 @@ package selfupdate
 
 import (
 	"fmt"
+	"strings"
 )
 
 const (
@@ -14,7 +15,7 @@ func getAdditionalArch(arch string, goarm uint8, universalArch string) []string 
 	const defaultArchCapacity = 3
 	additionalArch := make([]string, 0, defaultArchCapacity)
 
-	if arch == "arm" && goarm >= minARM && goarm <= maxARM {
+	if strings.EqualFold(arch, "arm") && goarm >= minARM && goarm <= maxARM {
 		// more precise arch at the top of the list
 		for v := goarm; v >= minARM; v-- {
 			additionalArch = append(additionalArch, fmt.Sprintf("armv%d", v))
@@ -24,10 +25,10 @@ func getAdditionalArch(arch string, goarm uint8, universalArch string) []string 
 	}
 
 	additionalArch = append(additionalArch, arch)
-	if arch == "amd64" {
+	if strings.EqualFold(arch, "amd64") {
 		additionalArch = append(additionalArch, "x86_64")
 	}
-	if arch == "386" {
+	if strings.EqualFold(arch, "386") {
 		additionalArch = append(additionalArch, "i386", "x86", "x86_32")
 	}
 	if universalArch != "" {

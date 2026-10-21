@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"runtime"
 
 	"github.com/creativeprojects/go-selfupdate/v2"
 	"github.com/creativeprojects/go-selfupdate/v2/github"
@@ -23,15 +22,12 @@ func update(version string) error {
 		return fmt.Errorf("error occurred while creating updater: %w", err)
 	}
 
-	latest, found, err := updater.DetectLatest(
+	latest, err := updater.DetectLatest(
 		context.Background(),
 		selfupdate.DetectLatestOpt{Repository: selfupdate.ParseSlug("creativeprojects/resticprofile")},
 	)
 	if err != nil {
-		return fmt.Errorf("error occurred while detecting version: %w", err)
-	}
-	if !found {
-		return fmt.Errorf("latest version for %s/%s could not be found from github repository", runtime.GOOS, runtime.GOARCH)
+		return err
 	}
 
 	if latest.LessOrEqual(version) {

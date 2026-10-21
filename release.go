@@ -6,8 +6,9 @@ import (
 	"github.com/Masterminds/semver/v3"
 )
 
-// Release represents a release asset for current OS and arch.
+// Release asset for current OS and arch.
 type Release struct {
+	// Repository this release belongs to
 	Repository Repository
 	// AssetURL is a URL to the uploaded file for the release
 	AssetURL string

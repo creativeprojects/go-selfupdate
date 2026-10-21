@@ -9,12 +9,9 @@ import (
 	"flag"
 	"fmt"
 	"go/build"
-	"io"
 	"log"
-	"net/http"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	"github.com/creativeprojects/go-selfupdate/v2"
@@ -72,13 +69,9 @@ func main() {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	latest, found, err := updater.DetectLatest(ctx, selfupdate.DetectLatestOpt{Repository: selfupdate.ParseSlug(slug)})
+	latest, err := updater.DetectLatest(ctx, selfupdate.DetectLatestOpt{Repository: selfupdate.ParseSlug(slug)})
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "Error while detecting the latest version:", err)
-		os.Exit(1)
-	}
-	if !found {
-		fmt.Fprintln(os.Stderr, "No release found in", slug)
+		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
@@ -123,34 +116,34 @@ func getCommand(pkg string) string {
 }
 
 func installFrom(ctx context.Context, url, relExe, path string) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
-	if err != nil {
-		return fmt.Errorf("failed to create request to download release binary from %s: %s", url, err)
-	}
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("failed to download release binary from %s: %s", url, err)
-	}
-	defer res.Body.Close()
-	if res.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to download release binary from %s: Invalid response ", url)
-	}
-	executable, err := selfupdate.DecompressCommand(selfupdate.DecompressCommandOpt{
-		Src:    res.Body,
-		Url:    url,
-		RelExe: relExe,
-		Os:     runtime.GOOS,
-		Arch:   runtime.GOARCH,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to decompress downloaded asset from %s: %s", url, err)
-	}
-	bin, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE, 0755)
-	if err != nil {
-		return err
-	}
-	if _, err := io.Copy(bin, executable); err != nil {
-		return fmt.Errorf("failed to write binary to %s: %s", path, err)
-	}
+	// req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
+	// if err != nil {
+	// 	return fmt.Errorf("failed to create request to download release binary from %s: %s", url, err)
+	// }
+	// res, err := http.DefaultClient.Do(req)
+	// if err != nil {
+	// 	return fmt.Errorf("failed to download release binary from %s: %s", url, err)
+	// }
+	// defer res.Body.Close()
+	// if res.StatusCode != http.StatusOK {
+	// 	return fmt.Errorf("failed to download release binary from %s: Invalid response ", url)
+	// }
+	// executable, err := selfupdate.DecompressCommand(selfupdate.DecompressCommandOpt{
+	// 	Src:    res.Body,
+	// 	Url:    url,
+	// 	RelExe: relExe,
+	// 	Os:     runtime.GOOS,
+	// 	Arch:   runtime.GOARCH,
+	// })
+	// if err != nil {
+	// 	return fmt.Errorf("failed to decompress downloaded asset from %s: %s", url, err)
+	// }
+	// bin, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE, 0755)
+	// if err != nil {
+	// 	return err
+	// }
+	// if _, err := io.Copy(bin, executable); err != nil {
+	// 	return fmt.Errorf("failed to write binary to %s: %s", path, err)
+	// }
 	return nil
 }

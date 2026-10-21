@@ -83,13 +83,9 @@ func (up *Updater) UpdateCommand(ctx context.Context, opt UpdateCommandOpt) (*Re
 		opt.CmdPath = p
 	}
 
-	rel, ok, err := up.DetectLatest(ctx, DetectLatestOpt{opt.Repository})
+	rel, err := up.DetectLatest(ctx, DetectLatestOpt{opt.Repository})
 	if err != nil {
 		return nil, err
-	}
-	if !ok {
-		log.Print("No release detected. Current version is considered up-to-date")
-		return &Release{version: version}, nil
 	}
 	if version.Equal(rel.version) {
 		log.Printf("Current version %s is the latest. Update is not needed", version.String())
@@ -113,7 +109,7 @@ func (up *Updater) UpdateSelf(ctx context.Context, opt UpdateSelfOpt) (*Release,
 }
 
 func (up *Updater) decompressAndUpdate(src io.Reader, assetURL, relExe, cmdPath string) error {
-	asset, err := DecompressCommand(DecompressCommandOpt{src, assetURL, relExe, up.os, up.arch})
+	asset, err := fromStream(src, assetURL, relExe, up.os, up.arch)
 	if err != nil {
 		return err
 	}

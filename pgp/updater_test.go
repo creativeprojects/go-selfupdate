@@ -64,9 +64,9 @@ func TestUpdateWithSignedChecksums(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	release, found, err := updater.DetectLatest(context.Background(), selfupdate.DetectLatestOpt{Repository: selfupdate.NewRepositorySlug("owner", "new_version")})
+	release, err := updater.DetectLatest(context.Background(), selfupdate.DetectLatestOpt{Repository: selfupdate.NewRepositorySlug("owner", "new_version")})
 	require.NoError(t, err)
-	require.True(t, found)
+	require.NotNil(t, release)
 	require.Len(t, release.ValidationChain, 2)
 	assert.Equal(t, "checksums.txt", release.ValidationChain[0].ValidationAssetName)
 	assert.Equal(t, "checksums.txt.asc", release.ValidationChain[1].ValidationAssetName)

@@ -91,14 +91,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	latest, found, err := updater.DetectLatest(context.Background(), selfupdate.DetectLatestOpt{Repository: selfupdate.ParseSlug(slug)})
+	latest, err := updater.DetectLatest(context.Background(), selfupdate.DetectLatestOpt{Repository: selfupdate.ParseSlug(slug)})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
-	}
-	if !found {
-		fmt.Println("No release found")
-		return
 	}
 	fmt.Printf("Latest version: %s\n", latest.Version())
 	fmt.Printf("Download URL:   %q\n", latest.AssetURL)

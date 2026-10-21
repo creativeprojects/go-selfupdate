@@ -408,10 +408,9 @@ func TestUpdateToWithMultistepValidationChain(t *testing.T) {
 	tempFile := createEmptyFile(t, "new_version")
 
 	getRelease := func(t *testing.T) *selfupdate.Release {
-		release, found, err := updater.DetectVersion(context.Background(), selfupdate.DetectVersionOpt{Repository: testGithubRepository, Version: testVersion})
+		release, err := updater.DetectVersion(context.Background(), selfupdate.DetectVersionOpt{Repository: testGithubRepository, Version: testVersion})
 		require.NotNil(t, release)
 		require.NoError(t, err)
-		require.True(t, found)
 		require.Equal(t, 2, len(release.ValidationChain))
 		return release
 	}
