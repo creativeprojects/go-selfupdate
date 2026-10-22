@@ -11,10 +11,6 @@ import (
 	"github.com/creativeprojects/go-selfupdate/v2/internal"
 )
 
-var (
-	openFile = os.OpenFile
-)
-
 // Apply performs an update of the current executable (or opts.TargetPath, if set) with the contents of the given io.Reader.
 //
 // Apply performs the following actions to ensure a safe cross-platform update:
@@ -69,7 +65,7 @@ func Apply(update io.Reader, opts Options) error {
 
 	// Copy the contents of newbinary to a new executable file
 	newPath := filepath.Join(updateDir, fmt.Sprintf(".%s.new", filename))
-	fp, err := openFile(newPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, opts.TargetMode)
+	fp, err := os.OpenFile(newPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, opts.TargetMode)
 	if err != nil {
 		return err
 	}

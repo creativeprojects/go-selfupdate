@@ -116,28 +116,23 @@ func TestApplyNewFileOldSavePath(t *testing.T) {
 	assert.NoFileExists(t, oldfName)
 }
 
-func TestWriteError(t *testing.T) {
-	// fix this test patching the global openFile variable
-	// t.Parallel()
+func TestApplyError(t *testing.T) {
+	t.Parallel()
 
 	fName := t.Name()
 	defer cleanup(fName)
 	writeOldFile(t, fName)
 
-	openFile = func(name string, flags int, perm os.FileMode) (*os.File, error) {
-		f, err := os.OpenFile(name, flags, perm)
-
-		// simulate Write() error by closing the file prematurely
-		f.Close()
-
-		return f, err
+	// a directory in place of the .new file makes it impossible to write the update
+	if err := os.Mkdir(fmt.Sprintf(".%s.new", fName), 0o700); err != nil {
+		t.Fatalf("Failed to create directory for testing preparation: %v", err)
 	}
-	defer func() {
-		openFile = os.OpenFile
-	}()
 
 	err := Apply(bytes.NewReader(newFile), Options{TargetPath: fName})
-	if err == nil {
-		t.Fatalf("Allowed an update to an empty file")
-	}
+	assert.Error(t, err)
+
+	// the target must be left untouched
+	buf, err := os.ReadFile(fName)
+	assert.NoError(t, err)
+	assert.Equal(t, oldFile, buf)
 }
