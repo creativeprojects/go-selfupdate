@@ -202,6 +202,7 @@ Create an `Updater` with `NewUpdater` and give it a `Source` explicitly: `NewUpd
 | `DecompressCommand(src, url, cmd, os, arch)` | gone: `UpdateTo` decompresses the asset itself |
 | `GetExecutablePath()` | `ExecutablePath()` |
 | `ResolvePath(filename)` | gone |
+| `update.Options` checksum and signature fields, `update.NewECDSAVerifier()`, `update.NewRSAVerifier()` | gone: set a `Validator` in `Config` to verify the downloaded asset |
 
 `UpdateTo` also creates the target file when it does not exist, so a first installation no longer needs
 to download and decompress the asset by hand.

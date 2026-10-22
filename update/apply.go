@@ -2,7 +2,6 @@ package update
 
 import (
 	"bytes"
-	"crypto"
 	"errors"
 	"fmt"
 	"io"
@@ -20,49 +19,26 @@ var (
 //
 // Apply performs the following actions to ensure a safe cross-platform update:
 //
-// 1. If configured, computes the checksum of the new executable and verifies it matches.
+// 1. Creates a new file, /path/to/.target.new with the TargetMode with the contents of the updated file
 //
-// 2. If configured, verifies the signature with a public key.
+// 2. Renames /path/to/target to /path/to/.target.old, if the target exists
 //
-// 3. Creates a new file, /path/to/.target.new with the TargetMode with the contents of the updated file
+// 3. Renames /path/to/.target.new to /path/to/target
 //
-// 4. Renames /path/to/target to /path/to/.target.old, if the target exists
-//
-// 5. Renames /path/to/.target.new to /path/to/target
-//
-// 6. If the final rename is successful, deletes /path/to/.target.old, returns no error. On Windows,
+// 4. If the final rename is successful, deletes /path/to/.target.old, returns no error. On Windows,
 // the removal of /path/to/target.old always fails, so instead Apply hides the old file instead.
 //
-// 7. If the final rename fails, attempts to roll back by renaming /path/to/.target.old
+// 5. If the final rename fails, attempts to roll back by renaming /path/to/.target.old
 // back to /path/to/target.
 //
-// If the target file does not exist, Apply creates it: steps 4, 6 and 7 are skipped since there is
+// If the target file does not exist, Apply creates it: steps 2, 4 and 5 are skipped since there is
 // no previous file to move aside, remove or restore.
 //
-// If the roll back operation fails, the file system is left in an inconsistent state (between steps 5 and 6) where
+// If the roll back operation fails, the file system is left in an inconsistent state (between steps 3 and 4) where
 // there is no new executable file and the old executable file could not be moved to its original location. In this
 // case you should notify the user of the bad news and ask them to recover manually. Applications can determine whether
 // the rollback failed by calling RollbackError, see the documentation on that function for additional detail.
 func Apply(update io.Reader, opts Options) error {
-	// validate
-	verify := false
-	switch {
-	case opts.Signature != nil && opts.PublicKey != nil:
-		// okay
-		verify = true
-	case opts.Signature != nil:
-		return errors.New("no public key to verify signature with")
-	case opts.PublicKey != nil:
-		return errors.New("no signature to verify with")
-	}
-
-	// set defaults
-	if opts.Hash == 0 {
-		opts.Hash = crypto.SHA256
-	}
-	if opts.Verifier == nil {
-		opts.Verifier = NewECDSAVerifier()
-	}
 	if opts.TargetMode == 0 {
 		opts.TargetMode = 0o755
 	}
@@ -79,19 +55,6 @@ func Apply(update io.Reader, opts Options) error {
 	var newBytes []byte
 	if newBytes, err = io.ReadAll(update); err != nil {
 		return err
-	}
-
-	// verify checksum if requested
-	if opts.Checksum != nil {
-		if err = opts.verifyChecksum(newBytes); err != nil {
-			return err
-		}
-	}
-
-	if verify {
-		if err = opts.verifySignature(newBytes); err != nil {
-			return err
-		}
 	}
 
 	// get the directory the executable exists in
