@@ -34,8 +34,9 @@ func main() {
 		return
 	}
 
+	logger := selfupdate.DiscardLogger
 	if verbose {
-		selfupdate.SetLogger(log.New(os.Stdout, "", 0))
+		logger = log.New(os.Stdout, "", 0)
 	}
 
 	repo := flag.Arg(0)
@@ -56,7 +57,7 @@ func main() {
 	}
 
 	ctx := context.Background()
-	source, err := cmd.GetSource(ctx, cvsType, domain)
+	source, err := cmd.GetSource(ctx, cvsType, domain, logger)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -64,6 +65,7 @@ func main() {
 
 	updater, err := selfupdate.NewUpdater(selfupdate.Config{
 		Source: source,
+		Logger: logger,
 	})
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

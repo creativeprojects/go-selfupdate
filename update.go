@@ -86,17 +86,17 @@ func (up *Updater) UpdateCommand(ctx context.Context, opt UpdateCommandOpt) (*Re
 
 	rel, err := up.DetectLatest(ctx, opt.Repository)
 	if errors.Is(err, ErrReleaseNotFound) {
-		log.Print("No release detected. Current version is considered up-to-date")
+		up.logger.Print("No release detected. Current version is considered up-to-date")
 		return &Release{version: version}, nil
 	}
 	if err != nil {
 		return nil, err
 	}
 	if version.Equal(rel.version) {
-		log.Printf("Current version %s is the latest. Update is not needed", version.String())
+		up.logger.Printf("Current version %s is the latest. Update is not needed", version.String())
 		return rel, nil
 	}
-	log.Printf("Will update %s to the latest version %s", opt.CmdPath, rel.Version())
+	up.logger.Printf("Will update %s to the latest version %s", opt.CmdPath, rel.Version())
 	if err := up.UpdateTo(ctx, UpdateToOpt{rel, opt.RelExe, opt.CmdPath}); err != nil {
 		return nil, err
 	}
@@ -114,12 +114,12 @@ func (up *Updater) UpdateSelf(ctx context.Context, opt UpdateSelfOpt) (*Release,
 }
 
 func (up *Updater) decompressAndUpdate(src io.Reader, assetURL, relExe, cmdPath string) error {
-	asset, err := fromStream(src, assetURL, relExe, up.os, up.arch)
+	asset, err := up.fromStream(src, assetURL, relExe)
 	if err != nil {
 		return err
 	}
 
-	log.Printf("Will update %s to the latest downloaded from %s", cmdPath, assetURL)
+	up.logger.Printf("Will update %s to the latest downloaded from %s", cmdPath, assetURL)
 	return update.Apply(asset, update.Options{
 		TargetPath:  cmdPath,
 		OldSavePath: up.oldSavePath,

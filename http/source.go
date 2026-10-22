@@ -54,6 +54,8 @@ type Config struct {
 	Transport *http.Transport
 	// Additional headers
 	Headers http.Header
+	// Logger receives the messages describing what the source is doing. Default is to discard them.
+	Logger selfupdate.Logger
 }
 
 // Source is used to load release information from an http repository
@@ -61,6 +63,7 @@ type Source struct {
 	baseURL   string
 	transport *http.Transport
 	headers   http.Header
+	logger    selfupdate.Logger
 }
 
 // NewSource creates a new http.Source from a config object.
@@ -78,12 +81,17 @@ func NewSource(config Config) (*Source, error) {
 	if config.Transport == nil {
 		config.Transport = &http.Transport{}
 	}
+	logger := config.Logger
+	if logger == nil {
+		logger = selfupdate.DiscardLogger
+	}
 
 	// Return new source.
 	return &Source{
 		baseURL:   config.BaseURL,
 		transport: config.Transport,
 		headers:   config.Headers,
+		logger:    logger,
 	}, nil
 }
 
@@ -218,6 +226,7 @@ func (s *Source) DownloadReleaseAsset(ctx context.Context, rel *selfupdate.Relea
 		return nil, fmt.Errorf("asset ID %d: %w", assetID, selfupdate.ErrAssetNotFound)
 	}
 
+	s.logger.Printf("downloading %q", downloadURL)
 	// Setup HTTP client.
 	client := &http.Client{Transport: s.transport}
 

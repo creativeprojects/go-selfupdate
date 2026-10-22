@@ -21,6 +21,7 @@ type Updater struct {
 	prerelease    bool
 	draft         bool
 	oldSavePath   string
+	logger        Logger
 }
 
 // NewUpdater creates a new updater instance.
@@ -57,6 +58,10 @@ func NewUpdater(config Config) (*Updater, error) {
 	if strings.EqualFold(os, "darwin") && config.UniversalArch != "" {
 		universalArch = config.UniversalArch
 	}
+	logger := config.Logger
+	if logger == nil {
+		logger = DiscardLogger
+	}
 
 	return &Updater{
 		source:        source,
@@ -69,5 +74,6 @@ func NewUpdater(config Config) (*Updater, error) {
 		prerelease:    config.Prerelease,
 		draft:         config.Draft,
 		oldSavePath:   config.OldSavePath,
+		logger:        logger,
 	}, nil
 }

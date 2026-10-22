@@ -70,7 +70,7 @@ func (up *Updater) validateReleaseAsset(
 	asset SourceAsset,
 	ver *semver.Version,
 ) (*Release, error) {
-	log.Printf("Successfully fetched release %s, name: %s, URL: %s, asset: %s",
+	up.logger.Printf("Successfully fetched release %s, name: %s, URL: %s, asset: %s",
 		rel.GetTagName(),
 		rel.GetName(),
 		rel.GetURL(),
@@ -168,7 +168,7 @@ func (up *Updater) findReleaseAndAssetForArch(arch string, rels []SourceRelease,
 	var asset SourceAsset
 	var release SourceRelease
 
-	log.Printf("Searching for a possible candidate for os %q and arch %q", up.os, arch)
+	up.logger.Printf("Searching for a possible candidate for os %q and arch %q", up.os, arch)
 
 	// Find the latest version from the list of releases.
 	// We go through all of them comparing the version tag, so the order of the list doesn't matter.
@@ -185,7 +185,7 @@ func (up *Updater) findReleaseAndAssetForArch(arch string, rels []SourceRelease,
 	}
 
 	if release == nil {
-		log.Printf("Could not find any release for os %q and arch %q", up.os, arch)
+		up.logger.Printf("Could not find any release for os %q and arch %q", up.os, arch)
 		return nil, nil, nil, false
 	}
 
@@ -194,27 +194,27 @@ func (up *Updater) findReleaseAndAssetForArch(arch string, rels []SourceRelease,
 
 func (up *Updater) findAssetFromRelease(rel SourceRelease, suffixes []string, targetVersion string) (SourceAsset, *semver.Version, bool) {
 	if rel == nil {
-		log.Print("No source release information")
+		up.logger.Print("No source release information")
 		return nil, nil, false
 	}
 	if targetVersion != "" && targetVersion != rel.GetTagName() {
-		log.Printf("Skip %s not matching to specified version %s", rel.GetTagName(), targetVersion)
+		up.logger.Printf("Skip %s not matching to specified version %s", rel.GetTagName(), targetVersion)
 		return nil, nil, false
 	}
 
 	if rel.GetDraft() && !up.draft && targetVersion == "" {
-		log.Printf("Skip draft version %s", rel.GetTagName())
+		up.logger.Printf("Skip draft version %s", rel.GetTagName())
 		return nil, nil, false
 	}
 	if rel.GetPrerelease() && !up.prerelease && targetVersion == "" {
-		log.Printf("Skip pre-release version %s", rel.GetTagName())
+		up.logger.Printf("Skip pre-release version %s", rel.GetTagName())
 		return nil, nil, false
 	}
 
 	verText := rel.GetTagName()
 	indices := reVersion.FindStringIndex(verText)
 	if indices == nil {
-		log.Printf("Skip version not adopting semver: %s", verText)
+		up.logger.Printf("Skip version not adopting semver: %s", verText)
 		return nil, nil, false
 	}
 	if indices[0] > 0 {
@@ -225,7 +225,7 @@ func (up *Updater) findAssetFromRelease(rel SourceRelease, suffixes []string, ta
 	// the semantic versioning. So it should be skipped.
 	ver, err := semver.NewVersion(verText)
 	if err != nil {
-		log.Printf("Failed to parse a semantic version: %s", verText)
+		up.logger.Printf("Failed to parse a semantic version: %s", verText)
 		return nil, nil, false
 	}
 
@@ -261,7 +261,7 @@ func (up *Updater) findAssetFromRelease(rel SourceRelease, suffixes []string, ta
 		}
 	}
 
-	log.Printf("No suitable asset was found in release %s", rel.GetTagName())
+	up.logger.Printf("No suitable asset was found in release %s", rel.GetTagName())
 	return nil, nil, false
 }
 
@@ -274,10 +274,10 @@ func (up *Updater) assetMatchFilters(name string) bool {
 		// if some filters are defined, match them: if any one matches, the asset is selected
 		for _, filter := range up.filters {
 			if filter.MatchString(name) {
-				log.Printf("Selected filtered asset: %s", name)
+				up.logger.Printf("Selected filtered asset: %s", name)
 				return true
 			}
-			log.Printf("Skipping asset %q not matching filter %v\n", name, filter)
+			up.logger.Printf("Skipping asset %q not matching filter %v\n", name, filter)
 		}
 	}
 	return false

@@ -16,7 +16,7 @@ import (
 func TestCompressionNotRequired(t *testing.T) {
 	buf := []byte{'a', 'b', 'c'}
 	want := bytes.NewReader(buf)
-	r, err := fromStream(want, "https://github.com/foo/bar/releases/download/v1.2.3/foo", "foo", runtime.GOOS, runtime.GOOS)
+	r, err := newTestUpdater().fromStream(want, "https://github.com/foo/bar/releases/download/v1.2.3/foo", "foo")
 	require.NoError(t, err)
 
 	have, err := io.ReadAll(r)
@@ -52,7 +52,7 @@ func TestDecompress(t *testing.T) {
 
 			ext := getArchiveFileExt(testCase)
 			url := "https://github.com/foo/bar/releases/download/v1.2.3/bar" + ext
-			r, err := fromStream(f, url, "bar", runtime.GOOS, runtime.GOOS)
+			r, err := newTestUpdater().fromStream(f, url, "bar")
 			require.NoError(t, err)
 
 			content, err := io.ReadAll(r)
@@ -81,7 +81,7 @@ func TestDecompressInvalidArchive(t *testing.T) {
 
 		ext := getArchiveFileExt(testCase.name)
 		url := "https://github.com/foo/bar/releases/download/v1.2.3/bar" + ext
-		_, err = fromStream(f, url, "bar", runtime.GOOS, runtime.GOOS)
+		_, err = newTestUpdater().fromStream(f, url, "bar")
 		assert.ErrorIs(t, err, ErrCannotDecompressFile)
 		if !strings.Contains(err.Error(), testCase.msg) {
 			t.Fatal("Unexpected error:", err)
@@ -106,7 +106,7 @@ func TestTargetNotFound(t *testing.T) {
 
 			ext := getArchiveFileExt(testCase.name)
 			url := "https://github.com/foo/bar/releases/download/v1.2.3/bar" + ext
-			_, err = fromStream(f, url, "bar", runtime.GOOS, runtime.GOOS)
+			_, err = newTestUpdater().fromStream(f, url, "bar")
 			assert.ErrorIs(t, err, ErrExecutableNotFoundInArchive)
 		})
 	}
@@ -189,7 +189,7 @@ func TestErrorFromReader(t *testing.T) {
 
 	for _, extension := range extensions {
 		t.Run(extension, func(t *testing.T) {
-			reader, err := fromStream(&bogusReader{}, "foo."+extension, "foo."+extension, runtime.GOOS, runtime.GOARCH)
+			reader, err := newTestUpdater().fromStream(&bogusReader{}, "foo."+extension, "foo."+extension)
 			if err != nil {
 				t.Log(err)
 				assert.ErrorIs(t, err, ErrCannotDecompressFile)
@@ -201,4 +201,9 @@ func TestErrorFromReader(t *testing.T) {
 			}
 		})
 	}
+}
+
+// newTestUpdater returns an updater for the current platform, enough to decompress an asset.
+func newTestUpdater() *Updater {
+	return &Updater{os: runtime.GOOS, arch: runtime.GOARCH, logger: DiscardLogger}
 }

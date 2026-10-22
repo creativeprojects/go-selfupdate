@@ -1,14 +1,7 @@
 package selfupdate
 
-var log Logger = &emptyLogger{}
-
-// SetLogger redirects all logs to the logger defined in parameter.
-// By default logs are not sent anywhere.
-func SetLogger(logger Logger) {
-	log = logger
-}
-
-// Logger interface. Compatible with standard log.Logger
+// Logger receives the messages describing what the updater and the sources are doing.
+// The interface is compatible with the standard library log.Logger.
 type Logger interface {
 	// Print calls Output to print to the standard logger. Arguments are handled in the manner of fmt.Print.
 	Print(v ...any)
@@ -16,8 +9,11 @@ type Logger interface {
 	Printf(format string, v ...any)
 }
 
-// emptyLogger to discard all logs by default
-type emptyLogger struct{}
+// DiscardLogger drops every message.
+// It is the default when no Logger is set in the Config of the updater or of a source.
+var DiscardLogger Logger = discardLogger{}
 
-func (l *emptyLogger) Print(v ...any)                 {}
-func (l *emptyLogger) Printf(format string, v ...any) {}
+type discardLogger struct{}
+
+func (discardLogger) Print(v ...any)                 {}
+func (discardLogger) Printf(format string, v ...any) {}

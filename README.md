@@ -202,6 +202,7 @@ Create an `Updater` with `NewUpdater` and give it a `Source` explicitly: `NewUpd
 | `DecompressCommand(src, url, cmd, os, arch)` | gone: `UpdateTo` decompresses the asset itself |
 | `GetExecutablePath()` | `ExecutablePath()` |
 | `ResolvePath(filename)` | gone |
+| `SetLogger(logger)` | gone: set `Logger` in `Config`, and in the `Config` of the source |
 | `update.Options` checksum and signature fields, `update.NewECDSAVerifier()`, `update.NewRSAVerifier()` | gone: set a `Validator` in `Config` to verify the downloaded asset |
 
 `UpdateTo` also creates the target file when it does not exist, so a first installation no longer needs
@@ -452,6 +453,20 @@ updater, _ := NewUpdater(Config{UniversalArch: "all"})
 ```
 
 Default is empty, which means no fallback.
+
+# Logging
+
+The library is silent by default. To follow what it does, give a `Logger` to the updater and to the source.
+Any type with the methods `Print(v ...any)` and `Printf(format string, v ...any)` will do, like the standard `log.Logger`:
+
+```go
+logger := log.New(os.Stderr, "selfupdate ", 0)
+source, err := github.NewSource(github.Config{Logger: logger})
+if err != nil {
+	return err
+}
+updater, err := selfupdate.NewUpdater(selfupdate.Config{Source: source, Logger: logger})
+```
 
 # Providers
 

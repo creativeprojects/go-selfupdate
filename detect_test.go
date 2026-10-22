@@ -3,9 +3,6 @@ package selfupdate_test
 import (
 	"context"
 	"fmt"
-	"io"
-	stdlog "log"
-	"os"
 	"strconv"
 	"strings"
 	"testing"
@@ -175,9 +172,10 @@ func TestDetectReleasesForVariousArchives(t *testing.T) {
 		{"rhysd-test/test-release-tar-xz", "release-"},
 	} {
 		t.Run(tc.slug, func(t *testing.T) {
-			source, err := github.NewSource(github.Config{})
+			logger := newTestLogger(t)
+			source, err := github.NewSource(github.Config{Logger: logger})
 			require.NoError(t, err, "failed to create source")
-			updater, err := selfupdate.NewUpdater(selfupdate.Config{Source: source, Arch: "amd64"})
+			updater, err := selfupdate.NewUpdater(selfupdate.Config{Source: source, Arch: "amd64", Logger: logger})
 			require.NoError(t, err, "failed to create updater")
 			// the release tagged as latest on GitHub is not 1.2.3 for every repository: search for the highest version instead
 			r, err := updater.DetectVersion(context.Background(), selfupdate.DetectVersionOpt{selfupdate.ParseSlug(tc.slug), ""})
@@ -508,9 +506,6 @@ func TestFindAssetFromRelease(t *testing.T) {
 }
 
 func TestFindReleaseAndAsset(t *testing.T) {
-	selfupdate.SetLogger(stdlog.New(os.Stderr, "", 0))
-	defer selfupdate.SetLogger(stdlog.New(io.Discard, "", 0))
-
 	tag2 := "v2.0.0"
 	rel2 := "rel2"
 	assetLinux386 := "asset_linux_386.tgz"
@@ -893,6 +888,7 @@ func TestFindReleaseAndAsset(t *testing.T) {
 
 			updater, err := selfupdate.NewUpdater(selfupdate.Config{
 				Source:        &memory.Source{},
+				Logger:        newTestLogger(t),
 				Filters:       testItem.filters,
 				OS:            testItem.os,
 				Arch:          testItem.arch,

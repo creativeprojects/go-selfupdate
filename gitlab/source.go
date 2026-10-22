@@ -10,7 +10,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 
@@ -25,6 +24,8 @@ type Config struct {
 	APIToken string
 	// BaseURL is a base URL of your private GitLab instance
 	BaseURL string
+	// Logger receives the messages describing what the source is doing. Default is to discard them.
+	Logger selfupdate.Logger
 }
 
 // Source is used to load release information from GitLab
@@ -32,6 +33,7 @@ type Source struct {
 	api     *gitlab.Client
 	token   string
 	baseURL string
+	logger  selfupdate.Logger
 }
 
 // NewSource creates a new gitlab.Source from a config object.
@@ -53,10 +55,15 @@ func NewSource(config Config) (*Source, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cannot create GitLab client: %w", err)
 	}
+	logger := config.Logger
+	if logger == nil {
+		logger = selfupdate.DiscardLogger
+	}
 	return &Source{
 		api:     client,
 		token:   token,
 		baseURL: config.BaseURL,
+		logger:  logger,
 	}, nil
 }
 
@@ -126,11 +133,10 @@ func (s *Source) DownloadReleaseAsset(ctx context.Context, rel *selfupdate.Relea
 		return nil, fmt.Errorf("asset ID %d: %w", assetID, selfupdate.ErrAssetNotFound)
 	}
 
-	log.Printf("downloading %q", downloadURL)
+	s.logger.Printf("downloading %q", downloadURL)
 	client := http.DefaultClient
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, downloadURL, http.NoBody)
 	if err != nil {
-		log.Print(err)
 		return nil, err
 	}
 
@@ -147,7 +153,6 @@ func (s *Source) DownloadReleaseAsset(ctx context.Context, rel *selfupdate.Relea
 	response, err := client.Do(req)
 
 	if err != nil {
-		log.Print(err)
 		return nil, err
 	}
 

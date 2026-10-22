@@ -27,11 +27,14 @@ type Config struct {
 	// EnterpriseUploadURL is a URL to upload stuffs to GitHub Enterprise instance. This is often the same as an API base URL.
 	// So if this field is not set and EnterpriseBaseURL is set, EnterpriseBaseURL is also set to this field.
 	EnterpriseUploadURL string
+	// Logger receives the messages describing what the source is doing. Default is to discard them.
+	Logger selfupdate.Logger
 }
 
 // Source is used to load release information from GitHub
 type Source struct {
-	api *github.Client
+	api    *github.Client
+	logger selfupdate.Logger
 }
 
 // NewSource creates a new github.Source from a config object.
@@ -63,8 +66,13 @@ func NewSource(config Config) (*Source, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cannot parse GitHub enterprise URL: %w", err)
 	}
+	logger := config.Logger
+	if logger == nil {
+		logger = selfupdate.DiscardLogger
+	}
 	return &Source{
-		api: client,
+		api:    client,
+		logger: logger,
 	}, nil
 }
 
@@ -139,6 +147,7 @@ func (s *Source) DownloadReleaseAsset(ctx context.Context, rel *selfupdate.Relea
 			return nil, fmt.Errorf("asset ID %d: %w", assetID, selfupdate.ErrAssetNotFound)
 		}
 		// Download the asset directly from the AssetURL
+		s.logger.Printf("downloading %q", downloadURL)
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, downloadURL, http.NoBody)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create download request:%w", err)
@@ -162,6 +171,7 @@ func (s *Source) DownloadReleaseAsset(ctx context.Context, rel *selfupdate.Relea
 	if err != nil {
 		return nil, err
 	}
+	s.logger.Printf("downloading asset %d from repository %s/%s", assetID, owner, repo)
 	// create a new http client so the GitHub library can download the redirected file (if any)
 	client := http.DefaultClient
 	rc, _, err := s.api.Repositories.DownloadReleaseAsset(ctx, owner, repo, assetID, client)

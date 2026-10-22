@@ -50,8 +50,9 @@ func main() {
 		return
 	}
 
+	logger := selfupdate.DiscardLogger
 	if verbose {
-		selfupdate.SetLogger(log.New(os.Stdout, "", 0))
+		logger = log.New(os.Stdout, "", 0)
 	}
 
 	repo := flag.Arg(0)
@@ -70,7 +71,7 @@ func main() {
 		fmt.Printf("slug %q on domain %q\n", slug, domain)
 	}
 
-	source, err := cmd.GetSource(context.Background(), cvsType, domain)
+	source, err := cmd.GetSource(context.Background(), cvsType, domain, logger)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -78,6 +79,7 @@ func main() {
 
 	cfg := selfupdate.Config{
 		Source: source,
+		Logger: logger,
 	}
 	if forceOS != "" {
 		cfg.OS = forceOS

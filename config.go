@@ -26,4 +26,7 @@ type Config struct {
 	Prerelease bool
 	// To prevent automatic removal of the old binary, and allow you to test an update prior to manual removal.
 	OldSavePath string
+	// Logger receives the messages describing what the updater is doing. Default is to discard them.
+	// Each source has its own Logger in its Config.
+	Logger Logger
 }

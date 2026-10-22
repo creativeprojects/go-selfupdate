@@ -58,50 +58,50 @@ func SplitDomainSlug(repo string) (domain, slug string, err error) {
 	return domain, slug, nil
 }
 
-func GetSource(ctx context.Context, cvsType, domain string) (selfupdate.Source, error) {
+func GetSource(ctx context.Context, cvsType, domain string, logger selfupdate.Logger) (selfupdate.Source, error) {
 	if cvsType != "auto" && cvsType != "" {
-		source, err := getSourceFromName(ctx, cvsType, domain)
+		source, err := getSourceFromName(ctx, cvsType, domain, logger)
 		if err != nil {
 			return nil, err
 		}
 		return source, nil
 	}
 
-	source, err := getSourceFromURL(ctx, domain)
+	source, err := getSourceFromURL(ctx, domain, logger)
 	if err != nil {
 		return nil, err
 	}
 	return source, nil
 }
 
-func getSourceFromName(ctx context.Context, name, domain string) (selfupdate.Source, error) {
+func getSourceFromName(ctx context.Context, name, domain string, logger selfupdate.Logger) (selfupdate.Source, error) {
 	switch name {
 	case "gitea":
-		return gitea.NewSource(ctx, gitea.Config{BaseURL: domain})
+		return gitea.NewSource(ctx, gitea.Config{BaseURL: domain, Logger: logger})
 
 	case "gitlab":
-		return gitlab.NewSource(gitlab.Config{BaseURL: domain})
+		return gitlab.NewSource(gitlab.Config{BaseURL: domain, Logger: logger})
 
 	case "http":
-		return http.NewSource(http.Config{BaseURL: domain})
+		return http.NewSource(http.Config{BaseURL: domain, Logger: logger})
 
 	default:
-		return newGitHubSource(domain)
+		return newGitHubSource(domain, logger)
 	}
 }
 
-func getSourceFromURL(ctx context.Context, domain string) (selfupdate.Source, error) {
+func getSourceFromURL(ctx context.Context, domain string, logger selfupdate.Logger) (selfupdate.Source, error) {
 	if strings.Contains(domain, "gitea") {
-		return gitea.NewSource(ctx, gitea.Config{BaseURL: domain})
+		return gitea.NewSource(ctx, gitea.Config{BaseURL: domain, Logger: logger})
 	}
 	if strings.Contains(domain, "gitlab") {
-		return gitlab.NewSource(gitlab.Config{BaseURL: domain})
+		return gitlab.NewSource(gitlab.Config{BaseURL: domain, Logger: logger})
 	}
-	return newGitHubSource(domain)
+	return newGitHubSource(domain, logger)
 }
 
-func newGitHubSource(domain string) (*github.Source, error) {
-	config := github.Config{}
+func newGitHubSource(domain string, logger selfupdate.Logger) (*github.Source, error) {
+	config := github.Config{Logger: logger}
 	if domain != "" && !strings.HasSuffix(domain, "://github.com") {
 		config.EnterpriseBaseURL = domain
 	}

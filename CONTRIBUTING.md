@@ -127,7 +127,7 @@ The lint configuration does not enable a formatter, so run `gofmt` yourself or l
 - **Keep the public API stable.** This library is imported by many projects. Do not rename or remove exported identifiers, change function signatures or change the semantics of existing options without discussing it in an issue first. Prefer adding a new option or function.
 - **Pass a `context.Context`** to anything that does network or file I/O, as the `Source` interface does. Do not store contexts in structs.
 - **Return sentinel errors** from [errors.go](errors.go) where one exists, and wrap them with `fmt.Errorf("...: %w", err)` so callers can use `errors.Is`. Add a new `Err...` variable there when a new error condition is worth distinguishing.
-- **Log through the package logger.** Use the package level `log` variable (see [log.go](log.go)) rather than `fmt.Print` or the standard `log` package. The library is silent by default, and users opt in with `SetLogger`.
+- **Log through the configured logger.** Use the `logger` field of the `Updater` or of the `Source` (see [log.go](log.go)) rather than `fmt.Print` or the standard `log` package. The library is silent by default, and users opt in by setting `Logger` in the `Config` of the updater and of the source.
 - **Document exported identifiers** with a Go doc comment. The comment starts with the identifier name.
 - **Keep comments short** and only where the code is not obvious on its own.
 - **Avoid new dependencies.** See [Dependencies](#dependencies).
@@ -139,7 +139,7 @@ The lint configuration does not enable a formatter, so run `gofmt` yourself or l
 - Use `mockMemorySource(t)` from [mock_data_test.go](mock_data_test.go) when you need a source populated with releases and assets, and `mockSignedSourceRepository(t)` for one with signed checksum files. Extend the mock data if your test needs a new asset shape, and keep the existing cases passing.
 - Put binary fixtures in [testdata/](testdata/). Keep them as small as possible, and add a note in the pull request on how they were produced if it is not obvious.
 - Use `t.TempDir()` for anything written to disk.
-- Use `t.Parallel()` when the test does not depend on global state (the package logger, environment variables, the working directory).
+- Use `t.Parallel()` when the test does not depend on global state (environment variables, the working directory).
 - Do not hard code paths with `/` or `\`. Use `filepath.Join`.
 
 ## Adding a new source provider

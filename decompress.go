@@ -19,16 +19,16 @@ import (
 var (
 	fileTypes = []struct {
 		ext        string
-		decompress func(src io.Reader, releaseBinary, os, arch string) (io.Reader, error)
+		decompress func(up *Updater, src io.Reader, releaseBinary string) (io.Reader, error)
 	}{
-		{".zip", unzip},
-		{".tar.gz", untargz},
-		{".tgz", untargz},
-		{".gzip", gunzip},
-		{".gz", gunzip},
-		{".tar.xz", untarxz},
-		{".xz", unxz},
-		{".bz2", unbz2},
+		{".zip", (*Updater).unzip},
+		{".tar.gz", (*Updater).untargz},
+		{".tgz", (*Updater).untargz},
+		{".gzip", (*Updater).gunzip},
+		{".gz", (*Updater).gunzip},
+		{".tar.xz", (*Updater).untarxz},
+		{".xz", (*Updater).unxz},
+		{".bz2", (*Updater).unbz2},
 	}
 	// pattern copied from bottom of the page: https://semver.org/
 	semverPattern = `(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?`
@@ -43,18 +43,18 @@ var (
 // These wrapped errors can be returned:
 //   - ErrCannotDecompressFile
 //   - ErrExecutableNotFoundInArchive
-func fromStream(reader io.Reader, url, releaseBinary, os, arch string) (io.Reader, error) {
+func (up *Updater) fromStream(reader io.Reader, url, releaseBinary string) (io.Reader, error) {
 	for _, fileType := range fileTypes {
 		if strings.HasSuffix(url, fileType.ext) {
-			return fileType.decompress(reader, releaseBinary, os, arch)
+			return fileType.decompress(up, reader, releaseBinary)
 		}
 	}
-	log.Print("File is not compressed")
+	up.logger.Print("File is not compressed")
 	return reader, nil
 }
 
-func unzip(src io.Reader, releaseBinary, os, arch string) (io.Reader, error) {
-	log.Print("Decompressing zip file")
+func (up *Updater) unzip(src io.Reader, releaseBinary string) (io.Reader, error) {
+	up.logger.Print("Decompressing zip file")
 
 	// Zip format requires its file size for Decompressing.
 	// So we need to read the HTTP response into a buffer at first.
@@ -71,8 +71,8 @@ func unzip(src io.Reader, releaseBinary, os, arch string) (io.Reader, error) {
 
 	for _, file := range z.File {
 		_, target := filepath.Split(file.Name)
-		if !file.FileInfo().IsDir() && matchExecutableName(releaseBinary, os, arch, target) {
-			log.Printf("Executable file %q was found in zip archive", file.Name)
+		if !file.FileInfo().IsDir() && matchExecutableName(releaseBinary, up.os, up.arch, target) {
+			up.logger.Printf("Executable file %q was found in zip archive", file.Name)
 			return file.Open()
 		}
 	}
@@ -80,19 +80,19 @@ func unzip(src io.Reader, releaseBinary, os, arch string) (io.Reader, error) {
 	return nil, fmt.Errorf("%w in zip file: %q", ErrExecutableNotFoundInArchive, releaseBinary)
 }
 
-func untargz(src io.Reader, releaseBinary, os, arch string) (io.Reader, error) {
-	log.Print("Decompressing tar.gz file")
+func (up *Updater) untargz(src io.Reader, releaseBinary string) (io.Reader, error) {
+	up.logger.Print("Decompressing tar.gz file")
 
 	gz, err := gzip.NewReader(src)
 	if err != nil {
 		return nil, fmt.Errorf("%w tar.gz file: %s", ErrCannotDecompressFile, err)
 	}
 
-	return unarchiveTar(gz, releaseBinary, os, arch)
+	return up.unarchiveTar(gz, releaseBinary)
 }
 
-func gunzip(src io.Reader, releaseBinary, os, arch string) (io.Reader, error) {
-	log.Print("Decompressing gzip file")
+func (up *Updater) gunzip(src io.Reader, releaseBinary string) (io.Reader, error) {
+	up.logger.Print("Decompressing gzip file")
 
 	r, err := gzip.NewReader(src)
 	if err != nil {
@@ -100,43 +100,43 @@ func gunzip(src io.Reader, releaseBinary, os, arch string) (io.Reader, error) {
 	}
 
 	target := r.Name
-	if !matchExecutableName(releaseBinary, os, arch, target) {
+	if !matchExecutableName(releaseBinary, up.os, up.arch, target) {
 		return nil, fmt.Errorf("%w: expected %q but found %q", ErrExecutableNotFoundInArchive, releaseBinary, target)
 	}
 
-	log.Printf("Executable file %q was found in gzip file", target)
+	up.logger.Printf("Executable file %q was found in gzip file", target)
 	return r, nil
 }
 
-func untarxz(src io.Reader, releaseBinary, os, arch string) (io.Reader, error) {
-	log.Print("Decompressing tar.xz file")
+func (up *Updater) untarxz(src io.Reader, releaseBinary string) (io.Reader, error) {
+	up.logger.Print("Decompressing tar.xz file")
 
 	xzip, err := xz.NewReader(src)
 	if err != nil {
 		return nil, fmt.Errorf("%w tar.xz file: %s", ErrCannotDecompressFile, err)
 	}
 
-	return unarchiveTar(xzip, releaseBinary, os, arch)
+	return up.unarchiveTar(xzip, releaseBinary)
 }
 
-func unxz(src io.Reader, releaseBinary, os, arch string) (io.Reader, error) {
-	log.Print("Decompressing xzip file")
+func (up *Updater) unxz(src io.Reader, releaseBinary string) (io.Reader, error) {
+	up.logger.Print("Decompressing xzip file")
 
 	xzip, err := xz.NewReader(src)
 	if err != nil {
 		return nil, fmt.Errorf("%w xzip file: %s", ErrCannotDecompressFile, err)
 	}
 
-	log.Printf("Decompressed file from xzip is assumed to be an executable: %s", releaseBinary)
+	up.logger.Printf("Decompressed file from xzip is assumed to be an executable: %s", releaseBinary)
 	return xzip, nil
 }
 
-func unbz2(src io.Reader, releaseBinary, os, arch string) (io.Reader, error) {
-	log.Print("Decompressing bzip2 file")
+func (up *Updater) unbz2(src io.Reader, releaseBinary string) (io.Reader, error) {
+	up.logger.Print("Decompressing bzip2 file")
 
 	bz2 := bzip2.NewReader(src)
 
-	log.Printf("Decompressed file from bzip2 is assumed to be an executable: %s", releaseBinary)
+	up.logger.Printf("Decompressed file from bzip2 is assumed to be an executable: %s", releaseBinary)
 	return bz2, nil
 }
 
@@ -154,7 +154,7 @@ func matchExecutableName(releaseBinary, os, arch, target string) bool {
 	return pattern.MatchString(target)
 }
 
-func unarchiveTar(src io.Reader, releaseBinary, os, arch string) (io.Reader, error) {
+func (up *Updater) unarchiveTar(src io.Reader, releaseBinary string) (io.Reader, error) {
 	t := tar.NewReader(src)
 	for {
 		h, err := t.Next()
@@ -165,8 +165,8 @@ func unarchiveTar(src io.Reader, releaseBinary, os, arch string) (io.Reader, err
 			return nil, fmt.Errorf("%w tar file: %s", ErrCannotDecompressFile, err)
 		}
 		_, target := filepath.Split(h.Name)
-		if matchExecutableName(releaseBinary, os, arch, target) {
-			log.Printf("Executable file %q was found in tar archive", h.Name)
+		if matchExecutableName(releaseBinary, up.os, up.arch, target) {
+			up.logger.Printf("Executable file %q was found in tar archive", h.Name)
 			return t, nil
 		}
 	}
