@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
 	"github.com/ProtonMail/go-crypto/openpgp"
+	"github.com/stretchr/testify/require"
 )
 
 // mockSourceRepository creates a new *MockSource pre-populated with different versions and assets

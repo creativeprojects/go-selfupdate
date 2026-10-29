@@ -15,16 +15,20 @@ If newer version than itself is detected, it downloads released binary from GitH
 There are some naming rules. Please read following links.
 
 Naming Rules of Released Binaries:
-  https://github.com/creativeprojects/go-selfupdate#naming-rules-of-released-binaries
+
+	https://github.com/creativeprojects/go-selfupdate#naming-rules-of-released-binaries
 
 Naming Rules of Git Tags:
-  https://github.com/creativeprojects/go-selfupdate#naming-rules-of-versions-git-tags
+
+	https://github.com/creativeprojects/go-selfupdate#naming-rules-of-versions-git-tags
 
 This package is hosted on GitHub:
-  https://github.com/creativeprojects/go-selfupdate
+
+	https://github.com/creativeprojects/go-selfupdate
 
 Small CLI tools as wrapper of this library are available also:
-  https://github.com/creativeprojects/go-selfupdate/cmd/detect-latest-release
-  https://github.com/creativeprojects/go-selfupdate/cmd/go-get-release
+
+	https://github.com/creativeprojects/go-selfupdate/cmd/detect-latest-release
+	https://github.com/creativeprojects/go-selfupdate/cmd/go-get-release
 */
 package selfupdate

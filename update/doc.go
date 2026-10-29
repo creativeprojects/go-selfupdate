@@ -1,7 +1,7 @@
 /*
 Package update provides functionality to implement secure, self-updating Go programs (or other single-file targets).
 
-Basic Example
+# Basic Example
 
 This example shows how to update a program remotely from a URL.
 
@@ -28,8 +28,7 @@ This example shows how to update a program remotely from a URL.
 		return err
 	}
 
-
-Checksum Verification
+# Checksum Verification
 
 Updating executable code on a computer can be a dangerous operation unless you
 take the appropriate steps to guarantee the authenticity of the new code. While
@@ -67,7 +66,7 @@ specified as a hex string.
 		return err
 	}
 
-Cryptographic Signature Verification
+# Cryptographic Signature Verification
 
 Cryptographic verification of new code from an update is an extremely important way to guarantee the
 security and integrity of your updates.
@@ -120,7 +119,5 @@ with the private key and distribute the signature along with the update.
 		}
 		return err
 	}
-
-
 */
 package update
