@@ -6,7 +6,7 @@ require (
 	code.gitea.io/sdk/gitea v0.25.1
 	github.com/Masterminds/semver/v3 v3.5.0
 	github.com/ProtonMail/go-crypto v1.5.2
-	github.com/google/go-github/v86 v86.0.0
+	github.com/google/go-github/v93 v93.0.0
 	github.com/stretchr/testify v1.12.1
 	github.com/ulikunitz/xz v0.5.17
 	gitlab.com/gitlab-org/api/client-go v1.46.0
